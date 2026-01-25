@@ -7,7 +7,7 @@
 CREATE EXTENSION IF NOT EXISTS timescaledb;
 
 -- =============================================================================
--- AUDIT EVENTS HYPERTABLE
+-- AUDIT EVENTS TABLE
 -- High write volume: chunk_interval = 1 day
 -- segment_by: organization_id (common filter, >100 rows per chunk expected)
 -- order_by: created_at DESC (natural time-series progression)
@@ -29,19 +29,24 @@ CREATE TABLE "audit_events" (
 	"payload" jsonb DEFAULT '{}'::jsonb,
 	"tags" jsonb DEFAULT '[]'::jsonb,
 	CONSTRAINT "audit_events_organization_id_created_at_id_pk" PRIMARY KEY("organization_id","created_at","id")
-) WITH (
-	tsdb.hypertable,
-	tsdb.partition_column = 'created_at',
-	tsdb.chunk_interval = '1 day',
-	tsdb.enable_columnstore = true,
-	tsdb.segmentby = 'organization_id',
-	tsdb.orderby = 'created_at DESC'
+);
+
+--> statement-breakpoint
+
+SELECT create_hypertable('audit_events', 'created_at', chunk_time_interval => INTERVAL '1 day');
+
+--> statement-breakpoint
+
+ALTER TABLE audit_events SET (
+	timescaledb.compress,
+	timescaledb.compress_segmentby = 'organization_id',
+	timescaledb.compress_orderby = 'created_at DESC'
 );
 
 --> statement-breakpoint
 
 -- =============================================================================
--- DRIFT BASELINES HYPERTABLE
+-- DRIFT BASELINES TABLE
 -- Lower volume: chunk_interval = 1 week
 -- segment_by: organization_id
 -- order_by: signal_name, calculated_at DESC (group similar signals)
@@ -57,19 +62,24 @@ CREATE TABLE "drift_baselines" (
 	"sample_count" double precision NOT NULL,
 	"metadata" jsonb DEFAULT '{}'::jsonb,
 	CONSTRAINT "drift_baselines_organization_id_calculated_at_signal_name_pk" PRIMARY KEY("organization_id","calculated_at","signal_name")
-) WITH (
-	tsdb.hypertable,
-	tsdb.partition_column = 'calculated_at',
-	tsdb.chunk_interval = '1 week',
-	tsdb.enable_columnstore = true,
-	tsdb.segmentby = 'organization_id',
-	tsdb.orderby = 'signal_name, calculated_at DESC'
+);
+
+--> statement-breakpoint
+
+SELECT create_hypertable('drift_baselines', 'calculated_at', chunk_time_interval => INTERVAL '1 week');
+
+--> statement-breakpoint
+
+ALTER TABLE drift_baselines SET (
+	timescaledb.compress,
+	timescaledb.compress_segmentby = 'organization_id',
+	timescaledb.compress_orderby = 'signal_name, calculated_at DESC'
 );
 
 --> statement-breakpoint
 
 -- =============================================================================
--- SAFE MODE HISTORY HYPERTABLE
+-- SAFE MODE HISTORY TABLE
 -- Lower volume: chunk_interval = 1 week
 -- segment_by: organization_id
 -- order_by: created_at DESC
@@ -86,13 +96,18 @@ CREATE TABLE "safe_mode_history" (
 	"incident_id" uuid,
 	"effective_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "safe_mode_history_organization_id_created_at_id_pk" PRIMARY KEY("organization_id","created_at","id")
-) WITH (
-	tsdb.hypertable,
-	tsdb.partition_column = 'created_at',
-	tsdb.chunk_interval = '1 week',
-	tsdb.enable_columnstore = true,
-	tsdb.segmentby = 'organization_id',
-	tsdb.orderby = 'created_at DESC'
+);
+
+--> statement-breakpoint
+
+SELECT create_hypertable('safe_mode_history', 'created_at', chunk_time_interval => INTERVAL '1 week');
+
+--> statement-breakpoint
+
+ALTER TABLE safe_mode_history SET (
+	timescaledb.compress,
+	timescaledb.compress_segmentby = 'organization_id',
+	timescaledb.compress_orderby = 'created_at DESC'
 );
 
 --> statement-breakpoint
@@ -122,11 +137,11 @@ CREATE INDEX "safe_mode_history_effective_at_idx" ON "safe_mode_history" USING b
 -- Compress after 7 days when data becomes mostly immutable
 -- =============================================================================
 
-CALL add_columnstore_policy('audit_events', after => INTERVAL '7 days');
+SELECT add_compression_policy('audit_events', INTERVAL '7 days');
 --> statement-breakpoint
-CALL add_columnstore_policy('drift_baselines', after => INTERVAL '7 days');
+SELECT add_compression_policy('drift_baselines', INTERVAL '7 days');
 --> statement-breakpoint
-CALL add_columnstore_policy('safe_mode_history', after => INTERVAL '7 days');
+SELECT add_compression_policy('safe_mode_history', INTERVAL '7 days');
 
 --> statement-breakpoint
 
@@ -217,22 +232,22 @@ SELECT add_continuous_aggregate_policy('audit_events_daily',
 -- =============================================================================
 
 ALTER MATERIALIZED VIEW audit_events_hourly SET (
-	timescaledb.enable_columnstore,
-	timescaledb.segmentby = 'organization_id, event_type, decision',
-	timescaledb.orderby = 'bucket DESC'
+	timescaledb.compress,
+	timescaledb.compress_segmentby = 'organization_id, event_type, decision',
+	timescaledb.compress_orderby = 'bucket DESC'
 );
 --> statement-breakpoint
-CALL add_columnstore_policy('audit_events_hourly', after => INTERVAL '3 days');
+SELECT add_compression_policy('audit_events_hourly', INTERVAL '3 days');
 
 --> statement-breakpoint
 
 ALTER MATERIALIZED VIEW audit_events_daily SET (
-	timescaledb.enable_columnstore,
-	timescaledb.segmentby = 'organization_id',
-	timescaledb.orderby = 'bucket DESC'
+	timescaledb.compress,
+	timescaledb.compress_segmentby = 'organization_id',
+	timescaledb.compress_orderby = 'bucket DESC'
 );
 --> statement-breakpoint
-CALL add_columnstore_policy('audit_events_daily', after => INTERVAL '7 days');
+SELECT add_compression_policy('audit_events_daily', INTERVAL '7 days');
 
 --> statement-breakpoint
 
