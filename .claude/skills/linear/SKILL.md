@@ -13,6 +13,137 @@ Lightweight Linear integration via API scripts. Replaces heavy MCP plugin (~33k 
 **Team:** Salomatic
 **Default team for commands:** "Salomatic"
 
+---
+
+## CRITICAL: Repo-Aware Project Filtering
+
+**When running from the `popper` repo**, all ticket queries MUST default to filtering by the **"Popper"** project unless the user explicitly asks for all projects or a different project.
+
+### Automatic Behavior
+
+| Repo | Default Project Filter |
+|------|------------------------|
+| `popper` | `Popper` |
+| `salomatic` / `unified-health-app` | `Unified Health App` |
+| other repos | No filter (all projects) |
+
+### Commands That Apply This Filter
+
+When in `popper` repo, these commands auto-filter:
+- `member <name>` → `project-member "Popper" <name>`
+- `workload` → filter results to Popper project
+- `status` → filter results to Popper project
+- General "tickets" / "tasks" queries → `project-issues "Popper"`
+
+### Explicit Override
+
+User can override by saying:
+- "all projects" / "все проекты" → no filter
+- "unified health app tickets" → filter by that project
+- "show all Harsh's tickets across projects" → no filter
+
+---
+
+## Popper Project Team
+
+**Only 2 developers work on Popper:**
+
+| Name | Role | Tickets | Focus |
+|------|------|---------|-------|
+| Davron Yuldashev | Backend/DevOps | 22 | All backend: DSL, policy engine, API, DB, auth, drift detection |
+| Harsh Manwani | UI/UX Designer | 3 | Ops Dashboard UI only (status view, audit log, safe-mode controls) |
+
+### Popper Ticket Summary
+
+| Phase | Davron | Harsh | Total |
+|-------|--------|-------|-------|
+| Phase 1 | 3 (Done) | - | 3 |
+| Phase 2 | 5 | - | 5 |
+| Phase 3 | 3 | - | 3 |
+| Phase 4 | 2 | - | 2 |
+| Phase 5 | 3 | - | 3 |
+| Phase 6 | 3 | - | 3 |
+| Phase 7 | - | 3 | 3 |
+| Phase 8 | 2 | - | 2 |
+| Untagged | 1 | - | 1 |
+| **Total** | **22** | **3** | **25** |
+
+### Current Status (Popper)
+
+- **Done:** 3 (Phase 1 foundation)
+- **In Progress:** 1 (POP-004: Hermes Integration)
+- **Backlog:** 21
+
+### POP-XXX Ticket IDs
+
+**You can use `POP-XXX` instead of `SAL-XXX`** for all Popper tickets. The system auto-resolves:
+
+```bash
+# These are equivalent:
+linear.sh get POP-004
+linear.sh get SAL-599
+
+# Works for all commands:
+linear.sh update POP-004 status "Done"
+linear.sh comment POP-004 "Completed implementation"
+```
+
+| POP ID | SAL ID | Title |
+|--------|--------|-------|
+| POP-001 | SAL-596 | Project Foundation Setup |
+| POP-002 | SAL-597 | TimescaleDB Database Setup |
+| POP-003 | SAL-598 | Basic Elysia Server |
+| POP-004 | SAL-599 | Hermes Package Integration |
+| ... | ... | ... |
+| POP-025 | SAL-620 | Test Fixtures & E2E Test Suite |
+
+### Sub-Ticket Naming Convention (A/B System)
+
+When adding related tickets that extend existing functionality, use the **A/B naming scheme**:
+
+1. **Rename parent ticket** to include "A" suffix in title
+   - `POP-013: Operational Settings API` → `POP-013A: Operational Settings API`
+
+2. **Create child ticket** with "B" suffix
+   - `POP-013B: Policy Lifecycle & Adaptability`
+
+3. **Maintain dependencies**: B depends on A
+
+**Rules:**
+- **A** = original functionality (unchanged scope)
+- **B** = extension/enhancement (new scope)
+- **C, D...** = additional extensions if needed
+- All sub-tickets share the same Linear labels for grouping
+- B tickets should reference A tickets in description ("Depends on POP-XXA")
+
+**Example A/B pairs:**
+| Parent (A) | Extension (B) | Relationship |
+|------------|---------------|--------------|
+| POP-013A: Operational Settings API | POP-013B: Policy Lifecycle & Adaptability | Settings → versioned policies |
+| POP-015A: Drift Baseline Calculation | POP-015B: RLHF Feedback Loop | Drift metrics → feedback integration |
+| POP-023A: Export Bundle Generator | POP-023B: TEFCA/USCDI Compliance | Export → standards compliance |
+
+**Commands for A/B workflow:**
+```bash
+# Step 1: Rename existing ticket to A
+linear.sh update "POP-013" title "POP-013A: Operational Settings API"
+
+# Step 2: Create B ticket
+linear.sh create "Salomatic" "POP-013B: Policy Lifecycle & Adaptability" "Depends on POP-013A. Implements Safety DSL spec §10."
+
+# Step 3: Add same labels
+linear.sh label-add "POP-013B" "arpa"
+linear.sh label-add "POP-013B" "phase-4"
+```
+
+### Popper-Specific Aliases
+
+When in popper repo, these names map to Popper team only:
+- `davr`, `davron`, `давр` → Davron Yuldashev
+- `harsh`, `харш` → Harsh Manwani
+
+Other team members (Anton, Ania, Katya) have NO Popper tickets.
+
 ### Team Members (with assigned tickets)
 
 | Name | Role | Email | Aliases |
@@ -97,6 +228,16 @@ Get your key at: https://linear.app/settings/api
 ### Search Issues
 ```bash
 .claude/skills/linear/scripts/linear.sh search "query text"
+```
+
+### List Project Issues (filter by project)
+```bash
+.claude/skills/linear/scripts/linear.sh project-issues "Popper" [limit]
+```
+
+### Project Member Issues (filter by project + assignee)
+```bash
+.claude/skills/linear/scripts/linear.sh project-member "Popper" "Harsh"
 ```
 
 ### Get Issue Details
@@ -471,6 +612,27 @@ User: "Show Harsh's tasks"
 User: "Create a bug ticket for login issue"
 → `.claude/skills/linear/scripts/linear.sh create "Salomatic" "Login button not working" "Users report..."`
 
+### Repo-Aware Examples (from `popper` repo)
+
+User: "what are Harsh's tickets?"
+→ `.claude/skills/linear/scripts/linear.sh project-member "Popper" "Harsh"`
+(Auto-filters to Popper project - returns 3 UI tickets)
+
+User: "Davron's tasks" / "what is davr working on?"
+→ `.claude/skills/linear/scripts/linear.sh project-member "Popper" "Davron"`
+(Auto-filters to Popper project - returns 22 backend tickets)
+
+User: "show all tasks" / "our tickets"
+→ `.claude/skills/linear/scripts/linear.sh project-issues "Popper"`
+(Auto-filters to Popper project - returns 25 total tickets)
+
+User: "show Harsh's tickets across all projects"
+→ `.claude/skills/linear/scripts/linear.sh member "Harsh"`
+(No project filter - explicit override, returns 79 tickets)
+
+User: "who's working on popper?"
+→ Show Popper team summary: Davron (22), Harsh (3)
+
 ## Output Format
 
 All commands return JSON for easy parsing. Parse with `jq` if needed.
@@ -676,6 +838,15 @@ User replies "2" → run `member "Anton"`
 
 ### Follow-Up Matrix (by command)
 
+**When in `popper` repo, use Popper-specific options:**
+
+| Command | Numbered Options (Popper) |
+|---------|---------------------------|
+| `project-issues "Popper"` | 1. Davron's tasks (22) 2. Harsh's tasks (3) 3. Phase breakdown |
+| `project-member` | 1. [Other Popper dev] 2. View ticket details 3. All Popper tasks |
+
+**For other repos:**
+
 | Command | Numbered Options |
 |---------|------------------|
 | `summary` | 1. Blocked 2. Urgent 3. Anton's tasks 4. All members breakdown |
@@ -691,7 +862,9 @@ User replies "2" → run `member "Anton"`
 | `phase N` | 1. Phase summary 2. Other phases (1-8) 3. Team workload |
 | `phase-summary` | 1. Phase 1 2. Phase 2 3. Phase 3 4. [continue for all] |
 
-**IMPORTANT:** After `workload` or `member` commands, always list ALL team members as options (not just 2-3). Team: Anton, Katya, Ania, Harsh, Davr.
+**IMPORTANT:** After `workload` or `member` commands, list team members as options based on the current project:
+- **Popper repo:** Only Davron and Harsh (the 2 Popper developers)
+- **Other repos:** All team members (Anton, Katya, Ania, Harsh, Davr)
 
 ### Smart Prioritization
 

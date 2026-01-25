@@ -240,3 +240,82 @@ phases:
       - SAL-201   # Mini App Localization & Compliance
       - SAL-357   # Mini-Apps Platform
       - SAL-532   # HealthState Trigger Registry
+
+# =====================================
+# POPPER PROJECT (TA2 Supervisory Agent)
+# =====================================
+# POP-XXX tickets map to SAL-596 through SAL-620+
+# Use A/B naming for sub-tickets
+
+popper_phases:
+  popper-phase-1:
+    name: "Foundation (v0.1)"
+    tickets:
+      - SAL-596   # POP-001: Project Foundation Setup
+      - SAL-597   # POP-002: TimescaleDB Database Setup
+      - SAL-598   # POP-003: Basic Elysia Server
+
+  popper-phase-2:
+    name: "Core Engine (v0.2)"
+    tickets:
+      - SAL-599   # POP-004: Hermes Package Integration
+      - SAL-600   # POP-005: Safety DSL Parser
+      - SAL-601   # POP-006: Policy Engine Evaluator
+      - SAL-602   # POP-007: Staleness Validator
+      - SAL-603   # POP-008: Decision Builder
+
+  popper-phase-3:
+    name: "Supervision API (v0.3)"
+    tickets:
+      - SAL-604   # POP-009: Supervision API Endpoint
+      - SAL-605   # POP-010: Audit Event Emission
+      - SAL-606   # POP-011: Idempotency Cache
+
+  popper-phase-4:
+    name: "Control Plane (v0.4)"
+    tickets:
+      - SAL-607   # POP-012: Safe-Mode Management
+      - SAL-608   # POP-013A: Operational Settings API (renamed from POP-013)
+      - SAL-621   # POP-013B: Policy Lifecycle & Adaptability
+
+  popper-phase-5:
+    name: "Drift Monitoring (v0.5)"
+    tickets:
+      - SAL-609   # POP-014: Drift Counters
+      - SAL-610   # POP-015A: Drift Baseline Calculation (renamed from POP-015)
+      - SAL-622   # POP-015B: RLHF Feedback Loop Implementation
+      - SAL-611   # POP-016: Auto Safe-Mode Triggers
+
+  popper-phase-6:
+    name: "Multi-Tenant & Auth (v0.6)"
+    tickets:
+      - SAL-612   # POP-017: API Key Authentication
+      - SAL-613   # POP-018: Multi-Tenant Organization Management
+      - SAL-614   # POP-019: Rate Limiting
+
+  popper-phase-7:
+    name: "Ops Dashboard (v0.7)"
+    tickets:
+      - SAL-615   # POP-020: Ops Dashboard - Status View
+      - SAL-616   # POP-021: Ops Dashboard - Audit Log Viewer
+      - SAL-617   # POP-022: Ops Dashboard - Safe-Mode Controls
+
+  popper-phase-8:
+    name: "Regulatory Export (v0.8)"
+    tickets:
+      - SAL-618   # POP-023A: Export Bundle Generator (renamed from POP-023)
+      - SAL-623   # POP-023B: TEFCA/USCDI Compliance for Export Bundles
+      - SAL-619   # POP-024: Incident Management
+      - SAL-620   # POP-025: Test Fixtures & E2E Test Suite
+
+# A/B Sub-Ticket Mappings
+popper_subtasks:
+  POP-013:
+    - POP-013A: SAL-608  # Operational Settings API
+    - POP-013B: SAL-621  # Policy Lifecycle & Adaptability
+  POP-015:
+    - POP-015A: SAL-610  # Drift Baseline Calculation
+    - POP-015B: SAL-622  # RLHF Feedback Loop
+  POP-023:
+    - POP-023A: SAL-618  # Export Bundle Generator
+    - POP-023B: SAL-623  # TEFCA/USCDI Compliance

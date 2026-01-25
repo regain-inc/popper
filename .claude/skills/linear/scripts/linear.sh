@@ -173,12 +173,45 @@ cmd_unassigned() {
 
 cmd_member() {
     local name_input="$1"
+    local project_filter="$2"
     local name=$(resolve_member_name "$name_input")
+
+    # Build project filter if specified
+    local project_condition=""
+    if [ -n "$project_filter" ]; then
+        project_condition=", project: { name: { containsIgnoreCase: \\\"$project_filter\\\" } }"
+    fi
 
     # Search issues by assignee name (includes labels for phase filtering)
     graphql "{
-        \"query\": \"query { issues(first: 100, filter: { assignee: { name: { containsIgnoreCase: \\\"$name\\\" } } }) { nodes { identifier title state { name } priorityLabel project { name } labels { nodes { name } } url createdAt } } }\"
+        \"query\": \"query { issues(first: 100, filter: { assignee: { name: { containsIgnoreCase: \\\"$name\\\" } }$project_condition }) { nodes { identifier title state { name } priorityLabel project { name } labels { nodes { name } } url createdAt } } }\"
     }" | jq '(.data.issues.nodes // []) | map({id: .identifier, title: .title, status: .state.name, priority: .priorityLabel, project: .project.name, labels: [.labels.nodes[]?.name], url: .url, created: .createdAt})'
+}
+
+cmd_project_issues() {
+    local project="$1"
+    local limit="${2:-100}"
+
+    if [ -z "$project" ]; then
+        echo '{"error": "Usage: project-issues <project-name> [limit]"}'
+        exit 1
+    fi
+
+    graphql "{
+        \"query\": \"query { issues(first: $limit, filter: { project: { name: { containsIgnoreCase: \\\"$project\\\" } } }) { nodes { identifier title state { name } priorityLabel assignee { name } labels { nodes { name } } url createdAt } } }\"
+    }" | jq '(.data.issues.nodes // []) | map({id: .identifier, title: .title, status: .state.name, priority: .priorityLabel, assignee: .assignee.name, labels: [.labels.nodes[]?.name], url: .url, created: .createdAt})'
+}
+
+cmd_project_member() {
+    local project="$1"
+    local name_input="$2"
+
+    if [ -z "$project" ] || [ -z "$name_input" ]; then
+        echo '{"error": "Usage: project-member <project-name> <member-name>"}'
+        exit 1
+    fi
+
+    cmd_member "$name_input" "$project"
 }
 
 cmd_summary() {
@@ -206,8 +239,36 @@ cmd_summary() {
 # END CTO DASHBOARD COMMANDS
 # ============================================
 
+# Resolve POP-XXX to SAL-XXX by searching title
+resolve_pop_id() {
+    local input="$1"
+
+    # If already SAL-XXX format, return as-is
+    if [[ "$input" =~ ^SAL-[0-9]+$ ]]; then
+        echo "$input"
+        return
+    fi
+
+    # If POP-XXX format, search by title
+    if [[ "$input" =~ ^POP-[0-9]+$ ]]; then
+        local sal_id=$(graphql "{
+            \"query\": \"query { issues(first: 1, filter: { title: { startsWith: \\\"$input:\\\" } }) { nodes { identifier } } }\"
+        }" | jq -r '.data.issues.nodes[0].identifier // empty')
+
+        if [ -n "$sal_id" ]; then
+            echo "$sal_id"
+            return
+        fi
+    fi
+
+    # Fallback: return as-is
+    echo "$input"
+}
+
 cmd_get() {
-    local issue_id="$1"
+    local issue_id_input="$1"
+    local issue_id=$(resolve_pop_id "$issue_id_input")
+
     graphql "{
         \"query\": \"query { issue(id: \\\"$issue_id\\\") { identifier title description state { name } priority priorityLabel assignee { name email } project { name } cycle { name number } labels { nodes { name } } comments { nodes { body user { name } createdAt } } url createdAt updatedAt } }\"
     }" | jq '.data.issue | {id: .identifier, title: .title, description: .description, status: .state.name, priority: .priorityLabel, assignee: .assignee, project: .project.name, cycle: .cycle, labels: [.labels.nodes[].name], comments: .comments.nodes, url: .url, created: .createdAt, updated: .updatedAt}'
@@ -261,9 +322,12 @@ cmd_create() {
 }
 
 cmd_update() {
-    local issue_id="$1"
+    local issue_id_input="$1"
     local field="$2"
     local value="$3"
+
+    # Resolve POP-XXX to SAL-XXX if needed
+    local issue_id=$(resolve_pop_id "$issue_id_input")
 
     # Get issue UUID from identifier
     local issue_uuid=$(graphql "{
@@ -370,8 +434,11 @@ cmd_update() {
 }
 
 cmd_comment() {
-    local issue_id="$1"
+    local issue_id_input="$1"
     local body="$2"
+
+    # Resolve POP-XXX to SAL-XXX if needed
+    local issue_id=$(resolve_pop_id "$issue_id_input")
 
     # Get issue UUID
     local issue_uuid=$(graphql "{
@@ -461,8 +528,10 @@ COMMANDS:
     my-issues                     List issues assigned to you
     all-issues [limit]            List ALL issues across all teams (default: 50)
     team-issues <team> [limit]    List ALL issues for a specific team
+    project-issues <proj> [limit] List issues for a specific project (e.g., "Popper")
+    project-member <proj> <name>  List member issues filtered by project
     search <query>                Search issues by text
-    get <ISSUE-ID>                Get issue details (e.g., get PROJ-123)
+    get <ISSUE-ID>                Get issue details (supports POP-XXX or SAL-XXX)
     get-with-context <ID>         Get issue with auto-injected context (spec, gotchas, patterns)
     create <team> <title> [desc]  Create new issue
     update <id> <field> <value>   Update issue (fields: status, priority, title, description)
@@ -556,9 +625,11 @@ get_team_id() {
     }" | jq -r '.data.teams.nodes[0].id'
 }
 
-# Helper: Get issue UUID from identifier (e.g., SAL-123)
+# Helper: Get issue UUID from identifier (e.g., SAL-123 or POP-004)
 get_issue_uuid() {
-    local issue_id="$1"
+    local issue_id_input="$1"
+    local issue_id=$(resolve_pop_id "$issue_id_input")
+
     graphql "{
         \"query\": \"query { issue(id: \\\"$issue_id\\\") { id } }\"
     }" | jq -r '.data.issue.id'
@@ -1532,7 +1603,9 @@ case "${1:-help}" in
     cycle-status)   cmd_cycle_status "$2" ;;
     recent)         cmd_recent "$2" ;;
     unassigned)     cmd_unassigned ;;
-    member)         cmd_member "$2" ;;
+    member)         cmd_member "$2" "$3" ;;
+    project-issues) cmd_project_issues "$2" "$3" ;;
+    project-member) cmd_project_member "$2" "$3" ;;
     summary)        cmd_summary "$2" ;;
     # Sprint Management commands
     cycle-create)       cmd_cycle_create "$2" "$3" "$4" "$5" ;;
