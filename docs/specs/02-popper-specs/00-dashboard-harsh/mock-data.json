@@ -1,0 +1,477 @@
+{
+  "organizations": [
+    { "id": "org_regain", "name": "Regain Health" },
+    { "id": "org_partner1", "name": "Partner Clinic A" },
+    { "id": "org_partner2", "name": "Partner Clinic B" }
+  ],
+
+  "status": {
+    "organization": {
+      "id": null,
+      "name": null
+    },
+    "service": {
+      "name": "popper",
+      "version": "1.0.0",
+      "uptime_seconds": 86400,
+      "healthy": true
+    },
+    "safe_mode": {
+      "enabled": false,
+      "reason": null,
+      "effective_at": null,
+      "effective_until": null,
+      "enabled_by": null,
+      "scope": "global"
+    },
+    "policy": {
+      "active_pack": "default",
+      "version": "1.0.0",
+      "rules_count": 12
+    },
+    "counters": {
+      "requests_total": 1523,
+      "decisions": {
+        "approved": 1401,
+        "hard_stop": 12,
+        "route_to_clinician": 98,
+        "request_more_info": 12
+      },
+      "validation_failures": 3
+    },
+    "drift": {
+      "status": "normal",
+      "signals": [
+        {
+          "name": "hard_stop_rate",
+          "current_value": 0.008,
+          "baseline_value": 0.01,
+          "threshold_warning": 0.05,
+          "threshold_critical": 0.15,
+          "status": "normal"
+        },
+        {
+          "name": "route_to_clinician_rate",
+          "current_value": 0.064,
+          "baseline_value": 0.06,
+          "threshold_warning": 0.12,
+          "threshold_critical": 0.30,
+          "status": "normal"
+        },
+        {
+          "name": "validation_failure_rate",
+          "current_value": 0.002,
+          "baseline_value": 0.001,
+          "threshold_warning": 0.01,
+          "threshold_critical": 0.05,
+          "status": "normal"
+        }
+      ]
+    }
+  },
+
+  "status_safe_mode_enabled": {
+    "service": {
+      "name": "popper",
+      "version": "1.0.0",
+      "uptime_seconds": 86400,
+      "healthy": true
+    },
+    "safe_mode": {
+      "enabled": true,
+      "reason": "Drift detected: hard_stop_rate elevated to 8%",
+      "effective_at": "2026-01-25T10:00:00.000Z",
+      "effective_until": "2026-01-25T18:00:00.000Z",
+      "enabled_by": "ops@regain.health"
+    },
+    "policy": {
+      "active_pack": "default",
+      "version": "1.0.0",
+      "rules_count": 12
+    },
+    "counters": {
+      "requests_total": 1523,
+      "decisions": {
+        "approved": 1100,
+        "hard_stop": 45,
+        "route_to_clinician": 366,
+        "request_more_info": 12
+      },
+      "validation_failures": 8
+    },
+    "drift": {
+      "status": "warning",
+      "signals": [
+        {
+          "name": "hard_stop_rate",
+          "current_value": 0.08,
+          "baseline_value": 0.01,
+          "threshold_warning": 0.05,
+          "threshold_critical": 0.15,
+          "status": "warning"
+        },
+        {
+          "name": "route_to_clinician_rate",
+          "current_value": 0.24,
+          "baseline_value": 0.06,
+          "threshold_warning": 0.12,
+          "threshold_critical": 0.30,
+          "status": "warning"
+        }
+      ]
+    }
+  },
+
+  "audit_events": {
+    "events": [
+      {
+        "id": "evt_001",
+        "event_type": "SUPERVISION_RESPONSE_DECIDED",
+        "occurred_at": "2026-01-25T14:32:15.123Z",
+        "trace": {
+          "trace_id": "tr_xyz789",
+          "span_id": "sp_001"
+        },
+        "mode": "wellness",
+        "subject": {
+          "subject_id": "anon_patient_456",
+          "organization_id": "org_regain"
+        },
+        "summary": "APPROVED lifestyle recommendation: increase daily walking",
+        "tags": {
+          "decision": "APPROVED",
+          "proposal_kind": "LIFESTYLE_MODIFICATION_PROPOSAL"
+        }
+      },
+      {
+        "id": "evt_002",
+        "event_type": "SUPERVISION_RESPONSE_DECIDED",
+        "occurred_at": "2026-01-25T14:30:02.456Z",
+        "trace": {
+          "trace_id": "tr_abc123",
+          "span_id": "sp_002"
+        },
+        "mode": "advocate_clinical",
+        "subject": {
+          "subject_id": "anon_patient_789",
+          "organization_id": "org_regain"
+        },
+        "summary": "ROUTE_TO_CLINICIAN: medication proposal requires human review",
+        "tags": {
+          "decision": "ROUTE_TO_CLINICIAN",
+          "proposal_kind": "MEDICATION_ORDER_PROPOSAL",
+          "reason_code": "high_uncertainty"
+        }
+      },
+      {
+        "id": "evt_003",
+        "event_type": "SUPERVISION_REQUEST_RECEIVED",
+        "occurred_at": "2026-01-25T14:28:45.789Z",
+        "trace": {
+          "trace_id": "tr_def456",
+          "span_id": "sp_003"
+        },
+        "mode": "wellness",
+        "subject": {
+          "subject_id": "anon_patient_123",
+          "organization_id": "org_regain"
+        },
+        "summary": "Received supervision request for nutrition plan",
+        "tags": {
+          "proposal_kind": "NUTRITION_PLAN_PROPOSAL"
+        }
+      },
+      {
+        "id": "evt_004",
+        "event_type": "SAFE_MODE_ENABLED",
+        "occurred_at": "2026-01-25T10:00:00.000Z",
+        "trace": {
+          "trace_id": "tr_system_001",
+          "span_id": "sp_sys_001"
+        },
+        "mode": "wellness",
+        "subject": {
+          "subject_id": "system",
+          "organization_id": "org_regain"
+        },
+        "summary": "Safe-mode enabled by ops: Drift detected in hard_stop_rate",
+        "tags": {
+          "enabled_by": "ops@regain.health",
+          "reason": "Drift detected: hard_stop_rate elevated"
+        }
+      },
+      {
+        "id": "evt_005",
+        "event_type": "SUPERVISION_RESPONSE_DECIDED",
+        "occurred_at": "2026-01-25T09:45:30.123Z",
+        "trace": {
+          "trace_id": "tr_ghi789",
+          "span_id": "sp_005"
+        },
+        "mode": "advocate_clinical",
+        "subject": {
+          "subject_id": "anon_patient_321",
+          "organization_id": "org_regain"
+        },
+        "summary": "HARD_STOP: proposal violates safety policy",
+        "tags": {
+          "decision": "HARD_STOP",
+          "proposal_kind": "MEDICATION_ORDER_PROPOSAL",
+          "reason_code": "policy_violation"
+        }
+      },
+      {
+        "id": "evt_006",
+        "event_type": "VALIDATION_FAILED",
+        "occurred_at": "2026-01-25T09:30:00.000Z",
+        "trace": {
+          "trace_id": "tr_jkl012",
+          "span_id": "sp_006"
+        },
+        "mode": "wellness",
+        "subject": {
+          "subject_id": "unknown",
+          "organization_id": "org_regain"
+        },
+        "summary": "Schema validation failed: missing required field 'snapshot'",
+        "tags": {
+          "error_type": "schema_invalid",
+          "missing_field": "snapshot"
+        }
+      },
+      {
+        "id": "evt_007",
+        "event_type": "SAFE_MODE_DISABLED",
+        "occurred_at": "2026-01-24T18:00:00.000Z",
+        "trace": {
+          "trace_id": "tr_system_002",
+          "span_id": "sp_sys_002"
+        },
+        "mode": "wellness",
+        "subject": {
+          "subject_id": "system",
+          "organization_id": "org_regain"
+        },
+        "summary": "Safe-mode disabled: metrics returned to normal",
+        "tags": {
+          "disabled_by": "ops@regain.health",
+          "reason": "Investigation complete, metrics normalized"
+        }
+      },
+      {
+        "id": "evt_008",
+        "event_type": "CONTROL_COMMAND_ISSUED",
+        "occurred_at": "2026-01-24T14:00:00.000Z",
+        "trace": {
+          "trace_id": "tr_system_003",
+          "span_id": "sp_sys_003"
+        },
+        "mode": "wellness",
+        "subject": {
+          "subject_id": "system",
+          "organization_id": "org_regain"
+        },
+        "summary": "Control command issued: update max_autonomy_level to 1",
+        "tags": {
+          "command_type": "SET_SETTING",
+          "setting_key": "max_autonomy_level",
+          "setting_value": "1"
+        }
+      }
+    ],
+    "pagination": {
+      "total": 1523,
+      "limit": 50,
+      "offset": 0,
+      "has_more": true
+    }
+  },
+
+  "safe_mode_history": {
+    "history": [
+      {
+        "id": "smh_001",
+        "enabled": true,
+        "reason": "Drift detected: hard_stop_rate elevated to 8%",
+        "effective_at": "2026-01-25T10:00:00.000Z",
+        "effective_until": "2026-01-25T18:00:00.000Z",
+        "created_by": "ops@regain.health",
+        "created_at": "2026-01-25T10:00:00.000Z"
+      },
+      {
+        "id": "smh_002",
+        "enabled": false,
+        "reason": "Investigation complete, metrics normalized",
+        "effective_at": "2026-01-24T18:00:00.000Z",
+        "effective_until": null,
+        "created_by": "ops@regain.health",
+        "created_at": "2026-01-24T18:00:00.000Z"
+      },
+      {
+        "id": "smh_003",
+        "enabled": true,
+        "reason": "Scheduled maintenance window",
+        "effective_at": "2026-01-24T14:00:00.000Z",
+        "effective_until": "2026-01-24T18:00:00.000Z",
+        "created_by": "system",
+        "created_at": "2026-01-24T14:00:00.000Z"
+      },
+      {
+        "id": "smh_004",
+        "enabled": false,
+        "reason": "Maintenance complete",
+        "effective_at": "2026-01-20T11:00:00.000Z",
+        "effective_until": null,
+        "created_by": "system",
+        "created_at": "2026-01-20T11:00:00.000Z"
+      },
+      {
+        "id": "smh_005",
+        "enabled": true,
+        "reason": "Scheduled maintenance",
+        "effective_at": "2026-01-20T09:15:00.000Z",
+        "effective_until": "2026-01-20T11:00:00.000Z",
+        "created_by": "system",
+        "created_at": "2026-01-20T09:15:00.000Z"
+      }
+    ]
+  },
+
+  "audit_timeseries": {
+    "buckets": [
+      {
+        "timestamp": "2026-01-25T00:00:00Z",
+        "counts": { "APPROVED": 45, "HARD_STOP": 0, "ROUTE_TO_CLINICIAN": 3, "REQUEST_MORE_INFO": 1 },
+        "total": 49
+      },
+      {
+        "timestamp": "2026-01-25T01:00:00Z",
+        "counts": { "APPROVED": 32, "HARD_STOP": 0, "ROUTE_TO_CLINICIAN": 2, "REQUEST_MORE_INFO": 0 },
+        "total": 34
+      },
+      {
+        "timestamp": "2026-01-25T02:00:00Z",
+        "counts": { "APPROVED": 28, "HARD_STOP": 0, "ROUTE_TO_CLINICIAN": 1, "REQUEST_MORE_INFO": 0 },
+        "total": 29
+      },
+      {
+        "timestamp": "2026-01-25T03:00:00Z",
+        "counts": { "APPROVED": 22, "HARD_STOP": 0, "ROUTE_TO_CLINICIAN": 1, "REQUEST_MORE_INFO": 0 },
+        "total": 23
+      },
+      {
+        "timestamp": "2026-01-25T04:00:00Z",
+        "counts": { "APPROVED": 18, "HARD_STOP": 0, "ROUTE_TO_CLINICIAN": 0, "REQUEST_MORE_INFO": 0 },
+        "total": 18
+      },
+      {
+        "timestamp": "2026-01-25T05:00:00Z",
+        "counts": { "APPROVED": 25, "HARD_STOP": 0, "ROUTE_TO_CLINICIAN": 2, "REQUEST_MORE_INFO": 0 },
+        "total": 27
+      },
+      {
+        "timestamp": "2026-01-25T06:00:00Z",
+        "counts": { "APPROVED": 48, "HARD_STOP": 1, "ROUTE_TO_CLINICIAN": 3, "REQUEST_MORE_INFO": 1 },
+        "total": 53
+      },
+      {
+        "timestamp": "2026-01-25T07:00:00Z",
+        "counts": { "APPROVED": 72, "HARD_STOP": 1, "ROUTE_TO_CLINICIAN": 5, "REQUEST_MORE_INFO": 1 },
+        "total": 79
+      },
+      {
+        "timestamp": "2026-01-25T08:00:00Z",
+        "counts": { "APPROVED": 98, "HARD_STOP": 2, "ROUTE_TO_CLINICIAN": 8, "REQUEST_MORE_INFO": 2 },
+        "total": 110
+      },
+      {
+        "timestamp": "2026-01-25T09:00:00Z",
+        "counts": { "APPROVED": 125, "HARD_STOP": 3, "ROUTE_TO_CLINICIAN": 12, "REQUEST_MORE_INFO": 2 },
+        "total": 142
+      },
+      {
+        "timestamp": "2026-01-25T10:00:00Z",
+        "counts": { "APPROVED": 145, "HARD_STOP": 3, "ROUTE_TO_CLINICIAN": 10, "REQUEST_MORE_INFO": 1 },
+        "total": 159
+      },
+      {
+        "timestamp": "2026-01-25T11:00:00Z",
+        "counts": { "APPROVED": 132, "HARD_STOP": 1, "ROUTE_TO_CLINICIAN": 8, "REQUEST_MORE_INFO": 1 },
+        "total": 142
+      },
+      {
+        "timestamp": "2026-01-25T12:00:00Z",
+        "counts": { "APPROVED": 118, "HARD_STOP": 1, "ROUTE_TO_CLINICIAN": 9, "REQUEST_MORE_INFO": 2 },
+        "total": 130
+      },
+      {
+        "timestamp": "2026-01-25T13:00:00Z",
+        "counts": { "APPROVED": 135, "HARD_STOP": 0, "ROUTE_TO_CLINICIAN": 11, "REQUEST_MORE_INFO": 1 },
+        "total": 147
+      },
+      {
+        "timestamp": "2026-01-25T14:00:00Z",
+        "counts": { "APPROVED": 142, "HARD_STOP": 0, "ROUTE_TO_CLINICIAN": 8, "REQUEST_MORE_INFO": 0 },
+        "total": 150
+      }
+    ],
+    "total_events": 1292
+  },
+
+  "status_org_specific": {
+    "organization": {
+      "id": "org_regain",
+      "name": "Regain Health"
+    },
+    "service": {
+      "name": "popper",
+      "version": "1.0.0",
+      "uptime_seconds": 86400,
+      "healthy": true
+    },
+    "safe_mode": {
+      "enabled": false,
+      "reason": null,
+      "effective_at": null,
+      "effective_until": null,
+      "enabled_by": null,
+      "scope": "organization"
+    },
+    "policy": {
+      "active_pack": "advocate-clinical",
+      "version": "1.0.0",
+      "rules_count": 18
+    },
+    "counters": {
+      "requests_total": 892,
+      "decisions": {
+        "approved": 756,
+        "hard_stop": 8,
+        "route_to_clinician": 120,
+        "request_more_info": 8
+      },
+      "validation_failures": 2
+    },
+    "drift": {
+      "status": "normal",
+      "signals": [
+        {
+          "name": "hard_stop_rate",
+          "current_value": 0.009,
+          "baseline_value": 0.01,
+          "threshold_warning": 0.05,
+          "threshold_critical": 0.15,
+          "status": "normal"
+        },
+        {
+          "name": "route_to_clinician_rate",
+          "current_value": 0.134,
+          "baseline_value": 0.12,
+          "threshold_warning": 0.20,
+          "threshold_critical": 0.35,
+          "status": "normal"
+        }
+      ]
+    }
+  }
+}
