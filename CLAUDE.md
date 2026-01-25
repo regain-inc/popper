@@ -65,8 +65,52 @@ popper/
 - **Linting**: Biome 2.x
 - **Build**: Turborepo
 
+## Hermes Package (@regain/hermes)
+
+> **ВАЖНО**: НЕ создавать локальный packages/hermes. Использовать готовый npm пакет.
+
+- **npm**: https://www.npmjs.com/package/@regain/hermes
+- **Source code**: `/Users/macbookpro/development/hermes`
+- **Version**: 1.0.3+ (Hermes Protocol v1.6.0)
+
+### Что использовать из пакета:
+
+```typescript
+// Types
+import type {
+  SupervisionRequest,
+  SupervisionResponse,
+  ProposedIntervention,
+  AuditEvent,
+  ReasonCode,
+  SupervisionDecision,
+} from '@regain/hermes';
+
+// Validation (AJV-based)
+import { validateHermesMessage, parseHermesMessage } from '@regain/hermes';
+
+// Builders
+import { createSupervisionResponse, HTVScoreBuilder } from '@regain/hermes';
+
+// Utilities
+import { computeHTVScore, meetsHTVThreshold } from '@regain/hermes';
+
+// Constants
+import { REASON_CODES, SUPERVISION_DECISIONS, CURRENT_HERMES_VERSION } from '@regain/hermes';
+
+// Test fixtures
+import { approvedSupervisionResponse, fullSupervisionRequest } from '@regain/hermes/fixtures';
+```
+
+### Type guards:
+
+```typescript
+import { isSupervisionRequest, isSupervisionResponse, isAuditEvent } from '@regain/hermes';
+```
+
 ## Key References
 
 - PRD: `/PRD.md`
 - Popper specs: `/docs/specs/02-popper-specs/`
 - Hermes contracts: `/docs/specs/03-hermes-specs/`
+- Hermes source: `/Users/macbookpro/development/hermes`

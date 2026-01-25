@@ -4,6 +4,37 @@
 
 ---
 
+## Linear Integration
+
+| Task ID | Linear ID | Status | Assignee |
+|---------|-----------|--------|----------|
+| POP-001 | [SAL-596](https://linear.app/salomatic/issue/SAL-596) | ✅ Done | Davron |
+| POP-002 | [SAL-597](https://linear.app/salomatic/issue/SAL-597) | ✅ Done | Davron |
+| POP-003 | [SAL-598](https://linear.app/salomatic/issue/SAL-598) | Backlog | Davron |
+| POP-004 | [SAL-599](https://linear.app/salomatic/issue/SAL-599) | Backlog | Davron |
+| POP-005 | [SAL-600](https://linear.app/salomatic/issue/SAL-600) | Backlog | Davron |
+| POP-006 | [SAL-601](https://linear.app/salomatic/issue/SAL-601) | Backlog | Davron |
+| POP-007 | [SAL-602](https://linear.app/salomatic/issue/SAL-602) | Backlog | Davron |
+| POP-008 | [SAL-603](https://linear.app/salomatic/issue/SAL-603) | Backlog | Davron |
+| POP-009 | [SAL-604](https://linear.app/salomatic/issue/SAL-604) | Backlog | Davron |
+| POP-010 | [SAL-605](https://linear.app/salomatic/issue/SAL-605) | Backlog | Davron |
+| POP-011 | [SAL-606](https://linear.app/salomatic/issue/SAL-606) | Backlog | Davron |
+| POP-012 | [SAL-607](https://linear.app/salomatic/issue/SAL-607) | Backlog | Davron |
+| POP-013 | [SAL-608](https://linear.app/salomatic/issue/SAL-608) | Backlog | Davron |
+| POP-014 | [SAL-609](https://linear.app/salomatic/issue/SAL-609) | Backlog | Davron |
+| POP-015 | [SAL-610](https://linear.app/salomatic/issue/SAL-610) | Backlog | Davron |
+| POP-016 | [SAL-611](https://linear.app/salomatic/issue/SAL-611) | Backlog | Davron |
+| POP-017 | [SAL-612](https://linear.app/salomatic/issue/SAL-612) | Backlog | Davron |
+| POP-018 | [SAL-613](https://linear.app/salomatic/issue/SAL-613) | Backlog | Davron |
+| POP-019 | [SAL-614](https://linear.app/salomatic/issue/SAL-614) | Backlog | Davron |
+| POP-020 | [SAL-615](https://linear.app/salomatic/issue/SAL-615) | Backlog | Harsh |
+| POP-021 | [SAL-616](https://linear.app/salomatic/issue/SAL-616) | Backlog | Harsh |
+| POP-022 | [SAL-617](https://linear.app/salomatic/issue/SAL-617) | Backlog | Harsh |
+| POP-023 | [SAL-618](https://linear.app/salomatic/issue/SAL-618) | Backlog | Davron |
+| POP-024 | [SAL-619](https://linear.app/salomatic/issue/SAL-619) | Backlog | Davron |
+
+---
+
 ## Development Guidelines
 
 > **ВАЖНО**: Все задачи должны выполняться в строгом соответствии с документацией проекта.
@@ -155,35 +186,47 @@ GET /metrics → Prometheus text format
 
 **Goal**: Deterministic policy engine
 
-### POP-004: Hermes Types Integration
+### POP-004: Hermes Package Integration
 
 **Assignee**: @davron-yuldashev
 **Labels**: `phase-2`, `types`, `hermes`
-**Estimate**: 5 points
+**Estimate**: 2 points
 **Priority**: P0
 **Blocked by**: POP-001
 
 **Description**:
-Integrate Hermes contract types into Popper for schema validation.
+Integrate existing `@regain/hermes` npm package into Popper for schema validation.
+
+> **ВАЖНО**: НЕ создавать собственный packages/hermes. Использовать готовый npm пакет `@regain/hermes` (v1.0.3+, Hermes Protocol v1.6.0).
+>
+> Исходный код пакета: `/Users/macbookpro/development/hermes`
 
 **Acceptance Criteria**:
-- [ ] packages/hermes created with core types
-- [ ] SupervisionRequest type
-- [ ] SupervisionResponse type
-- [ ] ProposedIntervention types
-- [ ] AuditEvent types
-- [ ] ReasonCode enum
-- [ ] SupervisionDecision enum (APPROVED, HARD_STOP, ROUTE_TO_CLINICIAN, REQUEST_MORE_INFO)
-- [ ] Zod schemas for runtime validation
-- [ ] Export as internal package
+- [ ] `@regain/hermes` добавлен как dependency в apps/server и packages/core
+- [ ] Импорты типов работают: SupervisionRequest, SupervisionResponse, ProposedIntervention, AuditEvent, ReasonCode, SupervisionDecision
+- [ ] AJV валидация работает через `validateHermesMessage()` и `parseHermesMessage()`
+- [ ] Test fixtures импортируются из `@regain/hermes/fixtures`
+- [ ] HTV utilities используются из пакета (computeHTVScore, meetsHTVThreshold)
+- [ ] Builders используются для создания responses (createSupervisionResponse)
+- [ ] TypeScript strict mode совместим с типами пакета
+
+**Что уже есть в @regain/hermes**:
+- Все типы: SupervisionRequest/Response, ProposedIntervention (8 видов), AuditEvent (11 типов)
+- Enums: ReasonCode (13), SupervisionDecision (4), ProposedInterventionKind (8)
+- Validation: JSON Schema + AJV validators
+- Builders: createSupervisionRequest/Response, HTVScoreBuilder
+- Utilities: HTV scoring, uncertainty calculation, datetime, trace
+- Fixtures: comprehensive test fixtures for all message types
 
 **Technical Notes**:
-- Types should match Hermes v1.4.0+ spec
-- Use Zod for runtime validation
+- Package uses AJV (not Zod) for runtime validation — это OK
+- Type guards доступны: isSupervisionRequest(), isSupervisionResponse(), etc.
+- Constants exported: REASON_CODES, SUPERVISION_DECISIONS, CURRENT_HERMES_VERSION
 
 **Reference Docs**:
-- `docs/specs/03-hermes-specs/02-hermes-contracts.md` — полная спецификация типов
-- `docs/specs/03-hermes-specs/fixtures/` — JSON примеры для тестов
+- npm: https://www.npmjs.com/package/@regain/hermes
+- Source: `/Users/macbookpro/development/hermes`
+- `docs/specs/03-hermes-specs/02-hermes-contracts.md` — спецификация протокола
 - `PRD.md` — section 6.2 (Supervision Endpoint types)
 
 ---
@@ -777,7 +820,7 @@ Implement incident tracking for hard-stop analysis and safety events.
 | Phase | Tasks | Points | Assignee | Dependencies |
 |-------|-------|--------|----------|--------------|
 | **Phase 1** | POP-001, 002, 003 | 10 | Davron | - |
-| **Phase 2** | POP-004, 005, 006, 007, 008 | 21 | Davron | Phase 1 |
+| **Phase 2** | POP-004, 005, 006, 007, 008 | 18 | Davron | Phase 1 |
 | **Phase 3** | POP-009, 010, 011 | 11 | Davron | Phase 2 |
 | **Phase 4** | POP-012, 013 | 8 | Davron | Phase 3 |
 | **Phase 5** | POP-014, 015, 016 | 9 | Davron | Phase 4 |
@@ -785,7 +828,7 @@ Implement incident tracking for hard-stop analysis and safety events.
 | **Phase 7** | POP-020, 021, 022 | 13 | Harsh | Phase 4 |
 | **Phase 8** | POP-023, 024 | 8 | Davron | Phase 3, 5 |
 
-**Total**: 24 tasks, 88 points
+**Total**: 24 tasks, 85 points
 
 ---
 

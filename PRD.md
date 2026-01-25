@@ -245,14 +245,9 @@ popper/
 │   │       ├── triggers.ts
 │   │       └── baseline.ts
 │   │
-│   └── hermes/                     # Hermes types (imported/synced)
-│       └── src/
-│           ├── types/
-│           │   ├── supervision.ts
-│           │   ├── audit.ts
-│           │   ├── evidence.ts
-│           │   └── snapshot.ts
-│           └── index.ts
+│   # NOTE: Hermes types используются из npm пакета @regain/hermes
+│   # Исходный код: /Users/macbookpro/development/hermes
+│   # НЕ создавать локальный packages/hermes — использовать готовый пакет
 │
 ├── config/
 │   ├── policies/                   # YAML policy packs
