@@ -17,10 +17,18 @@
     "clean": "rm -rf dist .turbo coverage"
   },
   "dependencies": {
+    "@elysiajs/opentelemetry": "^1.4.10",
+    "@logtape/logtape": "^2.0.2",
+    "@opentelemetry/exporter-metrics-otlp-proto": "^0.211.0",
+    "@opentelemetry/exporter-trace-otlp-proto": "^0.211.0",
+    "@opentelemetry/sdk-metrics": "^2.5.0",
+    "@opentelemetry/sdk-trace-node": "^2.5.0",
     "@popper/core": "workspace:*",
     "@popper/db": "workspace:*",
     "@regain/hermes": "^1.0.3",
-    "elysia": "^1.2.0"
+    "elysia": "^1.4.22",
+    "elysia-prometheus": "^1.0.0",
+    "graceful-server-elysia": "^1.0.25"
   },
   "devDependencies": {
     "bun-types": "^1.3.0"

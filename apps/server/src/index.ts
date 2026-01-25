@@ -1,13 +1,98 @@
-import { Elysia } from 'elysia';
+/**
+ * Popper Server Entry Point
+ * HTTP server with graceful shutdown, structured logging, and observability
+ * @module index
+ */
 
-const PORT = process.env.PORT ?? 3000;
+import { createApp } from './app';
+import { env } from './config/env';
+import { logger, setupLogger } from './lib/logger';
+import { setReady } from './plugins/health';
 
-const app = new Elysia()
-  .get('/health', () => ({
-    status: 'healthy',
-    version: '0.1.0',
-    uptime_seconds: Math.floor(process.uptime()),
-  }))
-  .listen(PORT);
+// Track shutdown state
+let isShuttingDown = false;
 
-console.log(`🛡️ Popper running at http://localhost:${app.server?.port}`);
+/**
+ * Main entry point
+ */
+async function main(): Promise<void> {
+  // Initialize logging first
+  await setupLogger();
+
+  logger.info`Starting Popper server...`;
+  logger.info`Environment: ${env.NODE_ENV}`;
+  logger.info`Log level: ${env.LOG_LEVEL}`;
+
+  // Create and start the application
+  const app = createApp();
+
+  const server = app.listen({
+    port: env.PORT,
+    hostname: env.HOST,
+  });
+
+  logger.info`Popper listening on http://${env.HOST}:${env.PORT}`;
+
+  // Mark as ready after successful startup
+  setReady(true);
+  logger.info`Server ready to accept connections`;
+
+  // Setup graceful shutdown handlers
+  setupGracefulShutdown(server);
+}
+
+/**
+ * Setup graceful shutdown handlers for SIGTERM and SIGINT
+ */
+function setupGracefulShutdown(server: ReturnType<typeof Bun.serve>): void {
+  const shutdown = async (signal: string): Promise<void> => {
+    if (isShuttingDown) {
+      logger.warning`Shutdown already in progress, ignoring ${signal}`;
+      return;
+    }
+
+    isShuttingDown = true;
+    logger.info`Received ${signal}, starting graceful shutdown...`;
+
+    // Mark as not ready to stop receiving new traffic
+    setReady(false);
+
+    try {
+      // Give load balancers time to stop sending traffic
+      const drainTimeout = 5000;
+      logger.info`Draining connections for ${drainTimeout}ms...`;
+      await new Promise((resolve) => setTimeout(resolve, drainTimeout));
+
+      // Stop the server
+      logger.info`Stopping server...`;
+      server.stop(true); // true = wait for pending requests
+
+      logger.info`Server stopped gracefully`;
+      process.exit(0);
+    } catch (error) {
+      logger.error`Error during shutdown: ${error}`;
+      process.exit(1);
+    }
+  };
+
+  // Handle termination signals
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+
+  // Handle uncaught errors
+  process.on('uncaughtException', (error) => {
+    logger.fatal`Uncaught exception: ${error}`;
+    process.exit(1);
+  });
+
+  process.on('unhandledRejection', (reason) => {
+    logger.fatal`Unhandled rejection: ${reason}`;
+    process.exit(1);
+  });
+}
+
+// Start the server
+main().catch((error) => {
+  console.error('Failed to start server:', error);
+  process.exit(1);
+});
