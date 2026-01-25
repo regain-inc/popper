@@ -1,9 +1,9 @@
 ---
-version: 1.5.0
+version: 1.6.0
 last-updated: 2026-01-25
 status: draft
 owner: Popper Dev Team
-tags: [advocate, ta2, popper, supervision, safety, htv, accuracy, hallucination, imaging, feedback]
+tags: [advocate, ta2, popper, supervision, safety, htv, accuracy, hallucination, imaging, feedback, rlhf]
 ---
 
 # Popper System Spec (TA2) — v1
@@ -666,6 +666,85 @@ Popper SHOULD weight clinician role in override evaluation:
 **Hermes Types**: [`../03-hermes-specs/02-hermes-contracts.md`](../03-hermes-specs/02-hermes-contracts.md) §4.2-4.3
 
 **Deutsch Integration**: [`../01-deutsch-specs/01-deutsch-system-spec.md`](../01-deutsch-specs/01-deutsch-system-spec.md) §6.5
+
+#### 5.9.6 RLHF Loop Closure (ARPA-H §2.F)
+
+Per ARPA-H TA2 requirements (§2.F), Popper MUST support **continuous learning and human-in-the-loop feedback (RLHF)**. This section defines how clinician feedback flows back to system improvement.
+
+##### Feedback Signal Sources
+
+Popper aggregates RLHF signals from:
+
+| Source | Signal Type | Destination |
+|--------|-------------|-------------|
+| Clinician overrides (§5.9.1) | `override_accepted`, `override_rejected` | Policy tuning |
+| Accuracy validation (§5.5) | `ValidationResult.accuracy_verdict` | Deutsch model feedback |
+| Alert fatigue metrics (§5.9.3) | `override_rate_30d`, `avg_response_time` | Threshold recalibration |
+| Bias detection (§5.9.4) | `bias_type`, `affected_group` | Fairness monitoring |
+
+##### Feedback Aggregation Pipeline
+
+```
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│ Clinician       │────▶│ Popper Feedback  │────▶│ De-identified   │
+│ Override/Review │     │ Aggregator       │     │ RLHF Export     │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
+                                │                         │
+                                ▼                         ▼
+                        ┌──────────────────┐     ┌─────────────────┐
+                        │ Policy Tuning    │     │ Deutsch Model   │
+                        │ Recommendations  │     │ Feedback (TA1)  │
+                        └──────────────────┘     └─────────────────┘
+```
+
+##### RLHF Export Format
+
+Popper SHOULD produce de-identified RLHF feedback bundles:
+
+```typescript
+interface RLHFFeedbackBundle {
+  bundle_id: string;
+  period: { start: string; end: string };
+
+  // Aggregated signals (no PHI)
+  override_signals: Array<{
+    proposal_kind: string;
+    override_action: 'accepted' | 'rejected';
+    rationale_category: string;
+    count: number;
+  }>;
+
+  validation_signals: Array<{
+    proposal_kind: string;
+    verdict: 'correct' | 'incorrect' | 'indeterminate';
+    error_types: string[];
+    count: number;
+  }>;
+
+  // Policy tuning recommendations
+  recommendations: Array<{
+    rule_id: string;
+    suggested_change: 'increase_threshold' | 'decrease_threshold' | 'review';
+    confidence: number;
+    evidence_count: number;
+  }>;
+}
+```
+
+##### Feedback Loop Triggers
+
+RLHF feedback collection is triggered when:
+- Drift is detected (§6.1 thresholds exceeded)
+- Scheduled export window (weekly by default)
+- Manual ops request
+- >100 validation samples collected since last export
+
+##### Normative Constraints
+
+- Popper MUST NOT automatically change policies based on RLHF — human review required
+- RLHF exports MUST be de-identified (no `subject_id`, only aggregate counts)
+- Feedback to Deutsch is via control plane, not direct model updates
+- Policy tuning recommendations are advisory only
 
 ## 6) Drift monitoring & "hard-stop analysis"
 

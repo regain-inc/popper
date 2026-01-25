@@ -1,9 +1,9 @@
 ---
-version: 1.3.0
-last-updated: 2026-01-24
+version: 1.4.0
+last-updated: 2026-01-25
 status: draft
 owner: Popper Dev Team
-tags: [advocate, ta2, popper, safety, dsl, policy, htv, evidence-grade, hallucination, imaging]
+tags: [advocate, ta2, popper, safety, dsl, policy, htv, evidence-grade, hallucination, imaging, lifecycle]
 ---
 
 # Popper Safety DSL (Deterministic Policy Engine) — v1
@@ -1402,7 +1402,89 @@ audit_event:
     severity: "{severity}"
 ```
 
-## 10) References
+## 10) Policy Lifecycle Management (ARPA-H §2.F)
+
+Per ARPA-H TA2 requirements (§2.F), Popper MUST support a **system that adapts to new clinical knowledge, guidelines, and regulatory requirements**. This section defines the policy pack lifecycle.
+
+### 10.1 Policy Pack States
+
+```
+┌─────────┐     ┌─────────┐     ┌─────────┐     ┌─────────┐
+│  DRAFT  │────▶│ REVIEW  │────▶│ STAGED  │────▶│ ACTIVE  │
+└─────────┘     └─────────┘     └─────────┘     └─────────┘
+                     │                               │
+                     ▼                               ▼
+                ┌─────────┐                    ┌─────────┐
+                │REJECTED │                    │ARCHIVED │
+                └─────────┘                    └─────────┘
+```
+
+| State | Description |
+|-------|-------------|
+| **DRAFT** | Policy pack being authored, not validated |
+| **REVIEW** | Submitted for clinical/safety review |
+| **STAGED** | Passed review, awaiting activation window |
+| **ACTIVE** | Currently enforced by Popper |
+| **ARCHIVED** | Previously active, replaced by newer version |
+| **REJECTED** | Failed review, requires revision |
+
+### 10.2 Adaptation Triggers
+
+Policy packs MAY be updated when:
+
+| Trigger | Source | Example |
+|---------|--------|---------|
+| **New guideline** | ACC/AHA, FDA | New HF medication guidance |
+| **Drift resolution** | §6.1 thresholds | Hallucination rate exceeded |
+| **RLHF signal** | §5.9.6 feedback | Clinician override patterns |
+| **Regulatory change** | FDA, ARPA-H | New MDDT requirements |
+| **Incident post-mortem** | §6.2 hard-stop | Critical error root cause |
+
+### 10.3 Validation Gates
+
+Before a policy pack transitions from STAGED → ACTIVE:
+
+1. **Regression tests pass** (§6 test vectors)
+2. **No critical rule deletions** without explicit approval
+3. **Threshold changes bounded** (max ±20% per version)
+4. **Clinical review signed off** (safety ops + clinician)
+5. **Audit trail complete** (change log with rationale)
+
+### 10.4 Rollback Semantics
+
+Emergency rollback to previous ARCHIVED version:
+
+- Triggered by: critical drift spike, safety incident, manual ops
+- Rollback is **atomic**: all rules revert together
+- Rollback emits `AuditEvent` with `event_type: "POLICY_ROLLBACK"`
+- Rollback does NOT require full validation gates (emergency path)
+- Post-rollback: mandatory review within 24 hours
+
+### 10.5 Version Binding
+
+Every `SupervisionResponse` MUST include:
+
+```typescript
+{
+  trace: {
+    producer: {
+      ruleset_version: "popper-safety-1.2.0"  // Active policy pack version
+    }
+  }
+}
+```
+
+This enables audit reconstruction: given a decision, the exact rules in force can be retrieved.
+
+### 10.6 Normative Constraints
+
+- Policy changes MUST NOT be automatic — human approval required
+- Only one policy pack version can be ACTIVE per organization at a time
+- Version numbers MUST follow semver (MAJOR.MINOR.PATCH)
+- MAJOR version bump required for breaking rule changes
+- All state transitions emit audit events
+
+## 11) References
 
 - [01-popper-system-spec.md](./01-popper-system-spec.md) — System architecture
 - [05-popper-measurement-protocols.md](./05-popper-measurement-protocols.md) — Accuracy and hallucination protocols

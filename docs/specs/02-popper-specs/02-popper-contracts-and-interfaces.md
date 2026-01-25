@@ -1,9 +1,9 @@
 ---
-version: 1.0.0
-last-updated: 2026-01-23
+version: 1.1.0
+last-updated: 2026-01-25
 status: draft
 owner: Popper Dev Team
-tags: [advocate, ta2, popper, api, contracts]
+tags: [advocate, ta2, popper, api, contracts, tefca, uscdi]
 ---
 
 # Popper Contracts & Interfaces (v1)
@@ -126,3 +126,34 @@ Minimum required event emission for v1:
 - **On toggling safe-mode**:
   - `event_type = "SAFE_MODE_ENABLED"` or `"SAFE_MODE_DISABLED"`
 - **On schema/validation failure**: `event_type = "VALIDATION_FAILED"`
+
+## 6) TEFCA/USCDI Interoperability (ARPA-H §2.E)
+
+Per ARPA-H TA2 requirements (§2.E), Popper MUST support adherence to **TEFCA** (Trusted Exchange Framework and Common Agreement) and **USCDI** (United States Core Data for Interoperability) standards for US health IT alignment.
+
+### 6.1 USCDI Data Element Validation
+
+Popper's export bundles (see [`04-popper-regulatory-export-and-triage.md`](./04-popper-regulatory-export-and-triage.md)) SHOULD map to USCDI v3 data classes where applicable:
+
+| Popper Field | USCDI v3 Data Class | Notes |
+|--------------|---------------------|-------|
+| `subject.subject_id` | Patient Demographics | Pseudonymized in export |
+| `snapshot.medications` | Medications | If present in snapshot |
+| `snapshot.conditions` | Problems | Active conditions |
+| `snapshot.vitals` | Vital Signs | If present |
+| `audit_redaction.summary` | Clinical Notes (redacted) | PHI-minimized |
+
+### 6.2 TEFCA Document Reference Alignment
+
+Popper's `InteropPayloadRef` (Hermes §6) SHOULD align with TEFCA document exchange patterns:
+
+- **Push**: Export bundles MAY be pushed to QHIN (Qualified Health Information Network) endpoints
+- **Pull**: Regulatory bodies MAY query Popper's export API using TEFCA-compliant credentials
+- **Document format**: Export bundles SHOULD be convertible to C-CDA (Consolidated Clinical Document Architecture) when requested
+
+### 6.3 Implementation Notes
+
+- USCDI validation is RECOMMENDED but not blocking for v1
+- Full TEFCA integration requires QHIN onboarding (Phase 2+)
+- Popper SHOULD log USCDI coverage gaps for audit purposes
+- Reference: [HealthIT.gov USCDI](https://www.healthit.gov/isa/united-states-core-data-interoperability-uscdi)
