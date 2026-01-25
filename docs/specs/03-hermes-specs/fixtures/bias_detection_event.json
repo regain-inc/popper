@@ -1,0 +1,100 @@
+{
+  "hermes_version": "1.6.0",
+  "message_type": "bias_detection",
+  "trace": {
+    "trace_id": "bias-detection-001-gggg-hhhh",
+    "created_at": "2026-01-24T17:00:00.000Z",
+    "producer": {
+      "system": "popper",
+      "service_version": "popper-1.4.0"
+    }
+  },
+  "mode": "advocate_clinical",
+  "organization_id": "org_ta3_alpha",
+  "detection_id": "bias_det_001",
+  "detection_type": "demographic_override_disparity",
+  "severity": "warning",
+  "detected_at": "2026-01-24T17:00:00.000Z",
+  "analysis_period": {
+    "start": "2025-12-25T00:00:00.000Z",
+    "end": "2026-01-24T00:00:00.000Z",
+    "days": 30
+  },
+  "affected_dimension": {
+    "dimension_type": "age_group",
+    "dimension_value": "geriatric"
+  },
+  "metrics": {
+    "overall_override_rate": 0.18,
+    "affected_group_override_rate": 0.32,
+    "control_group_override_rate": 0.14,
+    "rate_difference": 0.18,
+    "rate_ratio": 2.29,
+    "sample_size_affected": 156,
+    "sample_size_control": 412,
+    "statistical_significance": {
+      "p_value": 0.003,
+      "confidence_interval_95": [0.12, 0.24],
+      "is_significant": true
+    }
+  },
+  "breakdown_by_category": [
+    {
+      "rationale_category": "demographic_consideration",
+      "override_count": 28,
+      "percentage": 0.56
+    },
+    {
+      "rationale_category": "contraindication",
+      "override_count": 14,
+      "percentage": 0.28
+    },
+    {
+      "rationale_category": "clinical_judgment",
+      "override_count": 8,
+      "percentage": 0.16
+    }
+  ],
+  "affected_intervention_kinds": [
+    {
+      "kind": "MEDICATION_ORDER_PROPOSAL",
+      "override_rate": 0.38
+    },
+    {
+      "kind": "LIFESTYLE_MODIFICATION_PROPOSAL",
+      "override_rate": 0.24
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "high",
+      "action": "review_proposal_logic",
+      "description": "Review Deutsch proposal generation for geriatric patients, particularly medication dosing algorithms"
+    },
+    {
+      "priority": "medium",
+      "action": "increase_clinician_routing",
+      "description": "Temporarily increase routing to clinician for geriatric medication proposals until bias resolved"
+    },
+    {
+      "priority": "medium",
+      "action": "model_recalibration",
+      "description": "Flag for RLHF model recalibration with geriatric-specific training data"
+    }
+  ],
+  "regulatory_context": {
+    "fda_requirement": "Post-market surveillance for demographic bias",
+    "guidance_reference": "FDA AI/ML Guidance 2025, Section 4.3",
+    "reporting_required": true,
+    "reporting_deadline_days": 30
+  },
+  "audit_redaction": {
+    "summary": "Demographic bias detected: geriatric override rate 2.29x higher than control",
+    "detection_type": "demographic_override_disparity",
+    "severity": "warning",
+    "affected_dimension": "age_group:geriatric",
+    "rate_difference": "18%",
+    "sample_sizes": "156 affected, 412 control",
+    "recommendations_count": 3
+  }
+}

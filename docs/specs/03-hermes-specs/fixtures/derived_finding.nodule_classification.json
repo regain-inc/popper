@@ -1,0 +1,48 @@
+{
+  "finding_id": "imgfnd-nodule-2026-001",
+  "source_study": {
+    "study_id": "imgstd-chest-ct-2026-042",
+    "storage_endpoint": "phi://imaging/studies/imgstd-chest-ct-2026-042",
+    "modality": "CT",
+    "study_date": "2026-01-18T14:15:00Z",
+    "description_redacted": "Chest CT with contrast - follow-up nodule assessment",
+    "last_updated": "2026-01-18T15:30:00Z"
+  },
+  "finding_type": "classification",
+  "classification": {
+    "label": "probably_benign",
+    "confidence": 0.78,
+    "model_id": "lung-nodule-analyzer-v3.1",
+    "alternative_labels": [
+      { "label": "malignant", "confidence": 0.15 },
+      { "label": "indeterminate", "confidence": 0.07 }
+    ]
+  },
+  "measurement": {
+    "value": 8.2,
+    "unit": "mm",
+    "reference_range": {
+      "low": 0,
+      "high": 6
+    }
+  },
+  "body_site": "39607008",
+  "laterality": "right",
+  "clinical_significance": "abnormal",
+  "extracted_at": "2026-01-18T15:25:00Z",
+  "extractor": {
+    "type": "ai_model",
+    "model_id": "lung-nodule-analyzer-v3.1",
+    "model_version": "3.1.0"
+  },
+  "evidence_grade": "calculated",
+  "confidence": 0.82,
+  "comparison": {
+    "prior_study_id": "imgstd-chest-ct-2025-089",
+    "comparison_type": "worsened",
+    "delta_value": 1.7,
+    "delta_unit": "mm",
+    "notes": "Nodule increased from 6.5mm to 8.2mm (26% volume increase) over 6 months"
+  },
+  "notes_redacted": "8.2mm solid nodule in RLL. Growth warrants continued surveillance or tissue sampling per Fleischner guidelines."
+}

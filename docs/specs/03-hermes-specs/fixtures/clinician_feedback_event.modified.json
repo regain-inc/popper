@@ -1,0 +1,58 @@
+{
+  "hermes_version": "1.6.0",
+  "message_type": "clinician_feedback",
+  "trace": {
+    "trace_id": "7d8e9f0a-1b2c-3d4e-5f6a-7b8c9d0e1f2g",
+    "created_at": "2026-01-24T17:00:00.000Z",
+    "producer": {
+      "system": "gateway",
+      "service_version": "gateway-1.6.0"
+    }
+  },
+  "mode": "advocate_clinical",
+  "subject": {
+    "subject_type": "patient",
+    "subject_id": "anon_patient_012",
+    "organization_id": "org_ta3_alpha"
+  },
+  "original_trace_id": "5h7c8h5d-7f6d-7g6h-2f93-4f2h5f0d2h44",
+  "original_proposal_id": "prop_med_004",
+  "snapshot_ref": {
+    "snapshot_id": "snap_345",
+    "snapshot_hash": "q2lT8p3Ubu3a3r4uF2t4fOuL4e1pu3lC6yX9l0o5i6g=",
+    "created_at": "2026-01-24T16:55:00.000Z",
+    "sources": ["ehr", "wearable"]
+  },
+  "action": "modified",
+  "occurred_at": "2026-01-24T16:59:00.000Z",
+  "response_time_seconds": 240,
+  "clinician_ref": {
+    "clinician_id": "clin_anon_678",
+    "role": "primary_care"
+  },
+  "rationale": {
+    "summary": "Agreed with titration but preferred alternative medication in same class",
+    "category": "patient_preference",
+    "confidence": "medium"
+  },
+  "modified_action": {
+    "intervention_kind": "MEDICATION_ORDER_PROPOSAL",
+    "summary": "Prescribed alternative beta-blocker (metoprolol succinate) instead of carvedilol",
+    "medication_change": {
+      "original_proposal_summary": "Start carvedilol 6.25 mg twice daily",
+      "actual_action_summary": "Started metoprolol succinate 25 mg once daily",
+      "reason_for_alternative": "Patient expressed preference for once-daily dosing; metoprolol succinate achieves similar goal with better adherence"
+    }
+  },
+  "applies_to": {
+    "medication_specific": "carvedilol",
+    "intervention_kind": "MEDICATION_ORDER_PROPOSAL",
+    "valid_until": "2026-07-24T00:00:00.000Z"
+  },
+  "audit_redaction": {
+    "summary": "Clinician modified beta-blocker prescription to alternative",
+    "action": "modified",
+    "category": "patient_preference",
+    "response_time_bucket": "1-5min"
+  }
+}

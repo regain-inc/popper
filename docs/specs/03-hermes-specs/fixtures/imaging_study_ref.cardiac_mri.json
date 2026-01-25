@@ -1,0 +1,12 @@
+{
+  "study_id": "imgstd-cardiac-mri-2026-001",
+  "storage_endpoint": "phi://imaging/studies/imgstd-cardiac-mri-2026-001",
+  "modality": "MR",
+  "study_date": "2026-01-15T09:30:00Z",
+  "description_redacted": "Cardiac MRI with contrast - routine assessment",
+  "body_part_examined": "80891009",
+  "metadata_hash": "YTNmMmM4ZDllMWI0NTY3ODkwYWJjZGVmMTIzNDU2Nzg5MGFiY2RlZg==",
+  "series_count": 12,
+  "instance_count": 847,
+  "last_updated": "2026-01-15T10:45:00Z"
+}

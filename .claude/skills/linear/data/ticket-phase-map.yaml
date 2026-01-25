@@ -1,0 +1,242 @@
+# Ticket-to-Phase Mapping
+# Complete mapping of ALL tickets to phases
+# Source: docs/01-product/tickets + docs/01-product/roadmap
+#
+# Phase assignments based on:
+# - Ticket spec filenames (p#- or phase-#- prefix)
+# - Roadmap phase documents for advanced features
+
+# Default project for all tickets
+default_project: "Unified Health App"
+
+# Phase mappings
+phases:
+  phase-1:
+    name: "Foundation"
+    tickets:
+      - SAL-203   # Expo Project Setup
+      - SAL-211   # Base UI Components
+      - SAL-216   # Auth Screens
+      - SAL-399   # Elysia API Foundation
+      - SAL-400   # Design System Foundation
+      - SAL-402   # Localization Setup
+      - SAL-403   # Auth Flow Design
+      - SAL-404   # Core App Structure Design
+      - SAL-405   # Medical Content Foundation
+      - SAL-406   # ACLM Pillar Content
+      - SAL-407   # Compliance Review
+      - SAL-408   # Database Setup (app_db)
+      - SAL-409   # AI SDK Setup
+      - SAL-410   # AI Agent Foundation
+      - SAL-411   # phi-service Data Models
+      - SAL-412   # phi-service AI & Lab Models
+      - SAL-413   # Integration Clients
+      - SAL-511   # phi-service Extension (PII)
+
+  phase-2:
+    name: "Core Data & AI"
+    tickets:
+      - SAL-223   # Dashboard Implementation
+      - SAL-229   # Health Data Input
+      - SAL-236   # Chat Interface
+      - SAL-242   # HealthKit/Health Connect
+      - SAL-444   # Health State Computation
+      - SAL-445   # Notifications Foundation
+      - SAL-446   # Monitoring & Observability
+      - SAL-448   # Health API Endpoints
+      - SAL-449   # AI Agents Development
+      - SAL-450   # AI Tools Implementation
+      - SAL-452   # Chat System API
+      - SAL-453   # Dashboard Design
+      - SAL-454   # Health Input Design
+      - SAL-455   # Chat Interface Design
+      - SAL-457   # Health State Content
+      - SAL-458   # AI Agent Prompts
+      - SAL-459   # ACLM Integration Content
+      - SAL-460   # Dashboard & Health Localization
+      # Advanced Phase 2 features
+      - SAL-509   # Health State Versioning Schema
+      - SAL-510   # Mutation Tracking
+      - SAL-512   # app_db vs phi-service Separation
+      - SAL-513   # anonUserId Routing
+      - SAL-514   # MVHS Definition
+      - SAL-515   # Completeness Meter
+      - SAL-523   # Give-to-Get Rule
+
+  phase-3:
+    name: "MVP Polish"
+    tickets:
+      - SAL-246   # Onboarding Flow
+      - SAL-251   # Profile & Settings
+      - SAL-258   # Trends Visualization
+      - SAL-263   # UX Polish
+      - SAL-414   # Performance Optimization
+      - SAL-415   # Trends Data API
+      - SAL-416   # Infrastructure Setup
+      - SAL-417   # Profile & Settings API
+      - SAL-418   # Trends API
+      - SAL-419   # AI Memory System
+      - SAL-420   # Additional AI Agents
+      - SAL-421   # Testing Infrastructure
+      - SAL-423   # Onboarding Design
+      - SAL-427   # Profile & Settings Design
+      - SAL-431   # Trends & Data Visualization Design
+      - SAL-435   # UI Polish Design
+      - SAL-442   # Onboarding Content
+      - SAL-443   # AI Memory Content
+      - SAL-447   # Additional Agent Prompts
+      - SAL-451   # Trends Content
+      - SAL-456   # QA & Testing
+      # Advanced Phase 3 features (Popperian AI)
+      - SAL-496   # Negative Search & Refutation Scoring
+      - SAL-497   # Schema-Driven Medical Guardrails
+      - SAL-498   # Causal Prediction Engine
+      - SAL-499   # Counterfactual Analysis
+      - SAL-500   # Sequential Test Ordering
+      - SAL-501   # Conjecturer Agent Spec
+      - SAL-502   # Critic Agent Spec
+      - SAL-503   # Synthesizer Agent Spec
+      - SAL-504   # Multi-Agent Orchestration
+      - SAL-505   # IDK Protocol Trigger Conditions
+      - SAL-506   # Uncertainty Artifact Rendering
+
+  phase-4:
+    name: "Programs & Billing"
+    tickets:
+      - SAL-268   # Program Hub Screen
+      - SAL-272   # Active Program Experience
+      - SAL-277   # Check-ins
+      - SAL-281   # Billing & Paywall
+      - SAL-422   # Cohort Infrastructure
+      - SAL-424   # Billing Infrastructure
+      - SAL-425   # Program Content Delivery
+      - SAL-426   # Programs API
+      - SAL-428   # Check-ins API
+      - SAL-429   # Billing API
+      - SAL-430   # AI Program Integration
+      - SAL-432   # Cohort Features API
+      - SAL-433   # Program Discovery Design
+      - SAL-434   # Active Program Design
+      - SAL-436   # Check-in Design
+      - SAL-437   # Billing & Paywall Design
+      - SAL-438   # Metabolic Reset Week 1-3
+      - SAL-439   # Metabolic Reset Week 4-6
+      - SAL-440   # Daily Tasks & Check-in Content
+      - SAL-441   # Programs Localization
+      # Advanced Phase 4 features
+      - SAL-484   # Claims Validator Engine
+      - SAL-486   # Diagnosis vs Assessment Framework
+      - SAL-507   # Protocol Outcome Tracking
+      - SAL-508   # Auto-Refutation on Failure
+      - SAL-516   # Point-in-Time Recovery
+      - SAL-517   # Conflict Resolution
+      - SAL-522   # Program Transition Workflow
+      - SAL-524   # Curriculum Progression Logic
+      - SAL-525   # Maintenance Mode UI
+
+  phase-5:
+    name: "Launch"
+    tickets:
+      - SAL-148   # Brand Refinement Guidelines
+      - SAL-289   # Launch Preparation - Mobile
+      # Escalation & Safety features
+      - SAL-481   # Red Flag Definition Registry
+      - SAL-482   # Escalation Routing Engine
+      - SAL-483   # Escalation UI Interrupts
+      - SAL-485   # Medication Guardrail System
+      # Audit & Compliance
+      - SAL-487   # Comprehensive Audit Trail API
+      - SAL-488   # Glass Box Trace Rendering
+      - SAL-489   # Audit Export & Reporting
+      - SAL-493   # Data Deletion Workflow
+
+  phase-6:
+    name: "Labs & Advanced"
+    tickets:
+      - SAL-160   # Evidence Engine Foundation
+      - SAL-161   # RAG System Implementation
+      - SAL-306   # Labs & Advanced Features
+      # Evidence System
+      - SAL-461   # Evidence Archive Indexing
+      - SAL-462   # Evidence Ingestion Pipeline
+      - SAL-463   # Standard Treatment DB Schema
+      - SAL-464   # Citation Binding Engine
+      - SAL-465   # Evidence Drawer UI
+      - SAL-466   # Health-State Lens Personalization
+      - SAL-467   # User Evidence Vault API
+      - SAL-468   # Allowed Sources Registry
+      # Medication Safety
+      - SAL-490   # Drug Interaction Database
+      - SAL-491   # Contraindication Checker
+      - SAL-492   # Dosing Guidance Inference
+      # Privacy & Data
+      - SAL-494   # User Evidence Vault Deletion
+      - SAL-495   # Incognito Mode
+      # Data Portability
+      - SAL-518   # FHIR Export
+      - SAL-519   # Health State Import & Merge
+      # LifeSense Marketplace
+      - SAL-526   # LifeSense Marketplace Database Schema
+      - SAL-527   # LifeSense Matching Engine Service
+      - SAL-528   # LifeSense Marketplace API Endpoints
+      - SAL-529   # LifeSense Mobile UI
+      - SAL-530   # Partner White-Label Theme Configuration
+      - SAL-531   # Clinical Zone White-Label Theming Engine
+
+  phase-7:
+    name: "Clinical Services"
+    tickets:
+      - SAL-175   # Provider Dashboard Web App
+      - SAL-176   # AI Clinical Summaries CDS
+      - SAL-177   # Patient CEM Experience Messaging Design
+      - SAL-178   # Provider Dashboard Design
+      - SAL-179   # Provider Onboarding Design
+      - SAL-180   # Clinical Summary CDS Content
+      - SAL-181   # Provider Documentation Compliance
+      - SAL-182   # CEM Localization QA
+      - SAL-336   # Clinical Services - Mobile
+      # Provider Platform
+      - SAL-469   # Provider Dashboard Architecture
+      - SAL-470   # Assessment Pack Rendering
+      - SAL-471   # Reasoning Trace Visualization
+      - SAL-472   # Partner Telemedicine Integration
+      - SAL-473   # BYOD Provider Onboarding
+      - SAL-474   # Video Call + Live CDS
+      - SAL-475   # Jurisdiction Router
+      # Prescriptions
+      - SAL-476   # e-Prescription Integration
+      - SAL-477   # Prescription Fulfillment Tracking
+      # Clinical Compliance
+      - SAL-478   # AHITL Challenge System
+      - SAL-479   # HIPAA Audit for Clinical
+      - SAL-480   # Provider Credentialing Workflow
+      # Clinical Data
+      - SAL-520   # Clinical Mirror FHIR Mapping
+      - SAL-521   # Physician Annotations
+      - SAL-533   # NPI/NPPES License Verification
+      - SAL-534   # BYOD Provider Access Grant Lifecycle
+
+  phase-8:
+    name: "Mini-Apps"
+    tickets:
+      - SAL-183   # Mini App Infrastructure Data Storage
+      - SAL-184   # Mini App Assets Performance
+      - SAL-185   # Mini App API
+      - SAL-186   # Generative UI Backend
+      - SAL-187   # AI Generative UI System
+      - SAL-188   # Meal Analysis AI
+      - SAL-189   # Mini App AI Integration
+      - SAL-190   # Mini App Analytics & Insights
+      - SAL-191   # Mini App Framework Design
+      - SAL-192   # Generative UI Component Library Design
+      - SAL-193   # Meal Logger Mini App Design
+      - SAL-194   # Symptom/Sleep Tracker Designs
+      - SAL-195   # Water/Medication Tracker Designs
+      - SAL-196   # Breathwork Discovery Screen Designs
+      - SAL-197   # Mini App Medical Content - Meal/Symptoms
+      - SAL-198   # Mini App Medical Content - Sleep/Water/Med
+      - SAL-199   # Breathwork Content Exercise Library
+      - SAL-200   # Mini App AI Prompts
+      - SAL-201   # Mini App Localization & Compliance
+      - SAL-357   # Mini-Apps Platform
+      - SAL-532   # HealthState Trigger Registry

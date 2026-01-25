@@ -1,0 +1,58 @@
+{
+  "snapshot_id": "snap_with_handoff_001",
+  "snapshot_hash": "v7qY3u8Zgz8f8w9zK7y9kTzQ9j6uz8qH1dC4q5t0n1l=",
+  "created_at": "2026-01-24T12:00:00.000Z",
+  "snapshot_uri": "phi://snapshots/snap_with_handoff_001",
+  "sources": ["ehr", "patient_reported"],
+  "quality": {
+    "notes": "Snapshot for patient recently transferred between organizations"
+  },
+  "prior_clinician_overrides": {
+    "total_overrides": 5,
+    "recent_overrides_30d": 1,
+    "override_rate_trend": "stable",
+    "active_overrides": [
+      {
+        "original_trace_id": "transfer-001-aaaa-bbbb",
+        "action": "rejected",
+        "occurred_at": "2025-12-15T10:00:00.000Z",
+        "clinician_role": "attending",
+        "clinician_specialty": "cardiology",
+        "rationale_summary": "Patient has documented penicillin allergy - anaphylaxis",
+        "rationale_category": "recent_adverse_event",
+        "confidence": "high",
+        "applies_to": {
+          "medication_class": "PENICILLIN"
+        },
+        "is_permanent": true,
+        "has_conflicting_feedback": false,
+        "most_recent_wins": true
+      },
+      {
+        "original_trace_id": "transfer-002-cccc-dddd",
+        "action": "modified",
+        "occurred_at": "2025-11-20T14:00:00.000Z",
+        "clinician_role": "specialist",
+        "clinician_specialty": "nephrology",
+        "rationale_summary": "Reduced diuretic dose due to electrolyte concerns",
+        "rationale_category": "demographic_consideration",
+        "confidence": "medium",
+        "applies_to": {
+          "medication_class": "LOOP_DIURETIC"
+        },
+        "valid_until": "2026-02-20T00:00:00.000Z",
+        "re_evaluation_trigger": "new electrolyte panel",
+        "has_conflicting_feedback": false,
+        "most_recent_wins": true
+      }
+    ],
+    "last_handoff": {
+      "occurred_at": "2026-01-22T09:00:00.000Z",
+      "from_organization_id": "org_ta3_beta",
+      "to_organization_id": "org_ta3_alpha",
+      "overrides_transferred": 5,
+      "notes": "Patient transferred from Hospital Beta to Hospital Alpha for continued HF management. Prior override history includes permanent penicillin allergy. New attending should review and confirm all permanent contraindications."
+    }
+  },
+  "estimated_size_bytes": 48000
+}

@@ -1,0 +1,21 @@
+# Lefthook configuration for Popper monorepo
+
+pre-commit:
+  parallel: true
+  commands:
+    biome-check:
+      glob: "*.{js,ts,jsx,tsx,json}"
+      run: bunx biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      stage_fixed: true
+
+commit-msg:
+  commands:
+    lint-message:
+      run: |
+        message=$(cat {1})
+        if ! echo "$message" | grep -qE "^(feat|fix|docs|style|refactor|test|chore|perf|ci|build)(\(.+\))?: .{1,}$"; then
+          echo "❌ Invalid commit message format"
+          echo "Expected: type(scope): description"
+          echo "Example: feat(api): add supervision endpoint"
+          exit 1
+        fi

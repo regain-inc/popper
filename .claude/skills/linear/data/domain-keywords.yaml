@@ -1,0 +1,224 @@
+# Domain → Keyword mapping for ticket analysis
+# Used by analyze-ticket-experts.py to detect required experts from Linear tickets
+
+database:
+  labels:
+    - database
+    - schema
+    - migration
+    - db
+    - drizzle
+    - postgres
+  keywords:
+    - table
+    - schema
+    - migration
+    - drizzle
+    - postgres
+    - sql
+    - foreign key
+    - index
+    - constraint
+    - column
+    - relation
+    - enum
+    - uuid
+    - primary key
+
+backend:
+  labels:
+    - api
+    - backend
+    - server
+    - endpoint
+  keywords:
+    - endpoint
+    - controller
+    - route
+    - API
+    - REST
+    - Elysia
+    - middleware
+    - RBAC
+    - authentication
+    - auth
+    - session
+    - jwt
+    - bearer
+    - swagger
+    - openapi
+
+web:
+  labels:
+    - web
+    - frontend
+    - ui
+    - next
+    - dashboard
+  keywords:
+    - page
+    - component
+    - React
+    - Next.js
+    - dashboard
+    - form
+    - modal
+    - button
+    - tailwind
+    - shadcn
+    - i18n
+    - locale
+    - translation
+    - admin
+
+mobile:
+  labels:
+    - mobile
+    - expo
+    - app
+    - ios
+    - android
+  keywords:
+    - screen
+    - Expo
+    - React Native
+    - navigation
+    - NativeWind
+    - AsyncStorage
+    - push notification
+    - deep link
+    - app store
+    - google play
+
+billing:
+  labels:
+    - billing
+    - payment
+    - subscription
+    - monetization
+  keywords:
+    - payment
+    - subscription
+    - Polar
+    - webhook
+    - checkout
+    - entitlement
+    - pricing
+    - plan
+    - invoice
+    - billing
+    - revenue
+
+cache:
+  labels:
+    - cache
+    - redis
+    - performance
+  keywords:
+    - cache
+    - Redis
+    - TTL
+    - invalidation
+    - memoization
+    - rate limit
+    - session store
+    - performance
+
+infrastructure:
+  labels:
+    - infra
+    - infrastructure
+    - devops
+    - deployment
+    - ci
+    - cd
+  keywords:
+    - deploy
+    - Fly.io
+    - AWS
+    - Docker
+    - CI/CD
+    - GitHub Actions
+    - workflow
+    - environment
+    - secrets
+    - Sentry
+    - monitoring
+    - logging
+    - production
+    - staging
+
+integrations:
+  labels:
+    - integration
+    - external
+    - third-party
+    - api-client
+  keywords:
+    - phi-service
+    - pii_salomatic
+    - anon-service
+    - Keycloak
+    - S2S
+    - webhook
+    - external API
+    - service client
+    - anonUserId
+    - HIPAA
+
+notifications:
+  labels:
+    - notifications
+    - push
+    - alerts
+    - messaging
+  keywords:
+    - push notification
+    - FCM
+    - Firebase
+    - Expo Push
+    - notification
+    - alert
+    - reminder
+    - schedule
+    - template
+    - trigger
+
+programs:
+  labels:
+    - programs
+    - cohort
+    - content
+    - wellness
+  keywords:
+    - cohort
+    - program
+    - task
+    - schedule
+    - content
+    - check-in
+    - delivery
+    - enrollment
+    - milestone
+    - progress
+
+health-computation:
+  labels:
+    - health
+    - metrics
+    - computation
+    - analytics
+  keywords:
+    - health state
+    - trend
+    - aggregation
+    - time-series
+    - computation
+    - analysis
+    - metric
+    - sparkline
+    - readiness
+    - HRV
+    - heart rate
+    - sleep
+    - steps

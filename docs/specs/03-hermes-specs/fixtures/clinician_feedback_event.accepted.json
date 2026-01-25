@@ -1,0 +1,52 @@
+{
+  "hermes_version": "1.6.0",
+  "message_type": "clinician_feedback",
+  "trace": {
+    "trace_id": "4a5b6c7d-8e9f-0a1b-2c3d-4e5f6a7b8c9d",
+    "created_at": "2026-01-24T14:30:00.000Z",
+    "producer": {
+      "system": "gateway",
+      "service_version": "gateway-1.6.0"
+    }
+  },
+  "mode": "advocate_clinical",
+  "subject": {
+    "subject_type": "patient",
+    "subject_id": "anon_patient_123",
+    "organization_id": "org_ta3_alpha"
+  },
+  "original_trace_id": "2f4a5f2a-4c3a-4d3f-9c60-1c9e2c7a9f11",
+  "original_proposal_id": "prop_med_001",
+  "snapshot_ref": {
+    "snapshot_id": "snap_456",
+    "snapshot_hash": "n9iQ5m0Ryr0x0o1rC9q1cLrI1b8mr0iZ3vU6i7l2f3d=",
+    "created_at": "2026-01-24T14:25:00.000Z",
+    "sources": ["ehr", "wearable"]
+  },
+  "action": "accepted",
+  "occurred_at": "2026-01-24T14:28:00.000Z",
+  "response_time_seconds": 180,
+  "clinician_ref": {
+    "clinician_id": "clin_anon_789",
+    "role": "attending",
+    "specialty": "cardiology"
+  },
+  "rationale": {
+    "summary": "Proposal aligns with guideline-directed medical therapy for HF",
+    "category": "clinical_judgment",
+    "confidence": "high",
+    "guideline_refs": [
+      {
+        "evidence_id": "guideline.acc_aha_hf_2024",
+        "evidence_type": "guideline",
+        "citation": "ACC/AHA HF Guideline 2024, Section 7.2"
+      }
+    ]
+  },
+  "audit_redaction": {
+    "summary": "Clinician accepted medication titration proposal",
+    "action": "accepted",
+    "category": "clinical_judgment",
+    "response_time_bucket": "1-5min"
+  }
+}
