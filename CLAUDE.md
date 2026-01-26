@@ -114,3 +114,47 @@ import { isSupervisionRequest, isSupervisionResponse, isAuditEvent } from '@rega
 - Popper specs: `/docs/specs/02-popper-specs/`
 - Hermes contracts: `/docs/specs/03-hermes-specs/`
 - Hermes source: `/Users/macbookpro/development/hermes`
+
+## Cookbook Examples (popper-cookbook)
+
+> **Проект**: `~/development/popper-cookbook`
+
+При работе над тасками, которые можно тестировать через API:
+
+1. **Писать скрипты-примеры** в `~/development/popper-cookbook/examples/`
+2. **Формат именования**: `NN-example-name.ts` (где NN — порядковый номер)
+3. **Добавлять скрипт** в `package.json` секцию scripts
+4. **Обновлять** массив examples в `index.ts`
+
+### Когда писать cookbook примеры:
+
+- Новый API endpoint → пример использования
+- Сложная логика валидации → примеры edge cases
+- Интеграционный функционал → full test script
+
+### Пример:
+
+```
+SAL-604 (Supervision API) → examples/06-sal604-full-test.ts
+```
+
+### Структура примера:
+
+```typescript
+import type { SupervisionRequest } from '@regain/hermes';
+import { supervise, now, printResponse } from '../lib/popper-client';
+
+async function main() {
+  // Описание теста
+  console.log('Description of what this example demonstrates\n');
+
+  // Создание запроса
+  const request: SupervisionRequest = { ... };
+
+  // Отправка и вывод
+  const response = await supervise(request);
+  printResponse(response);
+}
+
+main().catch(console.error);
+```
