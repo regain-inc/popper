@@ -1,0 +1,395 @@
+# Popper Default Policy Pack
+# Safety DSL v1 - Deterministic Policy Engine
+#
+# This is the default policy pack for Popper supervision.
+# It implements minimum required rules per 03-popper-safety-dsl.md §5.
+
+policy_id: popper-default
+policy_version: 1.0.0
+
+metadata:
+  description: Default Popper safety policy pack
+  owner: Popper Dev Team
+  created_at: "2026-01-26"
+  sources:
+    - kind: policy
+      citation: "03-popper-safety-dsl.md §5 - Minimum required rules"
+
+# Staleness configuration (Popper is AUTHORITATIVE)
+staleness:
+  thresholds:
+    wellness_hours: 24
+    clinical_hours: 4
+  behavior:
+    low_risk_stale: REQUEST_MORE_INFO
+    high_risk_stale: ROUTE_TO_CLINICIAN
+
+rules:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # CRITICAL: Schema and Security (Priority 1000+)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - rule_id: schema_invalid
+    description: Invalid schema - cannot process safely
+    priority: 1200
+    when:
+      kind: schema_invalid
+    then:
+      decision: HARD_STOP
+      reason_codes:
+        - schema_invalid
+      explanation: Request failed schema validation. Cannot process safely.
+
+  - rule_id: snapshot_missing
+    description: No snapshot provided - cannot proceed safely
+    priority: 1100
+    when:
+      kind: snapshot_missing
+    then:
+      decision: HARD_STOP
+      reason_codes:
+        - schema_invalid
+        - data_quality_warning
+      explanation: No health state snapshot provided. Cannot evaluate safety without patient data.
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # STALENESS RULES (Priority 900-999)
+  # Popper is AUTHORITATIVE - does NOT trust Brain's validation
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - rule_id: data_quality_warning_high_risk
+    description: Stale snapshot for high-risk proposals
+    priority: 950
+    when:
+      kind: all_of
+      conditions:
+        - kind: snapshot_stale
+        - kind: proposal_kind_in
+          kinds:
+            - MEDICATION_ORDER_PROPOSAL
+            - TRIAGE_ROUTE
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - data_quality_warning
+        - risk_too_high
+      explanation: Health state snapshot is stale. High-risk actions require fresh data.
+
+  - rule_id: data_quality_warning_default
+    description: Stale snapshot - request fresh data
+    priority: 900
+    when:
+      kind: snapshot_stale
+    then:
+      decision: REQUEST_MORE_INFO
+      reason_codes:
+        - data_quality_warning
+      explanation: Health state snapshot is outdated. Please refresh patient data.
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # SAFE MODE (Priority 800-899)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - rule_id: safe_mode_medication
+    description: Safe mode enabled - route medication proposals
+    priority: 850
+    when:
+      kind: all_of
+      conditions:
+        - kind: safe_mode_enabled
+        - kind: proposal_kind_in
+          kinds:
+            - MEDICATION_ORDER_PROPOSAL
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - policy_violation
+        - needs_human_review
+      explanation: Safe mode is enabled. Medication proposals require clinician review.
+
+  - rule_id: safe_mode_high_risk
+    description: Safe mode enabled - route high-risk proposals
+    priority: 800
+    when:
+      kind: all_of
+      conditions:
+        - kind: safe_mode_enabled
+        - kind: proposal_kind_in
+          kinds:
+            - TRIAGE_ROUTE
+            - BEHAVIORAL_INTERVENTION_PROPOSAL
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - policy_violation
+        - needs_human_review
+      explanation: Safe mode is enabled. High-risk proposals require clinician review.
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # INPUT RISK FLAGS (Priority 700-799)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - rule_id: prompt_injection_suspected
+    description: Possible prompt injection detected
+    priority: 750
+    when:
+      kind: input_risk_flag_in
+      flags:
+        - prompt_injection_suspected
+        - jailbreak_attempt
+    then:
+      decision: HARD_STOP
+      reason_codes:
+        - policy_violation
+        - risk_too_high
+      explanation: Possible prompt injection or jailbreak attempt detected.
+
+  - rule_id: input_risk_flags
+    description: Input risk flags present
+    priority: 700
+    when:
+      kind: input_risk_flag_in
+      flags:
+        - unusual_request_pattern
+        - high_frequency_requests
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - policy_violation
+      explanation: Input risk flags detected. Routing to clinician for review.
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # EVIDENCE QUALITY (Priority 600-699)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - rule_id: medication_missing_evidence
+    description: Medication proposal missing evidence references
+    priority: 650
+    when:
+      kind: proposal_missing_field
+      proposal_kinds:
+        - MEDICATION_ORDER_PROPOSAL
+      field_path: evidence_refs
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - insufficient_evidence
+      explanation: Medication proposal is missing evidence references.
+
+  - rule_id: medication_missing_protocol
+    description: Medication proposal missing clinician protocol reference
+    priority: 640
+    when:
+      kind: proposal_missing_field
+      proposal_kinds:
+        - MEDICATION_ORDER_PROPOSAL
+      field_path: clinician_protocol_ref
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - insufficient_evidence
+        - needs_human_review
+      explanation: Medication proposal is missing clinician protocol reference.
+
+  - rule_id: low_htv_score_medication
+    description: Low HTV score for medication proposals
+    priority: 620
+    when:
+      kind: htv_score_below
+      threshold: 0.6
+      proposal_kinds:
+        - MEDICATION_ORDER_PROPOSAL
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - low_htv_score
+        - needs_human_review
+      explanation: Medication proposal has low hard-to-vary score. Requires clinician review.
+
+  - rule_id: low_htv_score_default
+    description: Low HTV score for any proposal
+    priority: 600
+    when:
+      kind: htv_score_below
+      threshold: 0.4
+    then:
+      decision: REQUEST_MORE_INFO
+      reason_codes:
+        - low_htv_score
+      explanation: Proposal has low hard-to-vary score. Additional information needed.
+
+  - rule_id: weak_evidence_grade
+    description: Weak evidence grade for clinical proposals
+    priority: 610
+    when:
+      kind: evidence_grade_below
+      threshold: case_control
+      proposal_kinds:
+        - MEDICATION_ORDER_PROPOSAL
+        - TRIAGE_ROUTE
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - weak_evidence_grade
+        - needs_human_review
+      explanation: Clinical proposal has weak evidence grade. Requires clinician review.
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # UNCERTAINTY (Priority 500-599)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - rule_id: high_uncertainty_medication
+    description: High uncertainty for medication proposals
+    priority: 550
+    when:
+      kind: all_of
+      conditions:
+        - kind: uncertainty_at_least
+          level: high
+        - kind: proposal_kind_in
+          kinds:
+            - MEDICATION_ORDER_PROPOSAL
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - high_uncertainty
+        - risk_too_high
+      explanation: High uncertainty detected for medication proposal.
+
+  - rule_id: high_uncertainty_default
+    description: High uncertainty for any proposal
+    priority: 500
+    when:
+      kind: uncertainty_at_least
+      level: high
+    then:
+      decision: REQUEST_MORE_INFO
+      reason_codes:
+        - high_uncertainty
+      explanation: High uncertainty detected. Additional information needed.
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # HALLUCINATION DETECTION (Priority 400-499)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - rule_id: hallucination_critical
+    description: Critical hallucination detected
+    priority: 450
+    when:
+      kind: hallucination_detected
+      severity: critical
+    then:
+      decision: HARD_STOP
+      reason_codes:
+        - policy_violation
+        - drift_suspected
+      explanation: Critical hallucination detected. Cannot proceed safely.
+
+  - rule_id: hallucination_significant
+    description: Significant hallucination detected
+    priority: 420
+    when:
+      kind: hallucination_detected
+      severity: significant
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - policy_violation
+        - drift_suspected
+      explanation: Significant hallucination detected. Routing to clinician.
+
+  - rule_id: idk_triggered
+    description: IDK (I Don't Know) triggered by Brain
+    priority: 400
+    when:
+      kind: idk_triggered
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - high_uncertainty
+        - needs_human_review
+      explanation: Brain indicated uncertainty. Routing to clinician.
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # CROSS-DOMAIN CONFLICTS (Priority 300-399)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - rule_id: conflict_escalated
+    description: Cross-domain conflict escalated
+    priority: 350
+    when:
+      kind: conflict_escalated
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - policy_violation
+        - needs_human_review
+      explanation: Cross-domain conflict was escalated. Clinician review required.
+
+  - rule_id: conflict_missing_evidence
+    description: Cross-domain conflict missing evidence
+    priority: 340
+    when:
+      kind: conflict_missing_evidence
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - insufficient_evidence
+      explanation: Cross-domain conflict resolution lacks supporting evidence.
+
+  - rule_id: domain_failed
+    description: Clinical domain processing failed
+    priority: 330
+    when:
+      kind: domain_status_in
+      statuses:
+        - failed
+      domain_category: clinical
+    then:
+      decision: HARD_STOP
+      reason_codes:
+        - policy_violation
+      explanation: Clinical domain processing failed. Cannot proceed safely.
+
+  - rule_id: rule_engine_failed
+    description: Rule engine processing failed
+    priority: 320
+    when:
+      kind: rule_engine_failed
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - policy_violation
+      explanation: Rule engine processing failed. Routing to clinician.
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # DEFAULT APPROVAL (Priority 0)
+  # Only reached if no other rules match
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - rule_id: default_approve_wellness
+    description: Default approval for wellness proposals
+    priority: 10
+    when:
+      kind: proposal_kind_in
+      kinds:
+        - CARE_NAVIGATION
+        - PATIENT_MESSAGE
+        - LIFESTYLE_MODIFICATION_PROPOSAL
+        - NUTRITION_PLAN_PROPOSAL
+    then:
+      decision: APPROVED
+      reason_codes:
+        - approved_with_constraints
+      explanation: Wellness proposal approved within normal parameters.
+
+  - rule_id: default_route
+    description: Default fallback - route to clinician
+    priority: 0
+    when:
+      kind: always
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - other
+      explanation: No specific rule matched. Routing to clinician for review.
