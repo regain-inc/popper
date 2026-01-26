@@ -26,7 +26,8 @@ async function main(): Promise<void> {
   logger.info`Log level: ${env.LOG_LEVEL}`;
 
   // Load policy packs
-  const policiesDir = resolve(process.cwd(), env.POLICIES_DIR);
+  // POLICIES_DIR is relative to monorepo root, not server cwd
+  const policiesDir = resolve(import.meta.dir, '../../..', env.POLICIES_DIR);
   logger.info`Loading policy packs from ${policiesDir}...`;
 
   try {
