@@ -5,6 +5,15 @@
  * @module policy-engine
  */
 
+// Evaluator
+export type {
+  ControlPlaneState,
+  DerivedSignals,
+  EvaluationContext,
+  EvaluationResult,
+  MatchedRule,
+} from './evaluator';
+export { createEvaluator, PolicyEvaluator } from './evaluator';
 // Loader
 export {
   loadPolicyPack,
