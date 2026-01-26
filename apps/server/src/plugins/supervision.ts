@@ -19,7 +19,7 @@ import {
 } from '@popper/core';
 import { Elysia } from 'elysia';
 import { logger } from '../lib/logger';
-import { supervisionRequestSchema, supervisionResponseSchema } from './schemas';
+import { supervisionRequestSchema, supervisionResponseSchema } from '../lib/schemas/supervision';
 
 // =============================================================================
 // Configuration
