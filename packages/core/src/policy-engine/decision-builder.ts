@@ -257,15 +257,14 @@ export class DecisionBuilder {
     const requestTrace = request.trace;
 
     return {
-      request_id: `${requestTrace.request_id}-response`,
-      created_at: new Date().toISOString(),
+      trace_id: `${requestTrace.trace_id}-response`,
+      created_at: new Date().toISOString() as TraceContext['created_at'],
       producer: {
-        system_id: this.systemId,
-        system_version: this.systemVersion,
+        system: this.systemId as 'popper',
+        service_version: this.systemVersion,
         ruleset_version: evalResult.policy_version,
       },
-      parent_id: requestTrace.request_id,
-      correlation_id: requestTrace.correlation_id,
+      parent_span_id: requestTrace.trace_id,
     };
   }
 
@@ -273,17 +272,16 @@ export class DecisionBuilder {
    * Build trace context for error responses.
    */
   private buildErrorTraceContext(request: Partial<SupervisionRequest>): TraceContext {
-    const requestId = request.trace?.request_id ?? `error-${Date.now()}`;
+    const traceId = request.trace?.trace_id ?? `error-${Date.now()}`;
 
     return {
-      request_id: `${requestId}-error-response`,
-      created_at: new Date().toISOString(),
+      trace_id: `${traceId}-error-response`,
+      created_at: new Date().toISOString() as TraceContext['created_at'],
       producer: {
-        system_id: this.systemId,
-        system_version: this.systemVersion,
+        system: this.systemId as 'popper',
+        service_version: this.systemVersion,
       },
-      parent_id: requestId,
-      correlation_id: request.trace?.correlation_id,
+      parent_span_id: traceId,
     };
   }
 

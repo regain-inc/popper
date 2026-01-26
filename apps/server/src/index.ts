@@ -4,6 +4,8 @@
  * @module index
  */
 
+import { resolve } from 'node:path';
+import { policyRegistry } from '@popper/core';
 import { createApp } from './app';
 import { env } from './config/env';
 import { logger, setupLogger } from './lib/logger';
@@ -22,6 +24,22 @@ async function main(): Promise<void> {
   logger.info`Starting Popper server...`;
   logger.info`Environment: ${env.NODE_ENV}`;
   logger.info`Log level: ${env.LOG_LEVEL}`;
+
+  // Load policy packs
+  const policiesDir = resolve(process.cwd(), env.POLICIES_DIR);
+  logger.info`Loading policy packs from ${policiesDir}...`;
+
+  try {
+    const count = await policyRegistry.loadFromDir(policiesDir);
+    logger.info`Loaded ${count} policy pack(s): ${policyRegistry.list().join(', ')}`;
+
+    if (count === 0) {
+      logger.warning`No policy packs found. Supervision requests will fail.`;
+    }
+  } catch (error) {
+    logger.error`Failed to load policy packs: ${error}`;
+    throw error;
+  }
 
   // Create and start the application
   const app = createApp();

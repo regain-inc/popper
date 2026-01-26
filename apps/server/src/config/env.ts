@@ -32,6 +32,9 @@ const envSchema = t.Object({
 
   // Redis (for future use)
   REDIS_URL: t.Optional(t.String()),
+
+  // Policy configuration
+  POLICIES_DIR: t.String({ default: './config/policies' }),
 });
 
 type Env = typeof envSchema.static;
@@ -47,6 +50,7 @@ function parseEnv(): Env {
     OTEL_EXPORTER_OTLP_ENDPOINT: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
     DATABASE_URL: process.env.DATABASE_URL,
     REDIS_URL: process.env.REDIS_URL,
+    POLICIES_DIR: process.env.POLICIES_DIR ?? './config/policies',
   } satisfies Env;
 
   return env;

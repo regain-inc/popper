@@ -20,39 +20,42 @@ import type { StalenessResult } from './staleness';
 // Test Helpers
 // =============================================================================
 
-const createRequest = (): SupervisionRequest => ({
-  hermes_version: '1.6.0',
-  message_type: 'supervision_request',
-  mode: 'wellness',
-  trace: {
-    request_id: 'req-123',
-    created_at: new Date().toISOString(),
-    producer: {
-      system_id: 'deutsch',
-      system_version: '1.0.0',
+const createRequest = (): SupervisionRequest =>
+  ({
+    hermes_version: '1.6.0',
+    message_type: 'supervision_request',
+    mode: 'wellness',
+    trace: {
+      trace_id: 'req-123',
+      created_at: new Date().toISOString(),
+      producer: {
+        system: 'deutsch',
+        service_version: '1.0.0',
+      },
     },
-    correlation_id: 'corr-456',
-  },
-  subject: {
-    subject_id: 'patient-789',
-    subject_type: 'patient',
-  },
-  snapshot: {
-    snapshot_id: 'snap-001',
-    created_at: new Date().toISOString(),
-  },
-  proposals: [
-    {
-      kind: 'PATIENT_MESSAGE',
-      proposal_id: 'p1',
-      message_markdown: 'Hello patient',
+    subject: {
+      subject_id: 'patient-789',
+      subject_type: 'patient',
     },
-  ],
-  audit_redaction: {
-    summary: 'Test request',
-    proposal_summaries: ['Patient message'],
-  },
-});
+    snapshot: {
+      snapshot_id: 'snap-001',
+      created_at: new Date().toISOString(),
+      sources: ['ehr'],
+    },
+    proposals: [
+      {
+        kind: 'PATIENT_MESSAGE',
+        proposal_id: 'p1',
+        created_at: new Date().toISOString(),
+        message_markdown: 'Hello patient',
+        audit_redaction: { summary: 'Patient message' },
+      },
+    ],
+    audit_redaction: {
+      summary: 'Test request',
+      proposal_summaries: ['Patient message'],
+    },
+  }) as SupervisionRequest;
 
 const createEvaluationResult = (overrides: Partial<EvaluationResult> = {}): EvaluationResult => ({
   decision: 'APPROVED',
@@ -104,9 +107,8 @@ describe('DecisionBuilder', () => {
 
       const response = builder.build({ request, evaluationResult: evalResult });
 
-      expect(response.trace.parent_id).toBe('req-123');
-      expect(response.trace.correlation_id).toBe('corr-456');
-      expect(response.trace.producer.system_id).toBe('popper');
+      expect(response.trace.parent_span_id).toBe('req-123');
+      expect(response.trace.producer.system).toBe('popper');
       expect(response.trace.producer.ruleset_version).toBe('1.0.0');
     });
 
@@ -346,14 +348,14 @@ describe('DecisionBuilder', () => {
 
   describe('Factory Functions', () => {
     test('createDecisionBuilder creates builder with custom IDs', () => {
-      const builder = createDecisionBuilder('custom-popper', '2.0.0');
+      const builder = createDecisionBuilder('popper', '2.0.0');
       const request = createRequest();
       const evalResult = createEvaluationResult();
 
       const response = builder.build({ request, evaluationResult: evalResult });
 
-      expect(response.trace.producer.system_id).toBe('custom-popper');
-      expect(response.trace.producer.system_version).toBe('2.0.0');
+      expect(response.trace.producer.system).toBe('popper');
+      expect(response.trace.producer.service_version).toBe('2.0.0');
     });
 
     test('defaultDecisionBuilder is available', () => {
