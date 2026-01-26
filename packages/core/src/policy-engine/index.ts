@@ -28,6 +28,21 @@ export {
   parsePolicyPackJson,
   parsePolicyPackYaml,
 } from './parser';
+// Staleness Validator
+export type {
+  ProposalRiskLevel,
+  SignalStalenessOverrides,
+  StalenessConfig,
+  StalenessResult,
+  StalenessThresholds,
+} from './staleness';
+export {
+  createStalenessValidator,
+  DEFAULT_STALENESS_THRESHOLDS,
+  defaultStalenessValidator,
+  HIGH_RISK_PROPOSAL_KINDS,
+  StalenessValidator,
+} from './staleness';
 // Types
 export type {
   AllOfCondition,
