@@ -7,6 +7,10 @@
     ".": {
       "types": "./src/index.ts",
       "import": "./src/index.ts"
+    },
+    "./hermes": {
+      "types": "./src/hermes.ts",
+      "import": "./src/hermes.ts"
     }
   },
   "scripts": {
@@ -22,6 +26,7 @@
   },
   "dependencies": {
     "@regain/hermes": "^1.0.3",
+    "ajv-formats": "^3.0.1",
     "yaml": "^2.7.0"
   },
   "devDependencies": {

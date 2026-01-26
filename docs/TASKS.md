@@ -10,8 +10,8 @@
 |---------|-----------|--------|----------|
 | POP-001 | [SAL-596](https://linear.app/salomatic/issue/SAL-596) | ✅ Done | Davron |
 | POP-002 | [SAL-597](https://linear.app/salomatic/issue/SAL-597) | ✅ Done | Davron |
-| POP-003 | [SAL-598](https://linear.app/salomatic/issue/SAL-598) | Backlog | Davron |
-| POP-004 | [SAL-599](https://linear.app/salomatic/issue/SAL-599) | Backlog | Davron |
+| POP-003 | [SAL-598](https://linear.app/salomatic/issue/SAL-598) | ✅ Done | Davron |
+| POP-004 | [SAL-599](https://linear.app/salomatic/issue/SAL-599) | 🔄 In Progress | Davron |
 | POP-005 | [SAL-600](https://linear.app/salomatic/issue/SAL-600) | Backlog | Davron |
 | POP-006 | [SAL-601](https://linear.app/salomatic/issue/SAL-601) | Backlog | Davron |
 | POP-007 | [SAL-602](https://linear.app/salomatic/issue/SAL-602) | Backlog | Davron |
@@ -32,6 +32,7 @@
 | POP-022 | [SAL-617](https://linear.app/salomatic/issue/SAL-617) | Backlog | Harsh |
 | POP-023 | [SAL-618](https://linear.app/salomatic/issue/SAL-618) | Backlog | Davron |
 | POP-024 | [SAL-619](https://linear.app/salomatic/issue/SAL-619) | Backlog | Davron |
+| POP-025 | [SAL-620](https://linear.app/salomatic/issue/SAL-620) | Backlog | Davron |
 
 ---
 
@@ -815,20 +816,68 @@ Implement incident tracking for hard-stop analysis and safety events.
 
 ---
 
+### POP-025: Test Fixtures & E2E Test Suite
+
+**Assignee**: @davron-yuldashev
+**Labels**: `phase-3`, `testing`, `ci`
+**Estimate**: 5 points
+**Priority**: P1
+**Blocked by**: POP-006, POP-009
+
+**Description**:
+Create comprehensive test fixtures based on Safety DSL specification and E2E test suite for full Popper pipeline validation.
+
+**Acceptance Criteria**:
+
+*Test Fixtures (from 03-popper-safety-dsl.md §6):*
+- [ ] Staleness test vectors (stale-001..007)
+- [ ] HTV score test vectors
+- [ ] Evidence grade test vectors
+- [ ] Uncertainty test vectors
+- [ ] Cross-domain conflict test vectors
+- [ ] Schema validation test vectors
+- [ ] Safe-mode test vectors
+
+*E2E Test Suite:*
+- [ ] Full pipeline tests: SupervisionRequest → PolicyEngine → SupervisionResponse
+- [ ] Mock SupervisionRequest fixtures for all scenarios
+- [ ] Expected decision validation
+- [ ] Reason codes validation
+- [ ] required_action validation
+- [ ] per_proposal_decisions validation
+
+*CI Integration:*
+- [ ] Regression test runner script
+- [ ] GitHub Actions workflow for tests
+- [ ] Test coverage reporting
+- [ ] Performance benchmarks (target: <20ms policy eval)
+
+**Technical Notes**:
+- Use bun:test
+- Fixtures in config/test-vectors/
+- Separate unit, integration, e2e test directories
+
+**Reference Docs**:
+- `docs/specs/02-popper-specs/03-popper-safety-dsl.md` — §6 Test vectors
+- `docs/specs/02-popper-specs/01-popper-system-spec.md` — §9 Testing
+- `@regain/hermes/fixtures` — base fixtures
+
+---
+
 ## Summary
 
 | Phase | Tasks | Points | Assignee | Dependencies |
 |-------|-------|--------|----------|--------------|
 | **Phase 1** | POP-001, 002, 003 | 10 | Davron | - |
 | **Phase 2** | POP-004, 005, 006, 007, 008 | 18 | Davron | Phase 1 |
-| **Phase 3** | POP-009, 010, 011 | 11 | Davron | Phase 2 |
+| **Phase 3** | POP-009, 010, 011, 025 | 16 | Davron | Phase 2 |
 | **Phase 4** | POP-012, 013 | 8 | Davron | Phase 3 |
 | **Phase 5** | POP-014, 015, 016 | 9 | Davron | Phase 4 |
 | **Phase 6** | POP-017, 018, 019 | 8 | Davron | Phase 3 |
 | **Phase 7** | POP-020, 021, 022 | 13 | Harsh | Phase 4 |
 | **Phase 8** | POP-023, 024 | 8 | Davron | Phase 3, 5 |
 
-**Total**: 24 tasks, 85 points
+**Total**: 25 tasks, 90 points
 
 ---
 
@@ -838,7 +887,7 @@ Implement incident tracking for hard-stop analysis and safety events.
 |-----------|-------|------|
 | **v0.1 - Foundation** | POP-001..003 | Infrastructure ready |
 | **v0.2 - Core Engine** | POP-004..008 | Policy engine working |
-| **v0.3 - MVP** | POP-009..011 | Supervision API working |
+| **v0.3 - MVP** | POP-009..011, 025 | Supervision API + E2E tests |
 | **v0.4 - Control Plane** | POP-012..013 | Safe-mode ready |
 | **v0.5 - Monitoring** | POP-014..016 | Drift detection |
 | **v0.6 - Production** | POP-017..019 | Multi-tenant auth |
@@ -847,4 +896,4 @@ Implement incident tracking for hard-stop analysis and safety events.
 
 ---
 
-*Generated: 2026-01-25*
+*Updated: 2026-01-25*
