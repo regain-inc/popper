@@ -5,6 +5,16 @@
  * @module policy-engine
  */
 
+// Decision Builder
+export type { DecisionBuilderInput, SafeModeStateUsed } from './decision-builder';
+export {
+  buildPerProposalDecisions,
+  createDecisionBuilder,
+  DecisionBuilder,
+  defaultDecisionBuilder,
+  getMoreConservativeDecision,
+  isMoreConservative,
+} from './decision-builder';
 // Evaluator
 export type {
   ControlPlaneState,
