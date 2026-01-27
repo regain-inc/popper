@@ -5,11 +5,18 @@
  */
 
 import { resolve } from 'node:path';
-import { policyRegistry } from '@popper/core';
+import { AuditEmitter, policyRegistry, setDefaultEmitter } from '@popper/core';
+import { createDB, DrizzleAuditStorage } from '@popper/db';
+import { Queue } from 'bullmq';
+import IORedis from 'ioredis';
 import { createApp } from './app';
 import { env } from './config/env';
 import { logger, setupLogger } from './lib/logger';
+import { QueueAuditStorage } from './lib/queue-audit-storage';
 import { setReady } from './plugins/health';
+
+/** Audit events queue name */
+const AUDIT_QUEUE_NAME = 'audit-events';
 
 // Track shutdown state
 let isShuttingDown = false;
@@ -40,6 +47,41 @@ async function main(): Promise<void> {
   } catch (error) {
     logger.error`Failed to load policy packs: ${error}`;
     throw error;
+  }
+
+  // Initialize audit storage
+  // Priority: Redis queue > Direct PostgreSQL > In-memory
+  if (env.REDIS_URL) {
+    // Use BullMQ queue for async audit event processing
+    logger.info`Initializing audit storage with Redis queue...`;
+    const redis = new IORedis(env.REDIS_URL, {
+      maxRetriesPerRequest: null, // Required for BullMQ
+      enableReadyCheck: false,
+    });
+    const auditQueue = new Queue(AUDIT_QUEUE_NAME, { connection: redis });
+    const auditStorage = new QueueAuditStorage(auditQueue);
+    const auditEmitter = new AuditEmitter(auditStorage, {
+      batchEnabled: false, // Queue handles batching
+      asyncWrites: true,
+    });
+    setDefaultEmitter(auditEmitter);
+    logger.info`Audit storage initialized with Redis queue`;
+  } else if (env.DATABASE_URL) {
+    // Direct PostgreSQL writes (not recommended for production)
+    logger.info`Initializing audit storage with PostgreSQL (direct)...`;
+    logger.warning`Direct DB writes not recommended. Set REDIS_URL for queue-based storage.`;
+    const db = createDB(env.DATABASE_URL);
+    const auditStorage = new DrizzleAuditStorage(db);
+    const auditEmitter = new AuditEmitter(auditStorage, {
+      batchEnabled: true,
+      batchSize: 100,
+      batchFlushInterval: 1000,
+      asyncWrites: true,
+    });
+    setDefaultEmitter(auditEmitter);
+    logger.info`Audit storage initialized with PostgreSQL (direct)`;
+  } else {
+    logger.warning`REDIS_URL and DATABASE_URL not configured, using in-memory audit storage`;
   }
 
   // Create and start the application
