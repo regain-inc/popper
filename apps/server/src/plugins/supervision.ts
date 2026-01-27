@@ -7,11 +7,16 @@
  */
 
 import {
+  buildAuditTags,
   createDecisionBuilder,
   createEvaluator,
   createStalenessValidator,
+  createSupervisionDecisionEvent,
+  createValidationFailedEvent,
   type DerivedSignals,
   type EvaluationContext,
+  extractRequestMetadata,
+  getDefaultEmitter,
   policyRegistry,
   type SupervisionRequest,
   type SupervisionResponse,
@@ -37,6 +42,9 @@ const DEFAULT_POLICY_PACK = 'popper-default';
 
 const stalenessValidator = createStalenessValidator();
 const decisionBuilder = createDecisionBuilder('popper', '1.0.0');
+
+/** System org ID for requests without organization_id */
+const SYSTEM_ORG_ID = '00000000-0000-0000-0000-000000000000';
 
 // =============================================================================
 // Helper Functions
@@ -105,35 +113,68 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
   async ({ body, set }) => {
     const startTime = performance.now();
     const request = body as SupervisionRequest;
+    const auditEmitter = getDefaultEmitter();
 
     // 1. Full Hermes schema validation
     const validationResult = validateHermesMessage(request);
     if (!validationResult.valid) {
       logger.warning`Schema validation failed: ${validationResult.errors}`;
 
-      set.status = 400;
-      return buildErrorResponse(
-        request,
-        `Schema validation failed: ${validationResult.errors?.map((e) => e.message).join(', ')}`,
-        ['schema_invalid'],
+      // Emit VALIDATION_FAILED audit event
+      const errorMessage = `Schema validation failed: ${validationResult.errors?.map((e) => e.message).join(', ')}`;
+      auditEmitter.emit(
+        createValidationFailedEvent({
+          traceId: request.trace?.trace_id ?? 'unknown',
+          subjectId: request.subject?.subject_id ?? 'unknown',
+          organizationId: request.subject?.organization_id ?? SYSTEM_ORG_ID,
+          errorMessage,
+          errorCode: 'SCHEMA_INVALID',
+          policyPackVersion: DEFAULT_POLICY_PACK,
+          tags: ['schema_invalid'],
+        }),
       );
+
+      set.status = 400;
+      return buildErrorResponse(request, errorMessage, ['schema_invalid']);
     }
 
     // 2. Clock skew validation (required for advocate_clinical)
     if (request.mode === 'advocate_clinical') {
       // Validate required fields for clinical mode
       if (!request.idempotency_key) {
-        set.status = 400;
-        return buildErrorResponse(
-          request,
-          'idempotency_key is required for advocate_clinical mode',
-          ['schema_invalid'],
+        const errorMessage = 'idempotency_key is required for advocate_clinical mode';
+        auditEmitter.emit(
+          createValidationFailedEvent({
+            traceId: request.trace.trace_id,
+            subjectId: request.subject.subject_id,
+            organizationId: request.subject.organization_id ?? SYSTEM_ORG_ID,
+            errorMessage,
+            errorCode: 'MISSING_IDEMPOTENCY_KEY',
+            policyPackVersion: DEFAULT_POLICY_PACK,
+            tags: ['schema_invalid'],
+          }),
         );
+
+        set.status = 400;
+        return buildErrorResponse(request, errorMessage, ['schema_invalid']);
       }
 
       const clockSkewError = validateClockSkew(request.request_timestamp);
       if (clockSkewError) {
         logger.warning`Clock skew validation failed: ${clockSkewError}`;
+
+        auditEmitter.emit(
+          createValidationFailedEvent({
+            traceId: request.trace.trace_id,
+            subjectId: request.subject.subject_id,
+            organizationId: request.subject.organization_id ?? SYSTEM_ORG_ID,
+            errorMessage: clockSkewError,
+            errorCode: 'CLOCK_SKEW',
+            policyPackVersion: DEFAULT_POLICY_PACK,
+            tags: ['clock_skew_rejected'],
+          }),
+        );
+
         set.status = 400;
         return buildErrorResponse(request, clockSkewError, ['clock_skew']);
       }
@@ -175,9 +216,47 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
       stalenessResult,
     });
 
-    // 9. Log metrics
+    // 9. Log metrics and emit audit event
     const latencyMs = performance.now() - startTime;
     logger.info`Supervision completed: decision=${response.decision} latency=${latencyMs.toFixed(2)}ms`;
+
+    // Emit SUPERVISION_DECISION audit event (async, non-blocking)
+    const requestMetadata = extractRequestMetadata(request);
+    const auditTags = buildAuditTags(
+      request,
+      response.decision,
+      stalenessResult.is_stale,
+      stalenessResult.is_missing,
+    );
+
+    auditEmitter.emit(
+      createSupervisionDecisionEvent({
+        traceId: request.trace.trace_id,
+        subjectId: request.subject.subject_id,
+        organizationId: request.subject.organization_id ?? SYSTEM_ORG_ID,
+        decision: response.decision,
+        reasonCodes: response.reason_codes,
+        policyPackVersion: evaluationResult.policy_version,
+        safeModeActive: false, // TODO: integrate with safe mode state
+        latencyMs,
+        proposalCount: request.proposals?.length ?? 0,
+        payload: {
+          ...requestMetadata,
+          staleness: {
+            is_stale: stalenessResult.is_stale,
+            is_missing: stalenessResult.is_missing,
+            age_hours: stalenessResult.age_hours,
+            threshold_hours: stalenessResult.threshold_hours,
+          },
+          evaluation: {
+            matched_rules: evaluationResult.matched_rules.map((r) => r.rule_id),
+            policy_version: evaluationResult.policy_version,
+            evaluation_time_ms: evaluationResult.evaluation_time_ms,
+          },
+        },
+        tags: auditTags,
+      }),
+    );
 
     // Set appropriate status code based on decision
     if (response.decision === 'HARD_STOP') {

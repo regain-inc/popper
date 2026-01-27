@@ -2,9 +2,14 @@
  * Supervision API endpoint tests
  */
 
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import { afterAll, afterEach, beforeAll, describe, expect, test } from 'bun:test';
 import { resolve } from 'node:path';
-import { policyRegistry } from '@popper/core';
+import {
+  AuditEmitter,
+  InMemoryAuditStorage,
+  policyRegistry,
+  setDefaultEmitter,
+} from '@popper/core';
 import { Elysia } from 'elysia';
 import { supervisionPlugin } from './supervision';
 
@@ -13,6 +18,7 @@ import { supervisionPlugin } from './supervision';
 // =============================================================================
 
 let app: Elysia;
+let auditStorage: InMemoryAuditStorage;
 
 beforeAll(async () => {
   // Load policy packs for testing
@@ -25,6 +31,15 @@ beforeAll(async () => {
 
 afterAll(() => {
   policyRegistry.clear();
+});
+
+// Setup in-memory audit storage for tests
+auditStorage = new InMemoryAuditStorage();
+const testEmitter = new AuditEmitter(auditStorage, { batchEnabled: false, asyncWrites: false });
+setDefaultEmitter(testEmitter);
+
+afterEach(() => {
+  auditStorage.clear();
 });
 
 // =============================================================================
@@ -279,6 +294,109 @@ describe('POST /v1/popper/supervise', () => {
       const body = await response.json();
       expect(body.subject.subject_id).toBe('patient-xyz');
       expect(body.snapshot.snapshot_id).toBe('snap-abc');
+    });
+  });
+
+  describe('Audit Event Emission', () => {
+    test('emits SUPERVISION_DECISION event for valid request', async () => {
+      const request = createValidRequest({
+        trace: {
+          trace_id: 'audit-test-123',
+          created_at: new Date().toISOString(),
+          producer: { system: 'deutsch', service_version: '1.0.0' },
+        },
+        subject: {
+          subject_id: 'patient-audit',
+          subject_type: 'patient',
+          organization_id: 'org-audit',
+        },
+      });
+
+      const response = await postSupervise(request);
+      expect(response.status).toBe(200);
+
+      const events = auditStorage.getEvents();
+      expect(events.length).toBeGreaterThanOrEqual(1);
+
+      const decisionEvent = events.find((e) => e.eventType === 'SUPERVISION_DECISION');
+      expect(decisionEvent).toBeDefined();
+      expect(decisionEvent?.traceId).toBe('audit-test-123');
+      expect(decisionEvent?.subjectId).toBe('patient-audit');
+      expect(decisionEvent?.organizationId).toBe('org-audit');
+      expect(decisionEvent?.decision).toBeDefined();
+    });
+
+    test('emits VALIDATION_FAILED event for clock skew rejection', async () => {
+      const pastTime = new Date(Date.now() - 10 * 60 * 1000);
+
+      const request = createValidRequest({
+        mode: 'advocate_clinical',
+        idempotency_key: 'idem-audit',
+        request_timestamp: pastTime.toISOString(),
+        trace: {
+          trace_id: 'audit-clock-skew-123',
+          created_at: new Date().toISOString(),
+          producer: { system: 'deutsch', service_version: '1.0.0' },
+        },
+      });
+
+      const response = await postSupervise(request);
+      expect(response.status).toBe(400);
+
+      const events = auditStorage.getEvents();
+      const failedEvent = events.find((e) => e.eventType === 'VALIDATION_FAILED');
+      expect(failedEvent).toBeDefined();
+      expect(failedEvent?.traceId).toBe('audit-clock-skew-123');
+      expect(failedEvent?.tags).toContain('clock_skew_rejected');
+    });
+
+    test('audit event includes latency metrics', async () => {
+      const response = await postSupervise(createValidRequest());
+      expect(response.status).toBe(200);
+
+      const events = auditStorage.getEvents();
+      const decisionEvent = events.find((e) => e.eventType === 'SUPERVISION_DECISION');
+      expect(decisionEvent?.latencyMs).toBeDefined();
+      expect(decisionEvent?.latencyMs).toBeGreaterThan(0);
+    });
+
+    test('audit event includes staleness info in payload', async () => {
+      const response = await postSupervise(createValidRequest());
+      expect(response.status).toBe(200);
+
+      const events = auditStorage.getEvents();
+      const decisionEvent = events.find((e) => e.eventType === 'SUPERVISION_DECISION');
+      expect(decisionEvent?.payload?.staleness).toBeDefined();
+    });
+
+    test('events are joinable by trace_id', async () => {
+      const traceId = 'shared-trace-123';
+
+      // First request
+      await postSupervise(
+        createValidRequest({
+          trace: {
+            trace_id: traceId,
+            created_at: new Date().toISOString(),
+            producer: { system: 'deutsch', service_version: '1.0.0' },
+          },
+        }),
+      );
+
+      // Second request with same trace_id
+      await postSupervise(
+        createValidRequest({
+          trace: {
+            trace_id: traceId,
+            created_at: new Date().toISOString(),
+            producer: { system: 'deutsch', service_version: '1.0.0' },
+          },
+        }),
+      );
+
+      const relatedEvents = auditStorage.getEventsByTraceId(traceId);
+      expect(relatedEvents.length).toBe(2);
+      expect(relatedEvents.every((e) => e.traceId === traceId)).toBe(true);
     });
   });
 });
