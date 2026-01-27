@@ -5,12 +5,15 @@
  */
 
 import { resolve } from 'node:path';
+import { IdempotencyCache, InMemoryIdempotencyCache } from '@popper/cache';
+import type { SupervisionResponse } from '@popper/core';
 import { AuditEmitter, policyRegistry, setDefaultEmitter } from '@popper/core';
 import { createDB, DrizzleAuditStorage } from '@popper/db';
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { createApp } from './app';
 import { env } from './config/env';
+import { setIdempotencyCache } from './lib/idempotency';
 import { logger, setupLogger } from './lib/logger';
 import { QueueAuditStorage } from './lib/queue-audit-storage';
 import { setReady } from './plugins/health';
@@ -49,7 +52,7 @@ async function main(): Promise<void> {
     throw error;
   }
 
-  // Initialize audit storage
+  // Initialize audit storage and idempotency cache
   // Priority: Redis queue > Direct PostgreSQL > In-memory
   if (env.REDIS_URL) {
     // Use BullMQ queue for async audit event processing
@@ -66,6 +69,12 @@ async function main(): Promise<void> {
     });
     setDefaultEmitter(auditEmitter);
     logger.info`Audit storage initialized with Redis queue`;
+
+    // Initialize Redis-based idempotency cache
+    const idempotencyRedis = new IORedis(env.REDIS_URL);
+    const idempotencyCache = new IdempotencyCache<SupervisionResponse>(idempotencyRedis);
+    setIdempotencyCache(idempotencyCache);
+    logger.info`Idempotency cache initialized with Redis`;
   } else if (env.DATABASE_URL) {
     // Direct PostgreSQL writes (not recommended for production)
     logger.info`Initializing audit storage with PostgreSQL (direct)...`;
@@ -80,8 +89,16 @@ async function main(): Promise<void> {
     });
     setDefaultEmitter(auditEmitter);
     logger.info`Audit storage initialized with PostgreSQL (direct)`;
+    // In-memory idempotency cache (Redis recommended for production)
+    const idempotencyCache = new InMemoryIdempotencyCache<SupervisionResponse>();
+    setIdempotencyCache(idempotencyCache);
+    logger.warning`Using in-memory idempotency cache. Set REDIS_URL for distributed cache.`;
   } else {
     logger.warning`REDIS_URL and DATABASE_URL not configured, using in-memory audit storage`;
+    // In-memory idempotency cache for development/testing
+    const idempotencyCache = new InMemoryIdempotencyCache<SupervisionResponse>();
+    setIdempotencyCache(idempotencyCache);
+    logger.info`Idempotency cache initialized with in-memory storage`;
   }
 
   // Create and start the application

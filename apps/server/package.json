@@ -23,6 +23,7 @@
     "@opentelemetry/exporter-trace-otlp-proto": "^0.211.0",
     "@opentelemetry/sdk-metrics": "^2.5.0",
     "@opentelemetry/sdk-trace-node": "^2.5.0",
+    "@popper/cache": "workspace:*",
     "@popper/core": "workspace:*",
     "@popper/db": "workspace:*",
     "@regain/hermes": "^1.0.3",

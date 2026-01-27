@@ -2,15 +2,18 @@
  * Supervision API endpoint tests
  */
 
-import { afterAll, afterEach, beforeAll, describe, expect, test } from 'bun:test';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { resolve } from 'node:path';
+import { InMemoryIdempotencyCache } from '@popper/cache';
 import {
   AuditEmitter,
   InMemoryAuditStorage,
   policyRegistry,
+  type SupervisionResponse,
   setDefaultEmitter,
 } from '@popper/core';
 import { Elysia } from 'elysia';
+import { setIdempotencyCache } from '../lib/idempotency';
 import { supervisionPlugin } from './supervision';
 
 // =============================================================================
@@ -39,8 +42,17 @@ auditStorage = new InMemoryAuditStorage();
 const testEmitter = new AuditEmitter(auditStorage, { batchEnabled: false, asyncWrites: false });
 setDefaultEmitter(testEmitter);
 
+// Setup in-memory idempotency cache for tests
+let idempotencyCache: InMemoryIdempotencyCache<SupervisionResponse>;
+
+beforeEach(() => {
+  idempotencyCache = new InMemoryIdempotencyCache();
+  setIdempotencyCache(idempotencyCache);
+});
+
 afterEach(() => {
   auditStorage.clear();
+  idempotencyCache.clear();
 });
 
 // =============================================================================
@@ -398,6 +410,178 @@ describe('POST /v1/popper/supervise', () => {
       const relatedEvents = auditStorage.getEventsByTraceId(traceId);
       expect(relatedEvents.length).toBe(2);
       expect(relatedEvents.every((e) => e.traceId === traceId)).toBe(true);
+    });
+  });
+
+  describe('Idempotency Cache', () => {
+    const createClinicalRequest = (
+      idempotencyKey: string,
+      overrides: Record<string, unknown> = {},
+    ) => ({
+      ...createValidRequest(),
+      mode: 'advocate_clinical',
+      idempotency_key: idempotencyKey,
+      request_timestamp: new Date().toISOString(),
+      subject: {
+        subject_id: 'patient-123',
+        subject_type: 'patient',
+        organization_id: 'org-456',
+      },
+      ...overrides,
+    });
+
+    test('returns cached response for identical request', async () => {
+      const request = createClinicalRequest('idem-001');
+
+      // First request
+      const response1 = await postSupervise(request);
+      expect(response1.status).toBe(200);
+      const body1 = await response1.json();
+
+      // Second identical request (different timestamp is ignored in hash)
+      const request2 = {
+        ...request,
+        request_timestamp: new Date().toISOString(),
+      };
+      const response2 = await postSupervise(request2);
+      expect(response2.status).toBe(200);
+      const body2 = await response2.json();
+
+      // Responses should be identical
+      expect(body2.decision).toBe(body1.decision);
+      expect(body2.trace.span_id).toBe(body1.trace.span_id); // Same cached response
+    });
+
+    test('returns HARD_STOP for replay with different payload', async () => {
+      const idempotencyKey = 'idem-replay-001';
+
+      // First request
+      const request1 = createClinicalRequest(idempotencyKey, {
+        proposals: [
+          {
+            kind: 'PATIENT_MESSAGE',
+            proposal_id: 'p1',
+            created_at: new Date().toISOString(),
+            message_markdown: 'Original message',
+            audit_redaction: { summary: 'Message 1' },
+          },
+        ],
+      });
+      const response1 = await postSupervise(request1);
+      expect(response1.status).toBe(200);
+
+      // Second request with same idempotency_key but different payload
+      const request2 = createClinicalRequest(idempotencyKey, {
+        proposals: [
+          {
+            kind: 'PATIENT_MESSAGE',
+            proposal_id: 'p2',
+            created_at: new Date().toISOString(),
+            message_markdown: 'Different message - potential replay attack',
+            audit_redaction: { summary: 'Message 2' },
+          },
+        ],
+      });
+      const response2 = await postSupervise(request2);
+      expect(response2.status).toBe(400);
+
+      const body2 = await response2.json();
+      expect(body2.decision).toBe('HARD_STOP');
+      expect(body2.reason_codes).toContain('policy_violation');
+      expect(body2.explanation).toContain('Replay');
+    });
+
+    test('emits VALIDATION_FAILED event for replay detection', async () => {
+      const idempotencyKey = 'idem-replay-audit';
+
+      // First request
+      await postSupervise(
+        createClinicalRequest(idempotencyKey, {
+          trace: {
+            trace_id: 'trace-replay-1',
+            created_at: new Date().toISOString(),
+            producer: { system: 'deutsch', service_version: '1.0.0' },
+          },
+        }),
+      );
+
+      // Different payload with same key
+      await postSupervise(
+        createClinicalRequest(idempotencyKey, {
+          trace: {
+            trace_id: 'trace-replay-2',
+            created_at: new Date().toISOString(),
+            producer: { system: 'deutsch', service_version: '1.0.0' },
+          },
+          proposals: [
+            {
+              kind: 'LIFESTYLE_RECOMMENDATION',
+              proposal_id: 'different',
+              created_at: new Date().toISOString(),
+              recommendation_markdown: 'Different proposal',
+              audit_redaction: { summary: 'Different' },
+            },
+          ],
+        }),
+      );
+
+      const events = auditStorage.getEvents();
+      const replayEvent = events.find(
+        (e) => e.eventType === 'VALIDATION_FAILED' && e.tags?.includes('replay_suspected'),
+      );
+      expect(replayEvent).toBeDefined();
+    });
+
+    test('isolates cache by organization_id', async () => {
+      const idempotencyKey = 'idem-org-isolation';
+
+      // Request from org-1
+      const request1 = createClinicalRequest(idempotencyKey, {
+        subject: { subject_id: 'patient-1', subject_type: 'patient', organization_id: 'org-1' },
+      });
+      const response1 = await postSupervise(request1);
+      expect(response1.status).toBe(200);
+
+      // Same idempotency_key from org-2 should not get cached response
+      const request2 = createClinicalRequest(idempotencyKey, {
+        subject: { subject_id: 'patient-2', subject_type: 'patient', organization_id: 'org-2' },
+      });
+      const response2 = await postSupervise(request2);
+      expect(response2.status).toBe(200);
+
+      // Should have two separate audit events (not replay)
+      const events = auditStorage.getEvents();
+      const decisionEvents = events.filter((e) => e.eventType === 'SUPERVISION_DECISION');
+      expect(decisionEvents.length).toBe(2);
+    });
+
+    test('idempotency not applied in wellness mode', async () => {
+      // Wellness mode doesn't require idempotency_key
+      const request1 = createValidRequest({
+        trace: {
+          trace_id: 'wellness-1',
+          created_at: new Date().toISOString(),
+          producer: { system: 'deutsch', service_version: '1.0.0' },
+        },
+      });
+      const response1 = await postSupervise(request1);
+      expect(response1.status).toBe(200);
+
+      // Same request again - should process normally (no caching)
+      const request2 = createValidRequest({
+        trace: {
+          trace_id: 'wellness-2',
+          created_at: new Date().toISOString(),
+          producer: { system: 'deutsch', service_version: '1.0.0' },
+        },
+      });
+      const response2 = await postSupervise(request2);
+      expect(response2.status).toBe(200);
+
+      // Both should generate separate events
+      const events = auditStorage.getEvents();
+      const decisionEvents = events.filter((e) => e.eventType === 'SUPERVISION_DECISION');
+      expect(decisionEvents.length).toBe(2);
     });
   });
 });

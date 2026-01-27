@@ -23,6 +23,7 @@ import {
   validateHermesMessage,
 } from '@popper/core';
 import { Elysia } from 'elysia';
+import { getIdempotencyCache } from '../lib/idempotency';
 import { logger } from '../lib/logger';
 import { supervisionRequestSchema, supervisionResponseSchema } from '../lib/schemas/supervision';
 
@@ -115,6 +116,12 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
     const request = body as SupervisionRequest;
     const auditEmitter = getDefaultEmitter();
 
+    // Initialize idempotency tracking (used for advocate_clinical mode)
+    const idempotencyCache = getIdempotencyCache();
+    let idempotencyKey: string | undefined;
+    let requestHash: string | undefined;
+    let organizationId = SYSTEM_ORG_ID;
+
     // 1. Full Hermes schema validation
     const validationResult = validateHermesMessage(request);
     if (!validationResult.valid) {
@@ -177,6 +184,41 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
 
         set.status = 400;
         return buildErrorResponse(request, clockSkewError, ['clock_skew']);
+      }
+
+      // 2b. Idempotency check (required for advocate_clinical)
+      organizationId = request.subject.organization_id ?? SYSTEM_ORG_ID;
+      idempotencyKey = request.idempotency_key;
+      requestHash = idempotencyCache.computeRequestHash(request);
+      const idempotencyResult = await idempotencyCache.check(
+        organizationId,
+        idempotencyKey,
+        requestHash,
+      );
+
+      if (idempotencyResult.status === 'cached') {
+        logger.info`Returning cached response for idempotency_key=${request.idempotency_key}`;
+        return idempotencyResult.response;
+      }
+
+      if (idempotencyResult.status === 'replay_suspected') {
+        const errorMessage = `Replay attack suspected: same idempotency_key with different payload`;
+        logger.warning`${errorMessage} key=${request.idempotency_key}`;
+
+        auditEmitter.emit(
+          createValidationFailedEvent({
+            traceId: request.trace.trace_id,
+            subjectId: request.subject.subject_id,
+            organizationId,
+            errorMessage,
+            errorCode: 'REPLAY_SUSPECTED',
+            policyPackVersion: DEFAULT_POLICY_PACK,
+            tags: ['replay_suspected'],
+          }),
+        );
+
+        set.status = 400;
+        return decisionBuilder.buildErrorResponse(request, errorMessage, ['policy_violation']);
       }
     }
 
@@ -261,6 +303,14 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
     // Set appropriate status code based on decision
     if (response.decision === 'HARD_STOP') {
       set.status = 200; // Still 200 - HARD_STOP is a valid response
+    }
+
+    // 10. Store response in idempotency cache (advocate_clinical only)
+    if (idempotencyKey && requestHash) {
+      // Fire-and-forget: don't block response on cache write
+      idempotencyCache.store(organizationId, idempotencyKey, requestHash, response).catch((err) => {
+        logger.warning`Failed to store idempotency cache: ${err}`;
+      });
     }
 
     return response;
