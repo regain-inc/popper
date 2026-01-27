@@ -10,6 +10,8 @@ import {
   IdempotencyCache,
   InMemoryApiKeyCache,
   InMemoryIdempotencyCache,
+  InMemoryRateLimitCache,
+  RateLimitCache,
 } from '@popper/cache';
 import type { SupervisionResponse } from '@popper/core';
 import {
@@ -37,6 +39,7 @@ import { setIdempotencyCache } from './lib/idempotency';
 import { logger, setupLogger } from './lib/logger';
 import { initOrganizationService } from './lib/organizations';
 import { QueueAuditStorage } from './lib/queue-audit-storage';
+import { setRateLimitCache } from './lib/rate-limit';
 import { setSafeModeManager } from './lib/safe-mode';
 import { setReady } from './plugins/health';
 
@@ -123,6 +126,11 @@ async function main(): Promise<void> {
     const organizationService = new OrganizationService(db);
     initOrganizationService(organizationService);
     logger.info`Organization service initialized with PostgreSQL`;
+
+    // Rate limit cache via Redis
+    const rateLimitRedis = new IORedis(env.REDIS_URL);
+    setRateLimitCache(new RateLimitCache(rateLimitRedis));
+    logger.info`Rate limit cache initialized with Redis`;
   } else if (env.REDIS_URL) {
     // Redis only (no PostgreSQL for history)
     logger.info`Initializing with Redis only...`;
@@ -164,6 +172,11 @@ async function main(): Promise<void> {
     const apiKeyCache = new ApiKeyCache(apiKeyRedis);
     setApiKeyCache(apiKeyCache);
     logger.warning`API key service not available without DATABASE_URL. Key validation disabled.`;
+
+    // Rate limit cache via Redis
+    const rateLimitRedis = new IORedis(env.REDIS_URL);
+    setRateLimitCache(new RateLimitCache(rateLimitRedis));
+    logger.info`Rate limit cache initialized with Redis`;
   } else if (env.DATABASE_URL) {
     // Direct PostgreSQL writes (not recommended for production)
     logger.info`Initializing audit storage with PostgreSQL (direct)...`;
@@ -204,6 +217,10 @@ async function main(): Promise<void> {
     const organizationService = new OrganizationService(db);
     initOrganizationService(organizationService);
     logger.info`Organization service initialized with PostgreSQL`;
+
+    // Rate limit cache: in-memory (Redis recommended for production)
+    setRateLimitCache(new InMemoryRateLimitCache());
+    logger.warning`Using in-memory rate limit cache. Set REDIS_URL for distributed rate limiting.`;
   } else {
     logger.warning`REDIS_URL and DATABASE_URL not configured, using in-memory storage`;
 
@@ -223,6 +240,10 @@ async function main(): Promise<void> {
     // API key service: Not available without database
     // Development mode will bypass auth, but API key management endpoints won't work
     logger.warning`API key service not available without DATABASE_URL. Key management disabled.`;
+
+    // Rate limit cache: in-memory for development/testing
+    // Note: In dev mode without auth, rate limiting uses dev-org ID
+    logger.info`Rate limit cache initialized with in-memory storage`;
   }
 
   // Create and start the application
