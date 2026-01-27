@@ -1,11 +1,13 @@
 'use client';
 
-import { Timer01Icon } from '@hugeicons/core-free-icons';
+import { ArrowRight01Icon, Timer01Icon, UserMultiple02Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
+import Link from 'next/link';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useAuth } from '@/hooks/use-auth';
 import { useSettings } from '@/hooks/use-settings';
 
 const refreshOptions = [
@@ -17,6 +19,7 @@ const refreshOptions = [
 ];
 
 export default function SettingsPage() {
+  const { isAdmin } = useAuth();
   const { refreshInterval, setRefreshInterval } = useSettings();
 
   const handleRefreshChange = (value: string) => {
@@ -73,6 +76,34 @@ export default function SettingsPage() {
           </RadioGroup>
         </CardContent>
       </Card>
+
+      {/* User Management (Admin only) */}
+      {isAdmin && (
+        <Card className="group cursor-pointer transition-colors hover:border-primary/50">
+          <Link href="/settings/users">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-muted flex size-10 items-center justify-center rounded-lg">
+                    <HugeiconsIcon
+                      icon={UserMultiple02Icon}
+                      className="text-muted-foreground size-5"
+                    />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">User Management</CardTitle>
+                    <CardDescription>Manage dashboard users and invitations</CardDescription>
+                  </div>
+                </div>
+                <HugeiconsIcon
+                  icon={ArrowRight01Icon}
+                  className="text-muted-foreground size-5 transition-transform group-hover:translate-x-1"
+                />
+              </div>
+            </CardHeader>
+          </Link>
+        </Card>
+      )}
     </div>
   );
 }

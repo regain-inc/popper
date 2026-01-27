@@ -1,6 +1,6 @@
 export { DrizzleAuditStorage, type StoredAuditEvent } from './audit-storage';
 export {
+  type ApiSafeModeHistoryEntry,
   DrizzleSafeModeHistoryStorage,
-  type SafeModeHistoryEntry,
   type SafeModeTrigger,
 } from './safe-mode-storage';

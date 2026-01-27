@@ -1,7 +1,8 @@
 'use client';
 
-import { Building02Icon, Logout02Icon, Settings01Icon, UserIcon } from '@hugeicons/core-free-icons';
+import { Building02Icon, Logout02Icon, Settings01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
+import Link from 'next/link';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,10 +20,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useAuth } from '@/hooks/use-auth';
 import { useOrganization } from '@/hooks/use-organization';
 
 export function Header() {
+  const { user, logout } = useAuth();
   const { selectedOrgId, setSelectedOrgId, organizations } = useOrganization();
+
+  // Get initials from user name
+  const initials = user?.name
+    ? user.name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
+    : 'U';
 
   return (
     <header className="bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40 flex h-14 items-center justify-between border-b px-4 backdrop-blur">
@@ -61,28 +74,28 @@ export function Header() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-9 w-9 rounded-full">
               <Avatar className="size-9">
-                <AvatarFallback className="bg-muted text-muted-foreground">SO</AvatarFallback>
+                <AvatarFallback className="bg-muted text-muted-foreground">
+                  {initials}
+                </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="end" forceMount>
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">Safety Ops</p>
-                <p className="text-muted-foreground text-xs leading-none">ops@regain.health</p>
+                <p className="text-sm font-medium leading-none">{user?.name || 'User'}</p>
+                <p className="text-muted-foreground text-xs leading-none">{user?.email}</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <HugeiconsIcon icon={UserIcon} className="mr-2 size-4" />
-              Profile
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <HugeiconsIcon icon={Settings01Icon} className="mr-2 size-4" />
-              Settings
+            <DropdownMenuItem asChild>
+              <Link href="/settings">
+                <HugeiconsIcon icon={Settings01Icon} className="mr-2 size-4" />
+                Settings
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">
+            <DropdownMenuItem className="text-destructive" onClick={() => logout()}>
               <HugeiconsIcon icon={Logout02Icon} className="mr-2 size-4" />
               Log out
             </DropdownMenuItem>
