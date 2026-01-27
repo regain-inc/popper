@@ -26,6 +26,7 @@ import {
   createDB,
   DrizzleAuditStorage,
   DrizzleSafeModeHistoryStorage,
+  OrganizationService,
 } from '@popper/db';
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
@@ -34,6 +35,7 @@ import { env } from './config/env';
 import { initApiKeyService, setApiKeyCache } from './lib/api-keys';
 import { setIdempotencyCache } from './lib/idempotency';
 import { logger, setupLogger } from './lib/logger';
+import { initOrganizationService } from './lib/organizations';
 import { QueueAuditStorage } from './lib/queue-audit-storage';
 import { setSafeModeManager } from './lib/safe-mode';
 import { setReady } from './plugins/health';
@@ -116,6 +118,11 @@ async function main(): Promise<void> {
     const apiKeyService = new ApiKeyService(db);
     initApiKeyService(apiKeyService);
     logger.info`API key service initialized with PostgreSQL + Redis cache`;
+
+    // Organization service: Database
+    const organizationService = new OrganizationService(db);
+    initOrganizationService(organizationService);
+    logger.info`Organization service initialized with PostgreSQL`;
   } else if (env.REDIS_URL) {
     // Redis only (no PostgreSQL for history)
     logger.info`Initializing with Redis only...`;
@@ -192,6 +199,11 @@ async function main(): Promise<void> {
     const apiKeyService = new ApiKeyService(db);
     initApiKeyService(apiKeyService);
     logger.info`API key service initialized with PostgreSQL (in-memory cache)`;
+
+    // Organization service: Database
+    const organizationService = new OrganizationService(db);
+    initOrganizationService(organizationService);
+    logger.info`Organization service initialized with PostgreSQL`;
   } else {
     logger.warning`REDIS_URL and DATABASE_URL not configured, using in-memory storage`;
 

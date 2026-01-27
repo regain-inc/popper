@@ -8,6 +8,7 @@
  * @module plugins/supervision
  */
 
+import type { ApiKeyContext } from '@popper/core';
 import {
   buildAuditTags,
   createDecisionBuilder,
@@ -24,9 +25,10 @@ import {
   type SupervisionResponse,
   validateHermesMessage,
 } from '@popper/core';
-import { Elysia } from 'elysia';
+import { Elysia, t } from 'elysia';
 import { getIdempotencyCache } from '../lib/idempotency';
 import { logger } from '../lib/logger';
+import { getOrganizationService, isOrganizationServiceInitialized } from '../lib/organizations';
 import { errorResponseSchema } from '../lib/schemas';
 import { supervisionRequestSchema, supervisionResponseSchema } from '../lib/schemas/supervision';
 import { createAuthGuard } from './api-key-auth';
@@ -105,6 +107,15 @@ function buildErrorResponse(
   return decisionBuilder.buildErrorResponse(partialRequest, errorMessage, reasonCodes);
 }
 
+/**
+ * Check if an API key is authorized for a target organization.
+ * For now, this is a simple equality check. Organization hierarchy
+ * support can be added later.
+ */
+function isOrganizationAuthorized(apiKeyOrgId: string, targetOrgId: string): boolean {
+  return apiKeyOrgId === targetOrgId;
+}
+
 // =============================================================================
 // Supervision Plugin
 // =============================================================================
@@ -119,7 +130,7 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
   (app) =>
     app.post(
       '/supervise',
-      async ({ body, set }) => {
+      async ({ body, set, apiKey }) => {
         const startTime = performance.now();
         const request = body as SupervisionRequest;
         const auditEmitter = getDefaultEmitter();
@@ -194,8 +205,113 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
             return buildErrorResponse(request, clockSkewError, ['clock_skew']);
           }
 
-          // 2b. Idempotency check (required for advocate_clinical)
-          organizationId = request.subject.organization_id ?? SYSTEM_ORG_ID;
+          // 2c. Organization validation (required for advocate_clinical)
+          // Require organization_id in the request
+          if (!request.subject.organization_id) {
+            const errorMessage = 'organization_id is required for advocate_clinical mode';
+            auditEmitter.emit(
+              createValidationFailedEvent({
+                traceId: request.trace.trace_id,
+                subjectId: request.subject.subject_id,
+                organizationId: SYSTEM_ORG_ID,
+                errorMessage,
+                errorCode: 'MISSING_ORGANIZATION_ID',
+                policyPackVersion: DEFAULT_POLICY_PACK,
+                tags: ['schema_invalid'],
+              }),
+            );
+
+            set.status = 400;
+            return buildErrorResponse(request, errorMessage, ['schema_invalid']);
+          }
+
+          organizationId = request.subject.organization_id;
+
+          // Validate API key is authorized for the requested organization
+          const authenticatedApiKey = apiKey as ApiKeyContext | null;
+          if (
+            authenticatedApiKey &&
+            !isOrganizationAuthorized(authenticatedApiKey.organizationId, organizationId)
+          ) {
+            const errorMessage = `API key not authorized for organization: ${organizationId}`;
+            logger.warning`${errorMessage}`;
+
+            auditEmitter.emit(
+              createValidationFailedEvent({
+                traceId: request.trace.trace_id,
+                subjectId: request.subject.subject_id,
+                organizationId,
+                errorMessage,
+                errorCode: 'UNAUTHORIZED_ORG',
+                policyPackVersion: DEFAULT_POLICY_PACK,
+                tags: ['unauthorized_org'],
+              }),
+            );
+
+            set.status = 403;
+            return decisionBuilder.buildErrorResponse(request, errorMessage, ['policy_violation']);
+          }
+
+          // Validate organization exists and is active, and mode is allowed
+          if (isOrganizationServiceInitialized()) {
+            const orgService = getOrganizationService();
+            const orgValidation = await orgService.validateForSupervision(
+              organizationId,
+              'advocate_clinical',
+            );
+
+            if (orgValidation.valid === false) {
+              const validationError = orgValidation.error;
+              let errorMessage: string;
+              let statusCode: number;
+              let auditTag: 'org_not_found' | 'org_inactive' | 'mode_not_allowed';
+
+              switch (validationError) {
+                case 'not_found':
+                  errorMessage = `Organization not found: ${organizationId}`;
+                  statusCode = 400;
+                  auditTag = 'org_not_found';
+                  break;
+                case 'inactive':
+                  errorMessage = `Organization is inactive: ${organizationId}`;
+                  statusCode = 400;
+                  auditTag = 'org_inactive';
+                  break;
+                case 'mode_not_allowed':
+                  errorMessage = `advocate_clinical mode not allowed for organization: ${organizationId}`;
+                  statusCode = 403;
+                  auditTag = 'mode_not_allowed';
+                  break;
+                default:
+                  errorMessage = `Organization validation failed: ${organizationId}`;
+                  statusCode = 400;
+                  auditTag = 'org_not_found';
+              }
+
+              logger.warning`${errorMessage}`;
+
+              auditEmitter.emit(
+                createValidationFailedEvent({
+                  traceId: request.trace.trace_id,
+                  subjectId: request.subject.subject_id,
+                  organizationId,
+                  errorMessage,
+                  errorCode: 'ORG_VALIDATION_FAILED',
+                  policyPackVersion: DEFAULT_POLICY_PACK,
+                  tags: [auditTag],
+                }),
+              );
+
+              set.status = statusCode;
+              return decisionBuilder.buildErrorResponse(
+                request,
+                errorMessage,
+                validationError === 'mode_not_allowed' ? ['policy_violation'] : ['schema_invalid'],
+              );
+            }
+          }
+
+          // 2d. Idempotency check (required for advocate_clinical)
           idempotencyKey = request.idempotency_key;
           requestHash = idempotencyCache.computeRequestHash(request);
           const idempotencyResult = await idempotencyCache.check(
@@ -331,7 +447,8 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
           200: supervisionResponseSchema,
           400: supervisionResponseSchema,
           401: errorResponseSchema,
-          403: errorResponseSchema,
+          // 403 can be either auth error (errorResponseSchema) or policy violation (supervisionResponseSchema)
+          403: t.Union([errorResponseSchema, supervisionResponseSchema]),
           500: supervisionResponseSchema,
         },
         detail: {

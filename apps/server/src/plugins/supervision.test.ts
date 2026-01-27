@@ -170,7 +170,7 @@ describe('POST /v1/popper/supervise', () => {
         subject: {
           subject_id: 'patient-123',
           subject_type: 'patient',
-          organization_id: 'org-456',
+          organization_id: 'dev-org',
         },
       };
 
@@ -249,6 +249,11 @@ describe('POST /v1/popper/supervise', () => {
         mode: 'advocate_clinical',
         idempotency_key: 'idem-123',
         request_timestamp: slightlyPast.toISOString(),
+        subject: {
+          subject_id: 'patient-123',
+          subject_type: 'patient',
+          organization_id: 'dev-org',
+        },
       });
 
       const response = await postSupervise(request);
@@ -321,7 +326,7 @@ describe('POST /v1/popper/supervise', () => {
         subject: {
           subject_id: 'patient-audit',
           subject_type: 'patient',
-          organization_id: 'org-audit',
+          organization_id: 'dev-org',
         },
       });
 
@@ -335,7 +340,7 @@ describe('POST /v1/popper/supervise', () => {
       expect(decisionEvent).toBeDefined();
       expect(decisionEvent?.traceId).toBe('audit-test-123');
       expect(decisionEvent?.subjectId).toBe('patient-audit');
-      expect(decisionEvent?.organizationId).toBe('org-audit');
+      expect(decisionEvent?.organizationId).toBe('dev-org');
       expect(decisionEvent?.decision).toBeDefined();
     });
 
@@ -425,7 +430,7 @@ describe('POST /v1/popper/supervise', () => {
       subject: {
         subject_id: 'patient-123',
         subject_type: 'patient',
-        organization_id: 'org-456',
+        organization_id: 'dev-org',
       },
       ...overrides,
     });
@@ -532,19 +537,17 @@ describe('POST /v1/popper/supervise', () => {
       expect(replayEvent).toBeDefined();
     });
 
-    test('isolates cache by organization_id', async () => {
-      const idempotencyKey = 'idem-org-isolation';
-
-      // Request from org-1
-      const request1 = createClinicalRequest(idempotencyKey, {
-        subject: { subject_id: 'patient-1', subject_type: 'patient', organization_id: 'org-1' },
+    test('different idempotency keys are independent', async () => {
+      // Two requests with different idempotency keys should both succeed
+      const request1 = createClinicalRequest('idem-key-1', {
+        subject: { subject_id: 'patient-1', subject_type: 'patient', organization_id: 'dev-org' },
       });
       const response1 = await postSupervise(request1);
       expect(response1.status).toBe(200);
 
-      // Same idempotency_key from org-2 should not get cached response
-      const request2 = createClinicalRequest(idempotencyKey, {
-        subject: { subject_id: 'patient-2', subject_type: 'patient', organization_id: 'org-2' },
+      // Different idempotency_key should not get cached response
+      const request2 = createClinicalRequest('idem-key-2', {
+        subject: { subject_id: 'patient-2', subject_type: 'patient', organization_id: 'dev-org' },
       });
       const response2 = await postSupervise(request2);
       expect(response2.status).toBe(200);

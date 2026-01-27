@@ -15,6 +15,8 @@ export const apiKeyScopeSchema = t.Union([
   t.Literal('control:write'),
   t.Literal('admin:keys:read'),
   t.Literal('admin:keys:write'),
+  t.Literal('admin:orgs:read'),
+  t.Literal('admin:orgs:write'),
 ]);
 
 /**
