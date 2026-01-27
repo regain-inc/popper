@@ -7,7 +7,6 @@ import {
   primaryKey,
   text,
   timestamp,
-  uuid,
 } from 'drizzle-orm/pg-core';
 
 /**
@@ -20,22 +19,25 @@ import {
  * - order_by: created_at DESC
  * - compression: after 7 days
  * - retention: 7 years
+ *
+ * Note: Using TEXT instead of UUID for IDs because Hermes protocol
+ * uses string identifiers, not strictly UUID format.
  */
 export const auditEvents = pgTable(
   'audit_events',
   {
     // Composite PK: partition column (created_at) must be in PK
     // Use SYSTEM_ORG_ID for system-level events
-    organizationId: uuid('organization_id').notNull(),
+    organizationId: text('organization_id').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
 
-    // Event identification
-    id: uuid('id').notNull().defaultRandom(),
-    traceId: uuid('trace_id').notNull(),
+    // Event identification (TEXT to match Hermes string IDs)
+    id: text('id').notNull(),
+    traceId: text('trace_id').notNull(),
 
     // Event data
     eventType: text('event_type').notNull(), // SUPERVISION_DECISION, VALIDATION_FAILED, SAFE_MODE_CHANGED
-    subjectId: uuid('subject_id').notNull(),
+    subjectId: text('subject_id').notNull(),
     decision: text('decision'), // APPROVED, HARD_STOP, ROUTE_TO_CLINICIAN, REQUEST_MORE_INFO
     reasonCodes: jsonb('reason_codes').$type<string[]>().default([]),
 

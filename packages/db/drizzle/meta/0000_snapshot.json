@@ -1,5 +1,5 @@
 {
-  "id": "20248ce0-6ee0-4854-96cc-3a722f76cdeb",
+  "id": "cf6e1980-8630-49aa-b856-a828d6ee850c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -10,7 +10,7 @@
       "columns": {
         "organization_id": {
           "name": "organization_id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -23,14 +23,13 @@
         },
         "id": {
           "name": "id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "default": "gen_random_uuid()"
+          "notNull": true
         },
         "trace_id": {
           "name": "trace_id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -42,7 +41,7 @@
         },
         "subject_id": {
           "name": "subject_id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
