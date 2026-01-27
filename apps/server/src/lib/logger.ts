@@ -10,7 +10,6 @@ import {
   getConsoleSink,
   getJsonLinesFormatter,
   getLogger,
-  getStreamSink,
   type LogLevel,
 } from '@logtape/logtape';
 import { env, isDev } from '../config/env';
@@ -34,9 +33,10 @@ export async function setupLogger(): Promise<void> {
     categorySeparator: '.',
   });
 
-  const consoleSink = isDev
-    ? getConsoleSink({ formatter: devFormatter })
-    : getStreamSink(process.stdout, { formatter: prodFormatter });
+  // Use getConsoleSink for both dev and prod (Bun's process.stdout doesn't support getWriter)
+  const consoleSink = getConsoleSink({
+    formatter: isDev ? devFormatter : prodFormatter,
+  });
 
   await configure({
     sinks: {
