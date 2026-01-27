@@ -12,6 +12,8 @@
  * - control:write - Modify safe-mode state
  * - admin:keys:read - List API keys
  * - admin:keys:write - Create/revoke API keys
+ * - admin:orgs:read - List organizations
+ * - admin:orgs:write - Create/update organizations
  */
 export const API_KEY_SCOPES = [
   'supervision:write',
@@ -19,6 +21,8 @@ export const API_KEY_SCOPES = [
   'control:write',
   'admin:keys:read',
   'admin:keys:write',
+  'admin:orgs:read',
+  'admin:orgs:write',
 ] as const;
 
 export type ApiKeyScope = (typeof API_KEY_SCOPES)[number];

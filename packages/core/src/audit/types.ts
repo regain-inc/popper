@@ -27,6 +27,10 @@ export type AuditEventTag =
   | 'unauthorized_org'
   | 'stale_snapshot'
   | 'schema_invalid'
+  | 'policy_violation'
+  | 'org_inactive'
+  | 'org_not_found'
+  | 'mode_not_allowed'
   | 'high_risk'
   | 'low_risk';
 
