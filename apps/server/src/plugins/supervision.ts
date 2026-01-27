@@ -2,6 +2,8 @@
  * Supervision API endpoint plugin
  * POST /v1/popper/supervise - Main supervision endpoint
  *
+ * Protected by API Key authentication with supervision:write scope.
+ *
  * @see docs/specs/02-popper-specs/02-popper-contracts-and-interfaces.md §1.1
  * @module plugins/supervision
  */
@@ -25,7 +27,9 @@ import {
 import { Elysia } from 'elysia';
 import { getIdempotencyCache } from '../lib/idempotency';
 import { logger } from '../lib/logger';
+import { errorResponseSchema } from '../lib/schemas';
 import { supervisionRequestSchema, supervisionResponseSchema } from '../lib/schemas/supervision';
+import { createAuthGuard } from './api-key-auth';
 
 // =============================================================================
 // Configuration
@@ -108,225 +112,234 @@ function buildErrorResponse(
 /**
  * Supervision API plugin for Elysia.
  * Implements POST /v1/popper/supervise endpoint.
+ * Requires supervision:write scope.
  */
-export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/popper' }).post(
-  '/supervise',
-  async ({ body, set }) => {
-    const startTime = performance.now();
-    const request = body as SupervisionRequest;
-    const auditEmitter = getDefaultEmitter();
+export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/popper' }).guard(
+  createAuthGuard('supervision:write'),
+  (app) =>
+    app.post(
+      '/supervise',
+      async ({ body, set }) => {
+        const startTime = performance.now();
+        const request = body as SupervisionRequest;
+        const auditEmitter = getDefaultEmitter();
 
-    // Initialize idempotency tracking (used for advocate_clinical mode)
-    const idempotencyCache = getIdempotencyCache();
-    let idempotencyKey: string | undefined;
-    let requestHash: string | undefined;
-    let organizationId = SYSTEM_ORG_ID;
+        // Initialize idempotency tracking (used for advocate_clinical mode)
+        const idempotencyCache = getIdempotencyCache();
+        let idempotencyKey: string | undefined;
+        let requestHash: string | undefined;
+        let organizationId = SYSTEM_ORG_ID;
 
-    // 1. Full Hermes schema validation
-    const validationResult = validateHermesMessage(request);
-    if (!validationResult.valid) {
-      logger.warning`Schema validation failed: ${validationResult.errors}`;
+        // 1. Full Hermes schema validation
+        const validationResult = validateHermesMessage(request);
+        if (!validationResult.valid) {
+          logger.warning`Schema validation failed: ${validationResult.errors}`;
 
-      // Emit VALIDATION_FAILED audit event
-      const errorMessage = `Schema validation failed: ${validationResult.errors?.map((e) => e.message).join(', ')}`;
-      auditEmitter.emit(
-        createValidationFailedEvent({
-          traceId: request.trace?.trace_id ?? 'unknown',
-          subjectId: request.subject?.subject_id ?? 'unknown',
-          organizationId: request.subject?.organization_id ?? SYSTEM_ORG_ID,
-          errorMessage,
-          errorCode: 'SCHEMA_INVALID',
-          policyPackVersion: DEFAULT_POLICY_PACK,
-          tags: ['schema_invalid'],
-        }),
-      );
+          // Emit VALIDATION_FAILED audit event
+          const errorMessage = `Schema validation failed: ${validationResult.errors?.map((e) => e.message).join(', ')}`;
+          auditEmitter.emit(
+            createValidationFailedEvent({
+              traceId: request.trace?.trace_id ?? 'unknown',
+              subjectId: request.subject?.subject_id ?? 'unknown',
+              organizationId: request.subject?.organization_id ?? SYSTEM_ORG_ID,
+              errorMessage,
+              errorCode: 'SCHEMA_INVALID',
+              policyPackVersion: DEFAULT_POLICY_PACK,
+              tags: ['schema_invalid'],
+            }),
+          );
 
-      set.status = 400;
-      return buildErrorResponse(request, errorMessage, ['schema_invalid']);
-    }
+          set.status = 400;
+          return buildErrorResponse(request, errorMessage, ['schema_invalid']);
+        }
 
-    // 2. Clock skew validation (required for advocate_clinical)
-    if (request.mode === 'advocate_clinical') {
-      // Validate required fields for clinical mode
-      if (!request.idempotency_key) {
-        const errorMessage = 'idempotency_key is required for advocate_clinical mode';
-        auditEmitter.emit(
-          createValidationFailedEvent({
-            traceId: request.trace.trace_id,
-            subjectId: request.subject.subject_id,
-            organizationId: request.subject.organization_id ?? SYSTEM_ORG_ID,
-            errorMessage,
-            errorCode: 'MISSING_IDEMPOTENCY_KEY',
-            policyPackVersion: DEFAULT_POLICY_PACK,
-            tags: ['schema_invalid'],
-          }),
-        );
+        // 2. Clock skew validation (required for advocate_clinical)
+        if (request.mode === 'advocate_clinical') {
+          // Validate required fields for clinical mode
+          if (!request.idempotency_key) {
+            const errorMessage = 'idempotency_key is required for advocate_clinical mode';
+            auditEmitter.emit(
+              createValidationFailedEvent({
+                traceId: request.trace.trace_id,
+                subjectId: request.subject.subject_id,
+                organizationId: request.subject.organization_id ?? SYSTEM_ORG_ID,
+                errorMessage,
+                errorCode: 'MISSING_IDEMPOTENCY_KEY',
+                policyPackVersion: DEFAULT_POLICY_PACK,
+                tags: ['schema_invalid'],
+              }),
+            );
 
-        set.status = 400;
-        return buildErrorResponse(request, errorMessage, ['schema_invalid']);
-      }
+            set.status = 400;
+            return buildErrorResponse(request, errorMessage, ['schema_invalid']);
+          }
 
-      const clockSkewError = validateClockSkew(request.request_timestamp);
-      if (clockSkewError) {
-        logger.warning`Clock skew validation failed: ${clockSkewError}`;
+          const clockSkewError = validateClockSkew(request.request_timestamp);
+          if (clockSkewError) {
+            logger.warning`Clock skew validation failed: ${clockSkewError}`;
 
-        auditEmitter.emit(
-          createValidationFailedEvent({
-            traceId: request.trace.trace_id,
-            subjectId: request.subject.subject_id,
-            organizationId: request.subject.organization_id ?? SYSTEM_ORG_ID,
-            errorMessage: clockSkewError,
-            errorCode: 'CLOCK_SKEW',
-            policyPackVersion: DEFAULT_POLICY_PACK,
-            tags: ['clock_skew_rejected'],
-          }),
-        );
+            auditEmitter.emit(
+              createValidationFailedEvent({
+                traceId: request.trace.trace_id,
+                subjectId: request.subject.subject_id,
+                organizationId: request.subject.organization_id ?? SYSTEM_ORG_ID,
+                errorMessage: clockSkewError,
+                errorCode: 'CLOCK_SKEW',
+                policyPackVersion: DEFAULT_POLICY_PACK,
+                tags: ['clock_skew_rejected'],
+              }),
+            );
 
-        set.status = 400;
-        return buildErrorResponse(request, clockSkewError, ['clock_skew']);
-      }
+            set.status = 400;
+            return buildErrorResponse(request, clockSkewError, ['clock_skew']);
+          }
 
-      // 2b. Idempotency check (required for advocate_clinical)
-      organizationId = request.subject.organization_id ?? SYSTEM_ORG_ID;
-      idempotencyKey = request.idempotency_key;
-      requestHash = idempotencyCache.computeRequestHash(request);
-      const idempotencyResult = await idempotencyCache.check(
-        organizationId,
-        idempotencyKey,
-        requestHash,
-      );
-
-      if (idempotencyResult.status === 'cached') {
-        logger.info`Returning cached response for idempotency_key=${request.idempotency_key}`;
-        return idempotencyResult.response;
-      }
-
-      if (idempotencyResult.status === 'replay_suspected') {
-        const errorMessage = `Replay attack suspected: same idempotency_key with different payload`;
-        logger.warning`${errorMessage} key=${request.idempotency_key}`;
-
-        auditEmitter.emit(
-          createValidationFailedEvent({
-            traceId: request.trace.trace_id,
-            subjectId: request.subject.subject_id,
+          // 2b. Idempotency check (required for advocate_clinical)
+          organizationId = request.subject.organization_id ?? SYSTEM_ORG_ID;
+          idempotencyKey = request.idempotency_key;
+          requestHash = idempotencyCache.computeRequestHash(request);
+          const idempotencyResult = await idempotencyCache.check(
             organizationId,
-            errorMessage,
-            errorCode: 'REPLAY_SUSPECTED',
-            policyPackVersion: DEFAULT_POLICY_PACK,
-            tags: ['replay_suspected'],
+            idempotencyKey,
+            requestHash,
+          );
+
+          if (idempotencyResult.status === 'cached') {
+            logger.info`Returning cached response for idempotency_key=${request.idempotency_key}`;
+            return idempotencyResult.response;
+          }
+
+          if (idempotencyResult.status === 'replay_suspected') {
+            const errorMessage = `Replay attack suspected: same idempotency_key with different payload`;
+            logger.warning`${errorMessage} key=${request.idempotency_key}`;
+
+            auditEmitter.emit(
+              createValidationFailedEvent({
+                traceId: request.trace.trace_id,
+                subjectId: request.subject.subject_id,
+                organizationId,
+                errorMessage,
+                errorCode: 'REPLAY_SUSPECTED',
+                policyPackVersion: DEFAULT_POLICY_PACK,
+                tags: ['replay_suspected'],
+              }),
+            );
+
+            set.status = 400;
+            return decisionBuilder.buildErrorResponse(request, errorMessage, ['policy_violation']);
+          }
+        }
+
+        // 3. Staleness validation
+        const stalenessResult = stalenessValidator.validate(request);
+
+        // 4. Build derived signals
+        const derivedSignals = buildDerivedSignals(true, stalenessResult);
+
+        // 5. Get policy pack
+        const policyPack = policyRegistry.get(DEFAULT_POLICY_PACK);
+        if (!policyPack) {
+          logger.error`Policy pack "${DEFAULT_POLICY_PACK}" not found`;
+          set.status = 500;
+          return buildErrorResponse(request, 'Internal error: policy pack not loaded', [
+            'schema_invalid',
+          ]);
+        }
+
+        // 6. Create evaluation context
+        const context: EvaluationContext = {
+          request,
+          controlPlane: {
+            current_time: new Date(),
+          },
+          derivedSignals,
+        };
+
+        // 7. Evaluate policies
+        const evaluator = createEvaluator(policyPack);
+        const evaluationResult = evaluator.evaluate(context);
+
+        // 8. Build final response
+        const response = decisionBuilder.build({
+          request,
+          evaluationResult,
+          stalenessResult,
+        });
+
+        // 9. Log metrics and emit audit event
+        const latencyMs = performance.now() - startTime;
+        logger.info`Supervision completed: decision=${response.decision} latency=${latencyMs.toFixed(2)}ms`;
+
+        // Emit SUPERVISION_DECISION audit event (async, non-blocking)
+        const requestMetadata = extractRequestMetadata(request);
+        const auditTags = buildAuditTags(
+          request,
+          response.decision,
+          stalenessResult.is_stale,
+          stalenessResult.is_missing,
+        );
+
+        auditEmitter.emit(
+          createSupervisionDecisionEvent({
+            traceId: request.trace.trace_id,
+            subjectId: request.subject.subject_id,
+            organizationId: request.subject.organization_id ?? SYSTEM_ORG_ID,
+            decision: response.decision,
+            reasonCodes: response.reason_codes,
+            policyPackVersion: evaluationResult.policy_version,
+            safeModeActive: false, // TODO: integrate with safe mode state
+            latencyMs,
+            proposalCount: request.proposals?.length ?? 0,
+            payload: {
+              ...requestMetadata,
+              staleness: {
+                is_stale: stalenessResult.is_stale,
+                is_missing: stalenessResult.is_missing,
+                age_hours: stalenessResult.age_hours,
+                threshold_hours: stalenessResult.threshold_hours,
+              },
+              evaluation: {
+                matched_rules: evaluationResult.matched_rules.map((r) => r.rule_id),
+                policy_version: evaluationResult.policy_version,
+                evaluation_time_ms: evaluationResult.evaluation_time_ms,
+              },
+            },
+            tags: auditTags,
           }),
         );
 
-        set.status = 400;
-        return decisionBuilder.buildErrorResponse(request, errorMessage, ['policy_violation']);
-      }
-    }
+        // Set appropriate status code based on decision
+        if (response.decision === 'HARD_STOP') {
+          set.status = 200; // Still 200 - HARD_STOP is a valid response
+        }
 
-    // 3. Staleness validation
-    const stalenessResult = stalenessValidator.validate(request);
+        // 10. Store response in idempotency cache (advocate_clinical only)
+        if (idempotencyKey && requestHash) {
+          // Fire-and-forget: don't block response on cache write
+          idempotencyCache
+            .store(organizationId, idempotencyKey, requestHash, response)
+            .catch((err) => {
+              logger.warning`Failed to store idempotency cache: ${err}`;
+            });
+        }
 
-    // 4. Build derived signals
-    const derivedSignals = buildDerivedSignals(true, stalenessResult);
-
-    // 5. Get policy pack
-    const policyPack = policyRegistry.get(DEFAULT_POLICY_PACK);
-    if (!policyPack) {
-      logger.error`Policy pack "${DEFAULT_POLICY_PACK}" not found`;
-      set.status = 500;
-      return buildErrorResponse(request, 'Internal error: policy pack not loaded', [
-        'schema_invalid',
-      ]);
-    }
-
-    // 6. Create evaluation context
-    const context: EvaluationContext = {
-      request,
-      controlPlane: {
-        current_time: new Date(),
+        return response;
       },
-      derivedSignals,
-    };
-
-    // 7. Evaluate policies
-    const evaluator = createEvaluator(policyPack);
-    const evaluationResult = evaluator.evaluate(context);
-
-    // 8. Build final response
-    const response = decisionBuilder.build({
-      request,
-      evaluationResult,
-      stalenessResult,
-    });
-
-    // 9. Log metrics and emit audit event
-    const latencyMs = performance.now() - startTime;
-    logger.info`Supervision completed: decision=${response.decision} latency=${latencyMs.toFixed(2)}ms`;
-
-    // Emit SUPERVISION_DECISION audit event (async, non-blocking)
-    const requestMetadata = extractRequestMetadata(request);
-    const auditTags = buildAuditTags(
-      request,
-      response.decision,
-      stalenessResult.is_stale,
-      stalenessResult.is_missing,
-    );
-
-    auditEmitter.emit(
-      createSupervisionDecisionEvent({
-        traceId: request.trace.trace_id,
-        subjectId: request.subject.subject_id,
-        organizationId: request.subject.organization_id ?? SYSTEM_ORG_ID,
-        decision: response.decision,
-        reasonCodes: response.reason_codes,
-        policyPackVersion: evaluationResult.policy_version,
-        safeModeActive: false, // TODO: integrate with safe mode state
-        latencyMs,
-        proposalCount: request.proposals?.length ?? 0,
-        payload: {
-          ...requestMetadata,
-          staleness: {
-            is_stale: stalenessResult.is_stale,
-            is_missing: stalenessResult.is_missing,
-            age_hours: stalenessResult.age_hours,
-            threshold_hours: stalenessResult.threshold_hours,
-          },
-          evaluation: {
-            matched_rules: evaluationResult.matched_rules.map((r) => r.rule_id),
-            policy_version: evaluationResult.policy_version,
-            evaluation_time_ms: evaluationResult.evaluation_time_ms,
-          },
+      {
+        body: supervisionRequestSchema,
+        response: {
+          200: supervisionResponseSchema,
+          400: supervisionResponseSchema,
+          401: errorResponseSchema,
+          403: errorResponseSchema,
+          500: supervisionResponseSchema,
         },
-        tags: auditTags,
-      }),
-    );
-
-    // Set appropriate status code based on decision
-    if (response.decision === 'HARD_STOP') {
-      set.status = 200; // Still 200 - HARD_STOP is a valid response
-    }
-
-    // 10. Store response in idempotency cache (advocate_clinical only)
-    if (idempotencyKey && requestHash) {
-      // Fire-and-forget: don't block response on cache write
-      idempotencyCache.store(organizationId, idempotencyKey, requestHash, response).catch((err) => {
-        logger.warning`Failed to store idempotency cache: ${err}`;
-      });
-    }
-
-    return response;
-  },
-  {
-    body: supervisionRequestSchema,
-    response: {
-      200: supervisionResponseSchema,
-      400: supervisionResponseSchema,
-      500: supervisionResponseSchema,
-    },
-    detail: {
-      tags: ['Supervision'],
-      summary: 'Supervise proposed interventions',
-      description:
-        'Evaluate proposed patient interventions against safety policies. Returns APPROVED, REQUEST_MORE_INFO, ROUTE_TO_CLINICIAN, or HARD_STOP.',
-    },
-  },
+        detail: {
+          tags: ['Supervision'],
+          summary: 'Supervise proposed interventions',
+          description:
+            'Evaluate proposed patient interventions against safety policies. Returns APPROVED, REQUEST_MORE_INFO, ROUTE_TO_CLINICIAN, or HARD_STOP.',
+        },
+      },
+    ),
 );

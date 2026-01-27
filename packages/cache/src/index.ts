@@ -8,6 +8,15 @@
  */
 
 export {
+  ApiKeyCache,
+  type ApiKeyCacheConfig,
+  type CachedApiKeyContext,
+  DEFAULT_API_KEY_CACHE_TTL_SECONDS,
+  type IApiKeyCache,
+  InMemoryApiKeyCache,
+} from './api-key-cache';
+
+export {
   type CachedEntry,
   computeRequestHash,
   DEFAULT_IDEMPOTENCY_TTL_SECONDS,
