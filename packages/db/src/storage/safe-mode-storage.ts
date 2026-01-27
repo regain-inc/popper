@@ -19,7 +19,7 @@ export type SafeModeTrigger = 'manual' | 'drift_breach' | 'incident';
 /**
  * Safe-mode history entry matching @popper/core interface
  */
-export interface SafeModeHistoryEntry {
+export interface ApiSafeModeHistoryEntry {
   id: string;
   organization_id: string;
   enabled: boolean;
@@ -43,8 +43,8 @@ export class DrizzleSafeModeHistoryStorage {
    * Record a safe-mode state change
    */
   async record(
-    entry: Omit<SafeModeHistoryEntry, 'id' | 'created_at'>,
-  ): Promise<SafeModeHistoryEntry> {
+    entry: Omit<ApiSafeModeHistoryEntry, 'id' | 'created_at'>,
+  ): Promise<ApiSafeModeHistoryEntry> {
     const [inserted] = await this.db
       .insert(safeModeHistory)
       .values({
@@ -74,7 +74,7 @@ export class DrizzleSafeModeHistoryStorage {
   /**
    * Get history for organization in reverse chronological order
    */
-  async getHistory(organizationId: string, limit = 100): Promise<SafeModeHistoryEntry[]> {
+  async getHistory(organizationId: string, limit = 100): Promise<ApiSafeModeHistoryEntry[]> {
     const rows = await this.db
       .select()
       .from(safeModeHistory)

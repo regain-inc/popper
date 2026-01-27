@@ -17,7 +17,8 @@ export type DrizzleDB = ReturnType<typeof drizzle<typeof schema>>;
  */
 export function createDB(
   connectionString: string,
-  options?: postgres.Options<Record<string, unknown>>,
+  // biome-ignore lint/suspicious/noExplicitAny: postgres.js options type compatibility
+  options?: postgres.Options<Record<string, postgres.PostgresType<any>>>,
 ): DrizzleDB {
   const client = postgres(connectionString, {
     max: 10, // Connection pool size
