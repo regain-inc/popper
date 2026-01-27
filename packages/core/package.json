@@ -27,6 +27,7 @@
   "dependencies": {
     "@regain/hermes": "^1.0.3",
     "ajv-formats": "^3.0.1",
+    "ioredis": "^5.4.1",
     "yaml": "^2.7.0"
   },
   "devDependencies": {

@@ -35,6 +35,9 @@ const envSchema = t.Object({
 
   // Policy configuration
   POLICIES_DIR: t.String({ default: './config/policies' }),
+
+  // Admin API key for control plane endpoints
+  POPPER_ADMIN_API_KEY: t.Optional(t.String()),
 });
 
 type Env = typeof envSchema.static;
@@ -51,6 +54,7 @@ function parseEnv(): Env {
     DATABASE_URL: process.env.DATABASE_URL,
     REDIS_URL: process.env.REDIS_URL,
     POLICIES_DIR: process.env.POLICIES_DIR ?? './config/policies',
+    POPPER_ADMIN_API_KEY: process.env.POPPER_ADMIN_API_KEY,
   } satisfies Env;
 
   return env;

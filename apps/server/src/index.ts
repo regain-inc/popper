@@ -7,8 +7,16 @@
 import { resolve } from 'node:path';
 import { IdempotencyCache, InMemoryIdempotencyCache } from '@popper/cache';
 import type { SupervisionResponse } from '@popper/core';
-import { AuditEmitter, policyRegistry, setDefaultEmitter } from '@popper/core';
-import { createDB, DrizzleAuditStorage } from '@popper/db';
+import {
+  AuditEmitter,
+  InMemorySafeModeHistoryStore,
+  InMemorySafeModeStateStore,
+  policyRegistry,
+  RedisSafeModeStateStore,
+  SafeModeManager,
+  setDefaultEmitter,
+} from '@popper/core';
+import { createDB, DrizzleAuditStorage, DrizzleSafeModeHistoryStorage } from '@popper/db';
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { createApp } from './app';
@@ -16,6 +24,7 @@ import { env } from './config/env';
 import { setIdempotencyCache } from './lib/idempotency';
 import { logger, setupLogger } from './lib/logger';
 import { QueueAuditStorage } from './lib/queue-audit-storage';
+import { setSafeModeManager } from './lib/safe-mode';
 import { setReady } from './plugins/health';
 
 /** Audit events queue name */
@@ -52,15 +61,18 @@ async function main(): Promise<void> {
     throw error;
   }
 
-  // Initialize audit storage and idempotency cache
-  // Priority: Redis queue > Direct PostgreSQL > In-memory
-  if (env.REDIS_URL) {
-    // Use BullMQ queue for async audit event processing
-    logger.info`Initializing audit storage with Redis queue...`;
+  // Initialize audit storage, idempotency cache, and safe-mode manager
+  // Priority: Redis + PostgreSQL > Direct PostgreSQL > In-memory
+  if (env.REDIS_URL && env.DATABASE_URL) {
+    // Production setup: Redis for state + queue, PostgreSQL for history
+    logger.info`Initializing with Redis + PostgreSQL...`;
+
     const redis = new IORedis(env.REDIS_URL, {
       maxRetriesPerRequest: null, // Required for BullMQ
       enableReadyCheck: false,
     });
+
+    // Audit storage via queue
     const auditQueue = new Queue(AUDIT_QUEUE_NAME, { connection: redis });
     const auditStorage = new QueueAuditStorage(auditQueue);
     const auditEmitter = new AuditEmitter(auditStorage, {
@@ -70,15 +82,60 @@ async function main(): Promise<void> {
     setDefaultEmitter(auditEmitter);
     logger.info`Audit storage initialized with Redis queue`;
 
-    // Initialize Redis-based idempotency cache
+    // Idempotency cache via Redis
     const idempotencyRedis = new IORedis(env.REDIS_URL);
     const idempotencyCache = new IdempotencyCache<SupervisionResponse>(idempotencyRedis);
     setIdempotencyCache(idempotencyCache);
     logger.info`Idempotency cache initialized with Redis`;
+
+    // Safe-mode manager: Redis for state, PostgreSQL for history
+    const safeModeRedis = new IORedis(env.REDIS_URL);
+    const db = createDB(env.DATABASE_URL);
+    const safeModeManager = new SafeModeManager({
+      stateStore: new RedisSafeModeStateStore(safeModeRedis),
+      historyStore: new DrizzleSafeModeHistoryStorage(db),
+    });
+    setSafeModeManager(safeModeManager);
+    logger.info`Safe-mode manager initialized with Redis + PostgreSQL`;
+  } else if (env.REDIS_URL) {
+    // Redis only (no PostgreSQL for history)
+    logger.info`Initializing with Redis only...`;
+    logger.warning`DATABASE_URL not set. Safe-mode history will be in-memory.`;
+
+    const redis = new IORedis(env.REDIS_URL, {
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+    });
+
+    // Audit storage via queue
+    const auditQueue = new Queue(AUDIT_QUEUE_NAME, { connection: redis });
+    const auditStorage = new QueueAuditStorage(auditQueue);
+    const auditEmitter = new AuditEmitter(auditStorage, {
+      batchEnabled: false,
+      asyncWrites: true,
+    });
+    setDefaultEmitter(auditEmitter);
+    logger.info`Audit storage initialized with Redis queue`;
+
+    // Idempotency cache via Redis
+    const idempotencyRedis = new IORedis(env.REDIS_URL);
+    const idempotencyCache = new IdempotencyCache<SupervisionResponse>(idempotencyRedis);
+    setIdempotencyCache(idempotencyCache);
+    logger.info`Idempotency cache initialized with Redis`;
+
+    // Safe-mode manager: Redis for state, in-memory for history
+    const safeModeRedis = new IORedis(env.REDIS_URL);
+    const safeModeManager = new SafeModeManager({
+      stateStore: new RedisSafeModeStateStore(safeModeRedis),
+      historyStore: new InMemorySafeModeHistoryStore(),
+    });
+    setSafeModeManager(safeModeManager);
+    logger.info`Safe-mode manager initialized with Redis (in-memory history)`;
   } else if (env.DATABASE_URL) {
     // Direct PostgreSQL writes (not recommended for production)
     logger.info`Initializing audit storage with PostgreSQL (direct)...`;
     logger.warning`Direct DB writes not recommended. Set REDIS_URL for queue-based storage.`;
+
     const db = createDB(env.DATABASE_URL);
     const auditStorage = new DrizzleAuditStorage(db);
     const auditEmitter = new AuditEmitter(auditStorage, {
@@ -89,16 +146,34 @@ async function main(): Promise<void> {
     });
     setDefaultEmitter(auditEmitter);
     logger.info`Audit storage initialized with PostgreSQL (direct)`;
+
     // In-memory idempotency cache (Redis recommended for production)
     const idempotencyCache = new InMemoryIdempotencyCache<SupervisionResponse>();
     setIdempotencyCache(idempotencyCache);
     logger.warning`Using in-memory idempotency cache. Set REDIS_URL for distributed cache.`;
+
+    // Safe-mode manager: in-memory for state, PostgreSQL for history
+    const safeModeManager = new SafeModeManager({
+      stateStore: new InMemorySafeModeStateStore(),
+      historyStore: new DrizzleSafeModeHistoryStorage(db),
+    });
+    setSafeModeManager(safeModeManager);
+    logger.info`Safe-mode manager initialized with PostgreSQL (in-memory state)`;
   } else {
-    logger.warning`REDIS_URL and DATABASE_URL not configured, using in-memory audit storage`;
+    logger.warning`REDIS_URL and DATABASE_URL not configured, using in-memory storage`;
+
     // In-memory idempotency cache for development/testing
     const idempotencyCache = new InMemoryIdempotencyCache<SupervisionResponse>();
     setIdempotencyCache(idempotencyCache);
     logger.info`Idempotency cache initialized with in-memory storage`;
+
+    // Safe-mode manager: all in-memory
+    const safeModeManager = new SafeModeManager({
+      stateStore: new InMemorySafeModeStateStore(),
+      historyStore: new InMemorySafeModeHistoryStore(),
+    });
+    setSafeModeManager(safeModeManager);
+    logger.info`Safe-mode manager initialized with in-memory storage`;
   }
 
   // Create and start the application

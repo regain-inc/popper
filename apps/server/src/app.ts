@@ -4,6 +4,7 @@
  */
 
 import { Elysia } from 'elysia';
+import { controlPlugin } from './plugins/control';
 import { healthPlugin } from './plugins/health';
 import { httpLoggerPlugin } from './plugins/http-logger';
 import { metricsPlugin } from './plugins/metrics';
@@ -17,7 +18,8 @@ import { tracingPlugin } from './plugins/tracing';
  * 2. Metrics (Prometheus) - collects metrics
  * 3. HTTP Logger - logs requests
  * 4. Health - health check endpoints
- * 5. Supervision - main supervision API
+ * 5. Control - safe-mode management (protected by API key)
+ * 6. Supervision - main supervision API
  */
 export function createApp() {
   return new Elysia({ name: 'popper' })
@@ -25,6 +27,7 @@ export function createApp() {
     .use(metricsPlugin)
     .use(httpLoggerPlugin)
     .use(healthPlugin)
+    .use(controlPlugin)
     .use(supervisionPlugin);
 }
 

@@ -10,3 +10,5 @@ export * from './audit';
 export * from './hermes';
 // Re-export Policy Engine
 export * from './policy-engine';
+// Re-export Safe-mode module
+export * from './safe-mode';
