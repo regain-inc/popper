@@ -35,10 +35,11 @@
       "quoteStyle": "single",
       "trailingCommas": "all",
       "semicolons": "always"
-    }
+    },
+    "jsxRuntime": "reactClassic"
   },
   "files": {
-    "includes": ["apps/**/*.ts", "packages/**/*.ts"],
+    "includes": ["apps/**/*.ts", "apps/**/*.tsx", "packages/**/*.ts"],
     "ignoreUnknown": true
   }
 }
