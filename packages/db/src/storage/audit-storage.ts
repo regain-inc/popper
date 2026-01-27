@@ -61,8 +61,16 @@ export class DrizzleAuditStorage {
 
   /**
    * Convert StoredAuditEvent to database record format
+   *
+   * Note: createdAt may be a string after JSON serialization (e.g., from Redis queue)
    */
   private toRecord(event: StoredAuditEvent): NewAuditEvent {
+    // Handle createdAt being a string (after JSON serialization from queue)
+    const createdAt =
+      event.createdAt instanceof Date
+        ? event.createdAt
+        : new Date(event.createdAt as unknown as string);
+
     return {
       id: event.id,
       traceId: event.traceId,
@@ -77,7 +85,7 @@ export class DrizzleAuditStorage {
       proposalCount: event.proposalCount,
       payload: event.payload ?? {},
       tags: event.tags ?? [],
-      createdAt: event.createdAt,
+      createdAt,
     };
   }
 }
