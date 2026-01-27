@@ -36,15 +36,17 @@ import {
 } from '@/components/ui/table';
 import { type UserRole, useAuth } from '@/hooks/use-auth';
 import {
+  useBanUser,
   useDeleteInvite,
   useInvites,
   useInviteUser,
-  useUpdateUserStatus,
+  useUnbanUser,
   useUsers,
 } from '@/hooks/use-users';
 
-function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString('en-US', {
+function formatDate(date: Date | string) {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -183,7 +185,8 @@ export default function UsersPage() {
   const { user: currentUser, isAdmin } = useAuth();
   const { data: users, isLoading: usersLoading } = useUsers();
   const { data: invites, isLoading: invitesLoading } = useInvites();
-  const updateUserStatus = useUpdateUserStatus();
+  const banUser = useBanUser();
+  const unbanUser = useUnbanUser();
   const deleteInvite = useDeleteInvite();
 
   // Redirect non-admins
@@ -200,15 +203,21 @@ export default function UsersPage() {
     );
   }
 
-  async function handleToggleActive(userId: string, currentActive: boolean) {
-    const result = await updateUserStatus.mutateAsync({
-      userId,
-      isActive: !currentActive,
-    });
-    if (result.success) {
-      toast.success(`User ${currentActive ? 'deactivated' : 'activated'}`);
+  async function handleToggleActive(userId: string, isBanned: boolean) {
+    if (isBanned) {
+      const result = await unbanUser.mutateAsync(userId);
+      if (result.success) {
+        toast.success('User activated');
+      } else {
+        toast.error(result.error || 'Failed to activate user');
+      }
     } else {
-      toast.error(result.error || 'Failed to update user');
+      const result = await banUser.mutateAsync(userId);
+      if (result.success) {
+        toast.success('User deactivated');
+      } else {
+        toast.error(result.error || 'Failed to deactivate user');
+      }
     }
   }
 
@@ -242,7 +251,7 @@ export default function UsersPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Last Login</TableHead>
+                <TableHead>Created</TableHead>
                 <TableHead className="text-right">Active</TableHead>
               </TableRow>
             </TableHeader>
@@ -270,12 +279,12 @@ export default function UsersPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Never'}
+                      {formatDate(user.createdAt)}
                     </TableCell>
                     <TableCell className="text-right">
                       <Switch
-                        checked={user.isActive}
-                        onCheckedChange={() => handleToggleActive(user.id, user.isActive)}
+                        checked={!user.banned}
+                        onCheckedChange={() => handleToggleActive(user.id, user.banned ?? false)}
                         disabled={user.id === currentUser?.id}
                       />
                     </TableCell>

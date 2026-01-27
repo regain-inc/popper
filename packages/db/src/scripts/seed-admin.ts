@@ -9,17 +9,48 @@
  *   INITIAL_ADMIN_PASSWORD=<secure-password>
  */
 
-import bcrypt from 'bcrypt';
+import { scryptAsync } from '@noble/hashes/scrypt.js';
+import { bytesToHex } from '@noble/hashes/utils.js';
 import { eq } from 'drizzle-orm';
-import { createDB, users } from '../index';
+import { account, createDB, user } from '../index';
 
-const DATABASE_URL = process.env.DATABASE_URL || 'postgres://localhost:5432/popper';
+const DATABASE_URL =
+  process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/popper';
 const ADMIN_EMAIL = process.env.INITIAL_ADMIN_EMAIL;
 const ADMIN_PASSWORD = process.env.INITIAL_ADMIN_PASSWORD;
-const BCRYPT_ROUNDS = 12;
 
+// better-auth scrypt config
+const scryptConfig = {
+  N: 16384,
+  r: 16,
+  p: 1,
+  dkLen: 64,
+};
+
+/**
+ * Hash password using scrypt (matching better-auth's format)
+ * Format: salt:key (both hex encoded)
+ */
 async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, BCRYPT_ROUNDS);
+  const saltBytes = crypto.getRandomValues(new Uint8Array(16));
+  const salt = bytesToHex(saltBytes);
+
+  const key = await scryptAsync(password.normalize('NFKC'), salt, {
+    N: scryptConfig.N,
+    r: scryptConfig.r,
+    p: scryptConfig.p,
+    dkLen: scryptConfig.dkLen,
+    maxmem: 128 * scryptConfig.N * scryptConfig.r * 2,
+  });
+
+  return `${salt}:${bytesToHex(key)}`;
+}
+
+function generateId(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 async function main() {
@@ -36,9 +67,9 @@ async function main() {
   console.log('Connecting to database...');
   const db = createDB(DATABASE_URL);
 
-  // Check if user already exists
-  const existing = await db.query.users.findFirst({
-    where: eq(users.email, ADMIN_EMAIL.toLowerCase()),
+  // Check if user already exists (using better-auth's user table)
+  const existing = await db.query.user.findFirst({
+    where: eq(user.email, ADMIN_EMAIL.toLowerCase()),
   });
 
   if (existing) {
@@ -47,28 +78,41 @@ async function main() {
     process.exit(0);
   }
 
-  // Hash password
+  // Hash password using better-auth's format
   console.log('Hashing password...');
   const passwordHash = await hashPassword(ADMIN_PASSWORD);
 
-  // Create admin user
+  const userId = generateId();
+  const accountId = generateId();
+
+  // Create admin user in better-auth user table
   console.log('Creating admin user...');
-  const [user] = await db
-    .insert(users)
+  const [createdUser] = await db
+    .insert(user)
     .values({
+      id: userId,
       email: ADMIN_EMAIL.toLowerCase(),
-      passwordHash,
       name: 'Admin',
       role: 'admin',
-      isActive: true,
+      emailVerified: true,
     })
     .returning();
 
+  // Create account with password (better-auth stores passwords in account table)
+  console.log('Creating account with credentials...');
+  await db.insert(account).values({
+    id: accountId,
+    accountId: userId,
+    providerId: 'credential',
+    userId: userId,
+    password: passwordHash,
+  });
+
   console.log('');
   console.log('Admin user created successfully!');
-  console.log(`  ID: ${user.id}`);
-  console.log(`  Email: ${user.email}`);
-  console.log(`  Role: ${user.role}`);
+  console.log(`  ID: ${createdUser.id}`);
+  console.log(`  Email: ${createdUser.email}`);
+  console.log(`  Role: ${createdUser.role}`);
   console.log('');
   console.log('You can now log in at /login with these credentials.');
 

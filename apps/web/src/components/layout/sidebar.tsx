@@ -5,6 +5,7 @@ import {
   FileSearchIcon,
   Settings01Icon,
   ShieldKeyIcon,
+  UserMultipleIcon,
 } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import type { Route } from 'next';
@@ -36,6 +37,12 @@ const navigation = [
 ];
 
 const bottomNavigation = [
+  {
+    name: 'User management',
+    href: '/settings/users',
+    icon: UserMultipleIcon,
+    description: 'User management',
+  },
   {
     name: 'Settings',
     href: '/settings',
@@ -136,7 +143,12 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
           <NavItem
             key={item.href}
             item={item}
-            isActive={pathname === item.href}
+            isActive={
+              pathname === item.href ||
+              (item.href === '/settings' &&
+                pathname.startsWith('/settings') &&
+                pathname !== '/settings/users')
+            }
             collapsed={collapsed}
           />
         ))}

@@ -37,7 +37,6 @@
     "@tanstack/react-query": "^5.80.6",
     "@tanstack/react-query-devtools": "^5.91.2",
     "@tanstack/react-table": "^8.21.3",
-    "bcrypt": "^6.0.0",
     "better-auth": "^1.4.17",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -47,14 +46,13 @@
     "react-day-picker": "^9.7.0",
     "react-dom": "^19.1.0",
     "recharts": "^2.15.3",
-    "resend": "^6.9.0",
+    "resend": "4.0.0",
     "sonner": "^2.0.3",
     "tailwind-merge": "^3.3.0",
     "zod": "^3.25.67"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.0",
-    "@types/bcrypt": "^6.0.0",
     "@types/node": "^22.15.0",
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.5",

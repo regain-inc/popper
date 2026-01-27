@@ -1,26 +1,20 @@
-import { invites, sessions, users } from '@popper/db';
+import { invites, user } from '@popper/db';
 import { and, eq, gt, isNull } from 'drizzle-orm';
-import { cookies } from 'next/headers';
+import { headers } from 'next/headers';
 import { type NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
 import { generateToken, getInviteExpiry } from '@/lib/auth-server';
 import { db } from '@/lib/db';
 import { sendInviteEmail } from '@/lib/email';
 
 async function getAuthUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('popper_session')?.value;
-
-  if (!token) return null;
-
-  const session = await db.query.sessions.findFirst({
-    where: and(eq(sessions.token, token), gt(sessions.expiresAt, new Date())),
+  const session = await auth.api.getSession({
+    headers: await headers(),
   });
 
-  if (!session) return null;
+  if (!session?.user) return null;
 
-  return db.query.users.findFirst({
-    where: eq(users.id, session.userId),
-  });
+  return session.user;
 }
 
 export async function GET() {
@@ -72,9 +66,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
     }
 
-    // Check if user already exists
-    const existingUser = await db.query.users.findFirst({
-      where: eq(users.email, email.toLowerCase()),
+    // Check if user already exists (using better-auth user table)
+    const existingUser = await db.query.user.findFirst({
+      where: eq(user.email, email.toLowerCase()),
     });
 
     if (existingUser) {

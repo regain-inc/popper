@@ -1,8 +1,8 @@
-import { invites, sessions, users } from '@popper/db';
+import { invites } from '@popper/db';
 import { and, eq, gt, isNull } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { type NextRequest, NextResponse } from 'next/server';
-import { generateToken, getSessionExpiry, hashPassword } from '@/lib/auth-server';
+import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
@@ -37,50 +37,56 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid or expired invite' }, { status: 400 });
     }
 
-    // Create user
-    const passwordHash = await hashPassword(password);
-
-    const [user] = await db
-      .insert(users)
-      .values({
+    // Create user via better-auth admin API
+    // Map 'viewer' role to 'user' if needed (better-auth defaults)
+    const role = invite.role === 'viewer' ? 'user' : invite.role;
+    const createResult = await auth.api.createUser({
+      body: {
         email: invite.email,
-        passwordHash,
+        password,
         name,
-        role: invite.role,
-        invitedBy: invite.invitedBy,
-      })
-      .returning();
+        role: role as 'user' | 'admin',
+        data: {
+          invitedBy: invite.invitedBy,
+        },
+      },
+    });
+
+    if (!createResult?.user) {
+      return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
+    }
 
     // Mark invite as used
     await db.update(invites).set({ usedAt: new Date() }).where(eq(invites.id, invite.id));
 
-    // Create session
-    const sessionToken = generateToken();
-    const expiresAt = getSessionExpiry();
-
-    await db.insert(sessions).values({
-      userId: user.id,
-      token: sessionToken,
-      expiresAt,
+    // Sign in the user to get session token
+    const signInResult = await auth.api.signInEmail({
+      body: {
+        email: invite.email,
+        password,
+      },
     });
 
-    // Set session cookie
-    const cookieStore = await cookies();
-    cookieStore.set('popper_session', sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      expires: expiresAt,
-    });
+    // Set session cookie manually
+    if (signInResult?.token) {
+      const cookieStore = await cookies();
+      cookieStore.set('better-auth.session_token', signInResult.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+      });
+    }
 
+    // Return success with session info
     return NextResponse.json({
       success: true,
       user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
+        id: createResult.user.id,
+        email: createResult.user.email,
+        name: createResult.user.name,
+        role: createResult.user.role,
       },
     });
   } catch (error) {

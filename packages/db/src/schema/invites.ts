@@ -1,5 +1,5 @@
 import { index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
-import { users } from './users';
+import { user } from './auth';
 
 /**
  * Invites table for user invitation flow
@@ -14,9 +14,9 @@ export const invites = pgTable(
     email: text('email').notNull(),
     role: text('role').notNull().default('viewer'),
     token: text('token').notNull().unique(),
-    invitedBy: uuid('invited_by')
+    invitedBy: text('invited_by')
       .notNull()
-      .references(() => users.id),
+      .references(() => user.id),
     expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'date' }).notNull(),
     usedAt: timestamp('used_at', { withTimezone: true, mode: 'date' }),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),

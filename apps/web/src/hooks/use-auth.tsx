@@ -1,6 +1,7 @@
 'use client';
 
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, type ReactNode, useCallback, useContext } from 'react';
+import { authClient } from '@/lib/auth-client';
 
 export type UserRole = 'admin' | 'viewer';
 
@@ -9,6 +10,7 @@ export interface AuthUser {
   email: string;
   name: string;
   role: UserRole;
+  image?: string | null;
 }
 
 interface AuthContextValue {
@@ -24,72 +26,56 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: session, isPending, refetch } = authClient.useSession();
 
-  const refresh = useCallback(async () => {
-    try {
-      const response = await fetch('/api/auth/session', {
-        credentials: 'include',
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data.user || null);
-      } else {
-        setUser(null);
+  const user: AuthUser | null = session?.user
+    ? {
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.name,
+        role: (session.user.role as UserRole) || 'viewer',
+        image: session.user.image,
       }
-    } catch {
-      setUser(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+    : null;
 
   const login = useCallback(
     async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
       try {
-        const response = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-          credentials: 'include',
+        const result = await authClient.signIn.email({
+          email,
+          password,
         });
 
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-          setUser(data.user);
-          return { success: true };
+        if (result.error) {
+          return { success: false, error: result.error.message || 'Login failed' };
         }
 
-        return { success: false, error: data.error || 'Login failed' };
-      } catch {
-        return { success: false, error: 'Network error' };
+        // Refresh session data after login
+        await refetch();
+        return { success: true };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Network error';
+        return { success: false, error: message };
       }
     },
-    [],
+    [refetch],
   );
 
   const logout = useCallback(async () => {
     try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-      });
+      await authClient.signOut();
     } finally {
-      setUser(null);
       window.location.href = '/login';
     }
   }, []);
 
+  const refresh = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
+
   const value: AuthContextValue = {
     user,
-    isLoading,
+    isLoading: isPending,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
     login,

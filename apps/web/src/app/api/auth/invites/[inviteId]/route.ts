@@ -1,24 +1,18 @@
-import { invites, sessions, users } from '@popper/db';
-import { and, eq, gt } from 'drizzle-orm';
-import { cookies } from 'next/headers';
+import { invites } from '@popper/db';
+import { eq } from 'drizzle-orm';
+import { headers } from 'next/headers';
 import { type NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 
 async function getAuthUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('popper_session')?.value;
-
-  if (!token) return null;
-
-  const session = await db.query.sessions.findFirst({
-    where: and(eq(sessions.token, token), gt(sessions.expiresAt, new Date())),
+  const session = await auth.api.getSession({
+    headers: await headers(),
   });
 
-  if (!session) return null;
+  if (!session?.user) return null;
 
-  return db.query.users.findFirst({
-    where: eq(users.id, session.userId),
-  });
+  return session.user;
 }
 
 export async function DELETE(

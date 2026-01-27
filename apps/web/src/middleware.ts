@@ -19,8 +19,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for session cookie
-  const sessionToken = request.cookies.get('popper_session')?.value;
+  // Check for better-auth session cookie
+  // better-auth uses 'better-auth.session_token' by default
+  const sessionToken = request.cookies.get('better-auth.session_token')?.value;
 
   if (!sessionToken) {
     // Redirect to login
@@ -29,8 +30,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // For now, just check if cookie exists - session validation happens in API routes
-  // This avoids circular fetch calls in middleware
+  // Session validation happens server-side via better-auth
   return NextResponse.next();
 }
 
