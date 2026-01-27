@@ -26,3 +26,12 @@ export {
   type IIdempotencyCache,
   InMemoryIdempotencyCache,
 } from './idempotency-cache';
+
+export {
+  InMemoryRateLimitCache,
+  type IRateLimitCache,
+  RateLimitCache,
+  type RateLimitConfig,
+  type RateLimitCounts,
+  type RateLimitResult,
+} from './rate-limit-cache';

@@ -24,6 +24,7 @@ import {
   updateOrganizationRequestSchema,
 } from '../lib/schemas';
 import { createAuthGuard } from './api-key-auth';
+import { createRateLimitGuard } from './rate-limit';
 
 /**
  * Map stored organization to API response format
@@ -67,217 +68,225 @@ export const adminOrgsPlugin = new Elysia({ name: 'admin-orgs', prefix: '/v1/pop
   // GET /orgs - List organizations (requires admin:orgs:read)
   // GET /orgs/:id - Get organization by ID (requires admin:orgs:read)
   .guard(createAuthGuard('admin:orgs:read'), (app) =>
-    app
-      .get(
-        '/orgs',
-        async ({ query, set }) => {
-          if (!isOrganizationServiceInitialized()) {
-            logger.error`Organization service not initialized`;
-            set.status = 500;
-            return { error: 'internal_error', message: 'Organization service not available' };
-          }
-
-          const service = getOrganizationService();
-
-          try {
-            const orgs = await service.list({
-              includeInactive: query.include_inactive ?? false,
-              limit: query.limit ?? 100,
-            });
-
-            return {
-              organizations: orgs.map(mapOrganizationToResponse),
-            };
-          } catch (error) {
-            logger.error`Failed to list organizations: ${error}`;
-            set.status = 500;
-            return { error: 'internal_error', message: 'Failed to list organizations' };
-          }
-        },
-        {
-          query: t.Object({
-            include_inactive: t.Optional(
-              t.Boolean({ description: 'Include inactive organizations' }),
-            ),
-            limit: t.Optional(
-              t.Number({ description: 'Max organizations to return', minimum: 1, maximum: 1000 }),
-            ),
-          }),
-          response: {
-            200: listOrganizationsResponseSchema,
-            401: errorResponseSchema,
-            403: errorResponseSchema,
-            500: errorResponseSchema,
-          },
-          detail: {
-            summary: 'List organizations',
-            description: 'List all organizations',
-            tags: ['Admin - Organizations'],
-          },
-        },
-      )
-      .get(
-        '/orgs/:id',
-        async ({ params, set }) => {
-          if (!isOrganizationServiceInitialized()) {
-            logger.error`Organization service not initialized`;
-            set.status = 500;
-            return { error: 'internal_error', message: 'Organization service not available' };
-          }
-
-          const service = getOrganizationService();
-
-          try {
-            const org = await service.getById(params.id);
-
-            if (!org) {
-              set.status = 404;
-              return { error: 'not_found', message: 'Organization not found' };
+    app.guard(createRateLimitGuard(), (app) =>
+      app
+        .get(
+          '/orgs',
+          async ({ query, set }) => {
+            if (!isOrganizationServiceInitialized()) {
+              logger.error`Organization service not initialized`;
+              set.status = 500;
+              return { error: 'internal_error', message: 'Organization service not available' };
             }
 
-            return mapOrganizationToResponse(org);
-          } catch (error) {
-            logger.error`Failed to get organization: ${error}`;
-            set.status = 500;
-            return { error: 'internal_error', message: 'Failed to get organization' };
-          }
-        },
-        {
-          params: t.Object({
-            id: t.String({ description: 'Organization ID' }),
-          }),
-          response: {
-            200: organizationResponseSchema,
-            401: errorResponseSchema,
-            403: errorResponseSchema,
-            404: errorResponseSchema,
-            500: errorResponseSchema,
+            const service = getOrganizationService();
+
+            try {
+              const orgs = await service.list({
+                includeInactive: query.include_inactive ?? false,
+                limit: query.limit ?? 100,
+              });
+
+              return {
+                organizations: orgs.map(mapOrganizationToResponse),
+              };
+            } catch (error) {
+              logger.error`Failed to list organizations: ${error}`;
+              set.status = 500;
+              return { error: 'internal_error', message: 'Failed to list organizations' };
+            }
           },
-          detail: {
-            summary: 'Get organization',
-            description: 'Get organization by ID',
-            tags: ['Admin - Organizations'],
+          {
+            query: t.Object({
+              include_inactive: t.Optional(
+                t.Boolean({ description: 'Include inactive organizations' }),
+              ),
+              limit: t.Optional(
+                t.Number({ description: 'Max organizations to return', minimum: 1, maximum: 1000 }),
+              ),
+            }),
+            response: {
+              200: listOrganizationsResponseSchema,
+              401: errorResponseSchema,
+              403: errorResponseSchema,
+              429: errorResponseSchema,
+              500: errorResponseSchema,
+            },
+            detail: {
+              summary: 'List organizations',
+              description: 'List all organizations',
+              tags: ['Admin - Organizations'],
+            },
           },
-        },
-      ),
+        )
+        .get(
+          '/orgs/:id',
+          async ({ params, set }) => {
+            if (!isOrganizationServiceInitialized()) {
+              logger.error`Organization service not initialized`;
+              set.status = 500;
+              return { error: 'internal_error', message: 'Organization service not available' };
+            }
+
+            const service = getOrganizationService();
+
+            try {
+              const org = await service.getById(params.id);
+
+              if (!org) {
+                set.status = 404;
+                return { error: 'not_found', message: 'Organization not found' };
+              }
+
+              return mapOrganizationToResponse(org);
+            } catch (error) {
+              logger.error`Failed to get organization: ${error}`;
+              set.status = 500;
+              return { error: 'internal_error', message: 'Failed to get organization' };
+            }
+          },
+          {
+            params: t.Object({
+              id: t.String({ description: 'Organization ID' }),
+            }),
+            response: {
+              200: organizationResponseSchema,
+              401: errorResponseSchema,
+              403: errorResponseSchema,
+              404: errorResponseSchema,
+              429: errorResponseSchema,
+              500: errorResponseSchema,
+            },
+            detail: {
+              summary: 'Get organization',
+              description: 'Get organization by ID',
+              tags: ['Admin - Organizations'],
+            },
+          },
+        ),
+    ),
   )
   // POST /orgs - Create organization (requires admin:orgs:write)
   // PUT /orgs/:id - Update organization (requires admin:orgs:write)
   .guard(createAuthGuard('admin:orgs:write'), (app) =>
-    app
-      .post(
-        '/orgs',
-        async ({ body, set }) => {
-          if (!isOrganizationServiceInitialized()) {
-            logger.error`Organization service not initialized`;
-            set.status = 500;
-            return { error: 'internal_error', message: 'Organization service not available' };
-          }
-
-          const service = getOrganizationService();
-
-          try {
-            // Check if organization with this ID already exists
-            const existing = await service.getById(body.id);
-            if (existing) {
-              set.status = 409;
-              return { error: 'conflict', message: 'Organization with this ID already exists' };
+    app.guard(createRateLimitGuard(), (app) =>
+      app
+        .post(
+          '/orgs',
+          async ({ body, set }) => {
+            if (!isOrganizationServiceInitialized()) {
+              logger.error`Organization service not initialized`;
+              set.status = 500;
+              return { error: 'internal_error', message: 'Organization service not available' };
             }
 
-            const org = await service.create({
-              id: body.id,
-              name: body.name,
-              allowedModes: body.allowed_modes as SupervisionMode[] | undefined,
-              rateLimitPerMinute: body.rate_limit_per_minute,
-              rateLimitPerHour: body.rate_limit_per_hour,
-              defaultPolicyPack: body.default_policy_pack,
-              stalenessWellnessHours: body.staleness_wellness_hours,
-              stalenessClinicalHours: body.staleness_clinical_hours,
-              isActive: body.is_active,
-              metadata: body.metadata,
-            });
+            const service = getOrganizationService();
 
-            logger.info`Organization created: id=${org.id} name="${org.name}"`;
+            try {
+              // Check if organization with this ID already exists
+              const existing = await service.getById(body.id);
+              if (existing) {
+                set.status = 409;
+                return { error: 'conflict', message: 'Organization with this ID already exists' };
+              }
 
-            set.status = 201;
-            return mapOrganizationToResponse(org);
-          } catch (error) {
-            logger.error`Failed to create organization: ${error}`;
-            set.status = 500;
-            return { error: 'internal_error', message: 'Failed to create organization' };
-          }
-        },
-        {
-          body: createOrganizationRequestSchema,
-          response: {
-            201: organizationResponseSchema,
-            401: errorResponseSchema,
-            403: errorResponseSchema,
-            409: errorResponseSchema,
-            500: errorResponseSchema,
+              const org = await service.create({
+                id: body.id,
+                name: body.name,
+                allowedModes: body.allowed_modes as SupervisionMode[] | undefined,
+                rateLimitPerMinute: body.rate_limit_per_minute,
+                rateLimitPerHour: body.rate_limit_per_hour,
+                defaultPolicyPack: body.default_policy_pack,
+                stalenessWellnessHours: body.staleness_wellness_hours,
+                stalenessClinicalHours: body.staleness_clinical_hours,
+                isActive: body.is_active,
+                metadata: body.metadata,
+              });
+
+              logger.info`Organization created: id=${org.id} name="${org.name}"`;
+
+              set.status = 201;
+              return mapOrganizationToResponse(org);
+            } catch (error) {
+              logger.error`Failed to create organization: ${error}`;
+              set.status = 500;
+              return { error: 'internal_error', message: 'Failed to create organization' };
+            }
           },
-          detail: {
-            summary: 'Create organization',
-            description: 'Create a new organization',
-            tags: ['Admin - Organizations'],
+          {
+            body: createOrganizationRequestSchema,
+            response: {
+              201: organizationResponseSchema,
+              401: errorResponseSchema,
+              403: errorResponseSchema,
+              409: errorResponseSchema,
+              429: errorResponseSchema,
+              500: errorResponseSchema,
+            },
+            detail: {
+              summary: 'Create organization',
+              description: 'Create a new organization',
+              tags: ['Admin - Organizations'],
+            },
           },
-        },
-      )
-      .put(
-        '/orgs/:id',
-        async ({ params, body, set }) => {
-          if (!isOrganizationServiceInitialized()) {
-            logger.error`Organization service not initialized`;
-            set.status = 500;
-            return { error: 'internal_error', message: 'Organization service not available' };
-          }
-
-          const service = getOrganizationService();
-
-          try {
-            const org = await service.update(params.id, {
-              name: body.name,
-              allowedModes: body.allowed_modes as SupervisionMode[] | undefined,
-              rateLimitPerMinute: body.rate_limit_per_minute,
-              rateLimitPerHour: body.rate_limit_per_hour,
-              defaultPolicyPack: body.default_policy_pack,
-              stalenessWellnessHours: body.staleness_wellness_hours,
-              stalenessClinicalHours: body.staleness_clinical_hours,
-              isActive: body.is_active,
-              metadata: body.metadata,
-            });
-
-            if (!org) {
-              set.status = 404;
-              return { error: 'not_found', message: 'Organization not found' };
+        )
+        .put(
+          '/orgs/:id',
+          async ({ params, body, set }) => {
+            if (!isOrganizationServiceInitialized()) {
+              logger.error`Organization service not initialized`;
+              set.status = 500;
+              return { error: 'internal_error', message: 'Organization service not available' };
             }
 
-            logger.info`Organization updated: id=${org.id}`;
+            const service = getOrganizationService();
 
-            return mapOrganizationToResponse(org);
-          } catch (error) {
-            logger.error`Failed to update organization: ${error}`;
-            set.status = 500;
-            return { error: 'internal_error', message: 'Failed to update organization' };
-          }
-        },
-        {
-          params: t.Object({
-            id: t.String({ description: 'Organization ID' }),
-          }),
-          body: updateOrganizationRequestSchema,
-          response: {
-            200: organizationResponseSchema,
-            401: errorResponseSchema,
-            403: errorResponseSchema,
-            404: errorResponseSchema,
-            500: errorResponseSchema,
+            try {
+              const org = await service.update(params.id, {
+                name: body.name,
+                allowedModes: body.allowed_modes as SupervisionMode[] | undefined,
+                rateLimitPerMinute: body.rate_limit_per_minute,
+                rateLimitPerHour: body.rate_limit_per_hour,
+                defaultPolicyPack: body.default_policy_pack,
+                stalenessWellnessHours: body.staleness_wellness_hours,
+                stalenessClinicalHours: body.staleness_clinical_hours,
+                isActive: body.is_active,
+                metadata: body.metadata,
+              });
+
+              if (!org) {
+                set.status = 404;
+                return { error: 'not_found', message: 'Organization not found' };
+              }
+
+              logger.info`Organization updated: id=${org.id}`;
+
+              return mapOrganizationToResponse(org);
+            } catch (error) {
+              logger.error`Failed to update organization: ${error}`;
+              set.status = 500;
+              return { error: 'internal_error', message: 'Failed to update organization' };
+            }
           },
-          detail: {
-            summary: 'Update organization',
-            description: 'Update an existing organization',
-            tags: ['Admin - Organizations'],
+          {
+            params: t.Object({
+              id: t.String({ description: 'Organization ID' }),
+            }),
+            body: updateOrganizationRequestSchema,
+            response: {
+              200: organizationResponseSchema,
+              401: errorResponseSchema,
+              403: errorResponseSchema,
+              404: errorResponseSchema,
+              429: errorResponseSchema,
+              500: errorResponseSchema,
+            },
+            detail: {
+              summary: 'Update organization',
+              description: 'Update an existing organization',
+              tags: ['Admin - Organizations'],
+            },
           },
-        },
-      ),
+        ),
+    ),
   );
