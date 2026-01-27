@@ -22,7 +22,8 @@ let auditStorage: InMemoryAuditStorage;
 
 beforeAll(async () => {
   // Load policy packs for testing
-  const policiesDir = resolve(process.cwd(), '../../config/policies');
+  // Use import.meta.dir for path relative to this file, not cwd
+  const policiesDir = resolve(import.meta.dir, '../../../../config/policies');
   await policyRegistry.loadFromDir(policiesDir);
 
   // Create test app
