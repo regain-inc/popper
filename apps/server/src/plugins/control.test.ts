@@ -8,16 +8,12 @@ import { Elysia } from 'elysia';
 import { setSafeModeManager } from '../lib/safe-mode';
 import { controlPlugin } from './control';
 
-// Test API key
-const TEST_API_KEY = 'test-admin-key-12345';
-
 describe('Control Plugin', () => {
   let app: Elysia;
 
   beforeEach(() => {
-    // Reset environment
-    process.env.POPPER_ADMIN_API_KEY = TEST_API_KEY;
-    process.env.NODE_ENV = 'test';
+    // Set development environment - allows requests without API key
+    process.env.NODE_ENV = 'development';
 
     // Setup in-memory safe-mode manager
     const manager = new SafeModeManager({
@@ -31,8 +27,12 @@ describe('Control Plugin', () => {
   });
 
   describe('Authentication', () => {
-    it('should reject request without API key', async () => {
-      const response = await app.handle(
+    it('should reject request without API key in production', async () => {
+      // Must recreate app with production environment since Elysia caches middleware
+      process.env.NODE_ENV = 'production';
+      const prodApp = new Elysia().use(controlPlugin);
+
+      const response = await prodApp.handle(
         new Request('http://localhost/v1/popper/control/safe-mode'),
       );
 
@@ -41,21 +41,24 @@ describe('Control Plugin', () => {
       expect(body.error).toBe('unauthorized');
     });
 
-    it('should reject request with invalid API key', async () => {
-      const response = await app.handle(
+    it('should reject request with invalid API key format in production', async () => {
+      // Must recreate app with production environment
+      process.env.NODE_ENV = 'production';
+      const prodApp = new Elysia().use(controlPlugin);
+
+      const response = await prodApp.handle(
         new Request('http://localhost/v1/popper/control/safe-mode', {
-          headers: { 'x-popper-admin-key': 'wrong-key' },
+          headers: { 'x-api-key': 'wrong-key' },
         }),
       );
 
       expect(response.status).toBe(401);
     });
 
-    it('should accept request with valid API key', async () => {
+    it('should allow request without API key in development mode', async () => {
+      // app is already created with NODE_ENV = 'development'
       const response = await app.handle(
-        new Request('http://localhost/v1/popper/control/safe-mode', {
-          headers: { 'x-popper-admin-key': TEST_API_KEY },
-        }),
+        new Request('http://localhost/v1/popper/control/safe-mode'),
       );
 
       expect(response.status).toBe(200);
@@ -65,9 +68,7 @@ describe('Control Plugin', () => {
   describe('GET /safe-mode', () => {
     it('should return default state for unconfigured org', async () => {
       const response = await app.handle(
-        new Request('http://localhost/v1/popper/control/safe-mode', {
-          headers: { 'x-popper-admin-key': TEST_API_KEY },
-        }),
+        new Request('http://localhost/v1/popper/control/safe-mode'),
       );
 
       expect(response.status).toBe(200);
@@ -78,9 +79,7 @@ describe('Control Plugin', () => {
 
     it('should return state for specific organization', async () => {
       const response = await app.handle(
-        new Request('http://localhost/v1/popper/control/safe-mode?organization_id=org-123', {
-          headers: { 'x-popper-admin-key': TEST_API_KEY },
-        }),
+        new Request('http://localhost/v1/popper/control/safe-mode?organization_id=org-123'),
       );
 
       expect(response.status).toBe(200);
@@ -95,7 +94,6 @@ describe('Control Plugin', () => {
         new Request('http://localhost/v1/popper/control/safe-mode', {
           method: 'POST',
           headers: {
-            'x-popper-admin-key': TEST_API_KEY,
             'content-type': 'application/json',
           },
           body: JSON.stringify({
@@ -120,7 +118,6 @@ describe('Control Plugin', () => {
         new Request('http://localhost/v1/popper/control/safe-mode', {
           method: 'POST',
           headers: {
-            'x-popper-admin-key': TEST_API_KEY,
             'content-type': 'application/json',
           },
           body: JSON.stringify({
@@ -135,7 +132,6 @@ describe('Control Plugin', () => {
         new Request('http://localhost/v1/popper/control/safe-mode', {
           method: 'POST',
           headers: {
-            'x-popper-admin-key': TEST_API_KEY,
             'content-type': 'application/json',
           },
           body: JSON.stringify({
@@ -156,7 +152,6 @@ describe('Control Plugin', () => {
         new Request('http://localhost/v1/popper/control/safe-mode', {
           method: 'POST',
           headers: {
-            'x-popper-admin-key': TEST_API_KEY,
             'content-type': 'application/json',
           },
           body: JSON.stringify({
@@ -177,7 +172,6 @@ describe('Control Plugin', () => {
         new Request('http://localhost/v1/popper/control/safe-mode', {
           method: 'POST',
           headers: {
-            'x-popper-admin-key': TEST_API_KEY,
             'content-type': 'application/json',
           },
           body: JSON.stringify({
@@ -201,7 +195,6 @@ describe('Control Plugin', () => {
         new Request('http://localhost/v1/popper/control/safe-mode', {
           method: 'POST',
           headers: {
-            'x-popper-admin-key': TEST_API_KEY,
             'content-type': 'application/json',
           },
           body: JSON.stringify({
@@ -218,9 +211,7 @@ describe('Control Plugin', () => {
   describe('GET /safe-mode/history', () => {
     it('should return empty history for new org', async () => {
       const response = await app.handle(
-        new Request('http://localhost/v1/popper/control/safe-mode/history', {
-          headers: { 'x-popper-admin-key': TEST_API_KEY },
-        }),
+        new Request('http://localhost/v1/popper/control/safe-mode/history'),
       );
 
       expect(response.status).toBe(200);
@@ -235,7 +226,6 @@ describe('Control Plugin', () => {
         new Request('http://localhost/v1/popper/control/safe-mode', {
           method: 'POST',
           headers: {
-            'x-popper-admin-key': TEST_API_KEY,
             'content-type': 'application/json',
           },
           body: JSON.stringify({ enabled: true, reason: 'First' }),
@@ -246,7 +236,6 @@ describe('Control Plugin', () => {
         new Request('http://localhost/v1/popper/control/safe-mode', {
           method: 'POST',
           headers: {
-            'x-popper-admin-key': TEST_API_KEY,
             'content-type': 'application/json',
           },
           body: JSON.stringify({ enabled: false, reason: 'Second' }),
@@ -255,9 +244,7 @@ describe('Control Plugin', () => {
 
       // Get history
       const response = await app.handle(
-        new Request('http://localhost/v1/popper/control/safe-mode/history', {
-          headers: { 'x-popper-admin-key': TEST_API_KEY },
-        }),
+        new Request('http://localhost/v1/popper/control/safe-mode/history'),
       );
 
       expect(response.status).toBe(200);
@@ -274,7 +261,6 @@ describe('Control Plugin', () => {
         new Request('http://localhost/v1/popper/control/safe-mode', {
           method: 'POST',
           headers: {
-            'x-popper-admin-key': TEST_API_KEY,
             'content-type': 'application/json',
           },
           body: JSON.stringify({
@@ -290,7 +276,6 @@ describe('Control Plugin', () => {
         new Request('http://localhost/v1/popper/control/safe-mode', {
           method: 'POST',
           headers: {
-            'x-popper-admin-key': TEST_API_KEY,
             'content-type': 'application/json',
           },
           body: JSON.stringify({
@@ -303,9 +288,7 @@ describe('Control Plugin', () => {
 
       // Get history for org-1
       const response = await app.handle(
-        new Request('http://localhost/v1/popper/control/safe-mode/history?organization_id=org-1', {
-          headers: { 'x-popper-admin-key': TEST_API_KEY },
-        }),
+        new Request('http://localhost/v1/popper/control/safe-mode/history?organization_id=org-1'),
       );
 
       expect(response.status).toBe(200);
@@ -322,7 +305,6 @@ describe('Control Plugin', () => {
           new Request('http://localhost/v1/popper/control/safe-mode', {
             method: 'POST',
             headers: {
-              'x-popper-admin-key': TEST_API_KEY,
               'content-type': 'application/json',
             },
             body: JSON.stringify({ enabled: i % 2 === 0, reason: `Change ${i}` }),
@@ -332,28 +314,12 @@ describe('Control Plugin', () => {
 
       // Get history with limit
       const response = await app.handle(
-        new Request('http://localhost/v1/popper/control/safe-mode/history?limit=3', {
-          headers: { 'x-popper-admin-key': TEST_API_KEY },
-        }),
+        new Request('http://localhost/v1/popper/control/safe-mode/history?limit=3'),
       );
 
       expect(response.status).toBe(200);
       const body = await response.json();
       expect(body.entries).toHaveLength(3);
-    });
-  });
-
-  describe('Development mode', () => {
-    it('should allow access without API key in development', async () => {
-      // Remove API key config
-      delete process.env.POPPER_ADMIN_API_KEY;
-      process.env.NODE_ENV = 'development';
-
-      const response = await app.handle(
-        new Request('http://localhost/v1/popper/control/safe-mode'),
-      );
-
-      expect(response.status).toBe(200);
     });
   });
 });

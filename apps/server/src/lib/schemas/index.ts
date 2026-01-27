@@ -4,5 +4,6 @@
  * @module lib/schemas
  */
 
+export * from './api-keys';
 export * from './control';
 export * from './supervision';

@@ -12,8 +12,15 @@
     {
       "idx": 1,
       "version": "7",
-      "when": 1769513177566,
-      "tag": "0001_yummy_nemesis",
+      "when": 1769510108005,
+      "tag": "0001_numerous_mandrill",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1769518007155,
+      "tag": "0002_busy_fat_cobra",
       "breakpoints": true
     }
   ]

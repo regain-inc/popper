@@ -5,7 +5,12 @@
  */
 
 import { resolve } from 'node:path';
-import { IdempotencyCache, InMemoryIdempotencyCache } from '@popper/cache';
+import {
+  ApiKeyCache,
+  IdempotencyCache,
+  InMemoryApiKeyCache,
+  InMemoryIdempotencyCache,
+} from '@popper/cache';
 import type { SupervisionResponse } from '@popper/core';
 import {
   AuditEmitter,
@@ -16,11 +21,17 @@ import {
   SafeModeManager,
   setDefaultEmitter,
 } from '@popper/core';
-import { createDB, DrizzleAuditStorage, DrizzleSafeModeHistoryStorage } from '@popper/db';
+import {
+  ApiKeyService,
+  createDB,
+  DrizzleAuditStorage,
+  DrizzleSafeModeHistoryStorage,
+} from '@popper/db';
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { createApp } from './app';
 import { env } from './config/env';
+import { initApiKeyService, setApiKeyCache } from './lib/api-keys';
 import { setIdempotencyCache } from './lib/idempotency';
 import { logger, setupLogger } from './lib/logger';
 import { QueueAuditStorage } from './lib/queue-audit-storage';
@@ -97,6 +108,14 @@ async function main(): Promise<void> {
     });
     setSafeModeManager(safeModeManager);
     logger.info`Safe-mode manager initialized with Redis + PostgreSQL`;
+
+    // API key service: Database + Redis cache
+    const apiKeyRedis = new IORedis(env.REDIS_URL);
+    const apiKeyCache = new ApiKeyCache(apiKeyRedis);
+    setApiKeyCache(apiKeyCache);
+    const apiKeyService = new ApiKeyService(db);
+    initApiKeyService(apiKeyService);
+    logger.info`API key service initialized with PostgreSQL + Redis cache`;
   } else if (env.REDIS_URL) {
     // Redis only (no PostgreSQL for history)
     logger.info`Initializing with Redis only...`;
@@ -131,6 +150,13 @@ async function main(): Promise<void> {
     });
     setSafeModeManager(safeModeManager);
     logger.info`Safe-mode manager initialized with Redis (in-memory history)`;
+
+    // API key service: Not available without database
+    // In-memory cache will be used but service won't be initialized
+    const apiKeyRedis = new IORedis(env.REDIS_URL);
+    const apiKeyCache = new ApiKeyCache(apiKeyRedis);
+    setApiKeyCache(apiKeyCache);
+    logger.warning`API key service not available without DATABASE_URL. Key validation disabled.`;
   } else if (env.DATABASE_URL) {
     // Direct PostgreSQL writes (not recommended for production)
     logger.info`Initializing audit storage with PostgreSQL (direct)...`;
@@ -159,6 +185,13 @@ async function main(): Promise<void> {
     });
     setSafeModeManager(safeModeManager);
     logger.info`Safe-mode manager initialized with PostgreSQL (in-memory state)`;
+
+    // API key service: Database + in-memory cache
+    const apiKeyCache = new InMemoryApiKeyCache();
+    setApiKeyCache(apiKeyCache);
+    const apiKeyService = new ApiKeyService(db);
+    initApiKeyService(apiKeyService);
+    logger.info`API key service initialized with PostgreSQL (in-memory cache)`;
   } else {
     logger.warning`REDIS_URL and DATABASE_URL not configured, using in-memory storage`;
 
@@ -174,6 +207,10 @@ async function main(): Promise<void> {
     });
     setSafeModeManager(safeModeManager);
     logger.info`Safe-mode manager initialized with in-memory storage`;
+
+    // API key service: Not available without database
+    // Development mode will bypass auth, but API key management endpoints won't work
+    logger.warning`API key service not available without DATABASE_URL. Key management disabled.`;
   }
 
   // Create and start the application

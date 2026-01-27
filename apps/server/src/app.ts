@@ -4,6 +4,7 @@
  */
 
 import { Elysia } from 'elysia';
+import { adminKeysPlugin } from './plugins/admin-keys';
 import { controlPlugin } from './plugins/control';
 import { healthPlugin } from './plugins/health';
 import { httpLoggerPlugin } from './plugins/http-logger';
@@ -17,9 +18,10 @@ import { tracingPlugin } from './plugins/tracing';
  * 1. Tracing (OpenTelemetry) - wraps all requests
  * 2. Metrics (Prometheus) - collects metrics
  * 3. HTTP Logger - logs requests
- * 4. Health - health check endpoints
- * 5. Control - safe-mode management (protected by API key)
- * 6. Supervision - main supervision API
+ * 4. Health - health check endpoints (no auth required)
+ * 5. Admin Keys - API key management (protected by API key with admin:keys scopes)
+ * 6. Control - safe-mode management (protected by API key with control scopes)
+ * 7. Supervision - main supervision API (protected by API key with supervision:write scope)
  */
 export function createApp() {
   return new Elysia({ name: 'popper' })
@@ -27,6 +29,7 @@ export function createApp() {
     .use(metricsPlugin)
     .use(httpLoggerPlugin)
     .use(healthPlugin)
+    .use(adminKeysPlugin)
     .use(controlPlugin)
     .use(supervisionPlugin);
 }
