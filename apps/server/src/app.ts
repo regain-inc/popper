@@ -5,6 +5,7 @@
 
 import { Elysia } from 'elysia';
 import { adminKeysPlugin } from './plugins/admin-keys';
+import { adminOrgsPlugin } from './plugins/admin-orgs';
 import { controlPlugin } from './plugins/control';
 import { healthPlugin } from './plugins/health';
 import { httpLoggerPlugin } from './plugins/http-logger';
@@ -20,8 +21,9 @@ import { tracingPlugin } from './plugins/tracing';
  * 3. HTTP Logger - logs requests
  * 4. Health - health check endpoints (no auth required)
  * 5. Admin Keys - API key management (protected by API key with admin:keys scopes)
- * 6. Control - safe-mode management (protected by API key with control scopes)
- * 7. Supervision - main supervision API (protected by API key with supervision:write scope)
+ * 6. Admin Orgs - organization management (protected by API key with admin:orgs scopes)
+ * 7. Control - safe-mode management (protected by API key with control scopes)
+ * 8. Supervision - main supervision API (protected by API key with supervision:write scope)
  */
 export function createApp() {
   return new Elysia({ name: 'popper' })
@@ -30,6 +32,7 @@ export function createApp() {
     .use(httpLoggerPlugin)
     .use(healthPlugin)
     .use(adminKeysPlugin)
+    .use(adminOrgsPlugin)
     .use(controlPlugin)
     .use(supervisionPlugin);
 }

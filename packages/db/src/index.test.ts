@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { auditEvents, driftBaselines, safeModeHistory } from './schema';
+import { auditEvents, driftBaselines, organizations, safeModeHistory } from './schema';
 
 describe('db schemas', () => {
   describe('audit_events', () => {
@@ -52,6 +52,35 @@ describe('db schemas', () => {
       expect(safeModeHistory.reason).toBeDefined();
       expect(safeModeHistory.triggeredBy).toBeDefined();
       expect(safeModeHistory.effectiveAt).toBeDefined();
+    });
+  });
+
+  describe('organizations', () => {
+    test('has primary key', () => {
+      expect(organizations.id).toBeDefined();
+    });
+
+    test('has required configuration fields', () => {
+      expect(organizations.name).toBeDefined();
+      expect(organizations.allowedModes).toBeDefined();
+      expect(organizations.rateLimitPerMinute).toBeDefined();
+      expect(organizations.rateLimitPerHour).toBeDefined();
+      expect(organizations.defaultPolicyPack).toBeDefined();
+      expect(organizations.isActive).toBeDefined();
+    });
+
+    test('has staleness override fields', () => {
+      expect(organizations.stalenessWellnessHours).toBeDefined();
+      expect(organizations.stalenessClinicalHours).toBeDefined();
+    });
+
+    test('has timestamp fields', () => {
+      expect(organizations.createdAt).toBeDefined();
+      expect(organizations.updatedAt).toBeDefined();
+    });
+
+    test('has metadata field', () => {
+      expect(organizations.metadata).toBeDefined();
     });
   });
 });

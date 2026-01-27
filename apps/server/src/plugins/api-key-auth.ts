@@ -34,6 +34,8 @@ const DEV_CONTEXT: ApiKeyContext = {
     'control:write',
     'admin:keys:read',
     'admin:keys:write',
+    'admin:orgs:read',
+    'admin:orgs:write',
   ],
   rateLimitRpm: null,
 };
