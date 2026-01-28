@@ -18,15 +18,20 @@ import {
   AuditEmitter,
   InMemorySafeModeHistoryStore,
   InMemorySafeModeStateStore,
+  InMemorySettingsCache,
+  InMemorySettingsStore,
   policyRegistry,
   RedisSafeModeStateStore,
+  RedisSettingsCache,
   SafeModeManager,
+  SettingsManager,
   setDefaultEmitter,
 } from '@popper/core';
 import {
   ApiKeyService,
   createDB,
   DrizzleAuditStorage,
+  DrizzleOperationalSettingsStorage,
   DrizzleSafeModeHistoryStorage,
   OrganizationService,
 } from '@popper/db';
@@ -41,6 +46,7 @@ import { initOrganizationService } from './lib/organizations';
 import { QueueAuditStorage } from './lib/queue-audit-storage';
 import { setRateLimitCache } from './lib/rate-limit';
 import { setSafeModeManager } from './lib/safe-mode';
+import { setSettingsManager } from './lib/settings';
 import { setReady } from './plugins/health';
 
 /** Audit events queue name */
@@ -131,6 +137,15 @@ async function main(): Promise<void> {
     const rateLimitRedis = new IORedis(env.REDIS_URL);
     setRateLimitCache(new RateLimitCache(rateLimitRedis));
     logger.info`Rate limit cache initialized with Redis`;
+
+    // Settings manager: PostgreSQL for storage, Redis for cache
+    const settingsRedis = new IORedis(env.REDIS_URL);
+    const settingsManager = new SettingsManager({
+      store: new DrizzleOperationalSettingsStorage(db),
+      cache: new RedisSettingsCache(settingsRedis),
+    });
+    setSettingsManager(settingsManager);
+    logger.info`Settings manager initialized with PostgreSQL + Redis cache`;
   } else if (env.REDIS_URL) {
     // Redis only (no PostgreSQL for history)
     logger.info`Initializing with Redis only...`;
@@ -177,6 +192,15 @@ async function main(): Promise<void> {
     const rateLimitRedis = new IORedis(env.REDIS_URL);
     setRateLimitCache(new RateLimitCache(rateLimitRedis));
     logger.info`Rate limit cache initialized with Redis`;
+
+    // Settings manager: in-memory storage without database, Redis for cache
+    const settingsRedis = new IORedis(env.REDIS_URL);
+    const settingsManager = new SettingsManager({
+      store: new InMemorySettingsStore(),
+      cache: new RedisSettingsCache(settingsRedis),
+    });
+    setSettingsManager(settingsManager);
+    logger.warning`Settings manager initialized with in-memory storage (no DATABASE_URL)`;
   } else if (env.DATABASE_URL) {
     // Direct PostgreSQL writes (not recommended for production)
     logger.info`Initializing audit storage with PostgreSQL (direct)...`;
@@ -221,6 +245,14 @@ async function main(): Promise<void> {
     // Rate limit cache: in-memory (Redis recommended for production)
     setRateLimitCache(new InMemoryRateLimitCache());
     logger.warning`Using in-memory rate limit cache. Set REDIS_URL for distributed rate limiting.`;
+
+    // Settings manager: PostgreSQL for storage, in-memory cache
+    const settingsManager = new SettingsManager({
+      store: new DrizzleOperationalSettingsStorage(db),
+      cache: new InMemorySettingsCache(),
+    });
+    setSettingsManager(settingsManager);
+    logger.info`Settings manager initialized with PostgreSQL (in-memory cache)`;
   } else {
     logger.warning`REDIS_URL and DATABASE_URL not configured, using in-memory storage`;
 
@@ -244,6 +276,14 @@ async function main(): Promise<void> {
     // Rate limit cache: in-memory for development/testing
     // Note: In dev mode without auth, rate limiting uses dev-org ID
     logger.info`Rate limit cache initialized with in-memory storage`;
+
+    // Settings manager: all in-memory for development/testing
+    const settingsManager = new SettingsManager({
+      store: new InMemorySettingsStore(),
+      cache: new InMemorySettingsCache(),
+    });
+    setSettingsManager(settingsManager);
+    logger.info`Settings manager initialized with in-memory storage`;
   }
 
   // Create and start the application

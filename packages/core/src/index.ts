@@ -14,3 +14,5 @@ export * from './hermes';
 export * from './policy-engine';
 // Re-export Safe-mode module
 export * from './safe-mode';
+// Re-export Settings module
+export * from './settings';

@@ -6,5 +6,6 @@
 
 export * from './api-keys';
 export * from './control';
+export * from './operational-settings';
 export * from './organizations';
 export * from './supervision';
