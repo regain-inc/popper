@@ -10,6 +10,7 @@ import { controlPlugin } from './plugins/control';
 import { healthPlugin } from './plugins/health';
 import { httpLoggerPlugin } from './plugins/http-logger';
 import { metricsPlugin } from './plugins/metrics';
+import { policyLifecyclePlugin } from './plugins/policy-lifecycle';
 import { supervisionPlugin } from './plugins/supervision';
 import { tracingPlugin } from './plugins/tracing';
 
@@ -22,8 +23,9 @@ import { tracingPlugin } from './plugins/tracing';
  * 4. Health - health check endpoints (no auth required)
  * 5. Admin Keys - API key management (protected by API key with admin:keys scopes)
  * 6. Admin Orgs - organization management (protected by API key with admin:orgs scopes)
- * 7. Control - safe-mode management (protected by API key with control scopes)
- * 8. Supervision - main supervision API (protected by API key with supervision:write scope)
+ * 7. Control - safe-mode and settings management (protected by API key with control scopes)
+ * 8. Policy Lifecycle - policy pack lifecycle management (protected by API key with control scopes)
+ * 9. Supervision - main supervision API (protected by API key with supervision:write scope)
  */
 export function createApp() {
   return new Elysia({ name: 'popper' })
@@ -34,6 +36,7 @@ export function createApp() {
     .use(adminKeysPlugin)
     .use(adminOrgsPlugin)
     .use(controlPlugin)
+    .use(policyLifecyclePlugin)
     .use(supervisionPlugin);
 }
 

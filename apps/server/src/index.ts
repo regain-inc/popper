@@ -20,6 +20,7 @@ import {
   InMemorySafeModeStateStore,
   InMemorySettingsCache,
   InMemorySettingsStore,
+  PolicyLifecycleManager,
   policyRegistry,
   RedisSafeModeStateStore,
   RedisSettingsCache,
@@ -32,6 +33,7 @@ import {
   createDB,
   DrizzleAuditStorage,
   DrizzleOperationalSettingsStorage,
+  DrizzlePolicyPackStorage,
   DrizzleSafeModeHistoryStorage,
   OrganizationService,
 } from '@popper/db';
@@ -43,6 +45,8 @@ import { initApiKeyService, setApiKeyCache } from './lib/api-keys';
 import { setIdempotencyCache } from './lib/idempotency';
 import { logger, setupLogger } from './lib/logger';
 import { initOrganizationService } from './lib/organizations';
+import { setPolicyLifecycleManager } from './lib/policy-lifecycle';
+import { PolicyPackStoreAdapter } from './lib/policy-pack-store-adapter';
 import { QueueAuditStorage } from './lib/queue-audit-storage';
 import { setRateLimitCache } from './lib/rate-limit';
 import { setSafeModeManager } from './lib/safe-mode';
@@ -146,6 +150,14 @@ async function main(): Promise<void> {
     });
     setSettingsManager(settingsManager);
     logger.info`Settings manager initialized with PostgreSQL + Redis cache`;
+
+    // Policy lifecycle manager: PostgreSQL for storage
+    const policyPackStorage = new DrizzlePolicyPackStorage(db);
+    const policyLifecycleManager = new PolicyLifecycleManager({
+      store: new PolicyPackStoreAdapter(policyPackStorage),
+    });
+    setPolicyLifecycleManager(policyLifecycleManager);
+    logger.info`Policy lifecycle manager initialized with PostgreSQL`;
   } else if (env.REDIS_URL) {
     // Redis only (no PostgreSQL for history)
     logger.info`Initializing with Redis only...`;
@@ -253,6 +265,14 @@ async function main(): Promise<void> {
     });
     setSettingsManager(settingsManager);
     logger.info`Settings manager initialized with PostgreSQL (in-memory cache)`;
+
+    // Policy lifecycle manager: PostgreSQL for storage
+    const policyPackStorage = new DrizzlePolicyPackStorage(db);
+    const policyLifecycleManager = new PolicyLifecycleManager({
+      store: new PolicyPackStoreAdapter(policyPackStorage),
+    });
+    setPolicyLifecycleManager(policyLifecycleManager);
+    logger.info`Policy lifecycle manager initialized with PostgreSQL`;
   } else {
     logger.warning`REDIS_URL and DATABASE_URL not configured, using in-memory storage`;
 

@@ -12,6 +12,8 @@ export * from './audit';
 export * from './hermes';
 // Re-export Policy Engine
 export * from './policy-engine';
+// Re-export Policy Lifecycle module
+export * from './policy-lifecycle';
 // Re-export Safe-mode module
 export * from './safe-mode';
 // Re-export Settings module

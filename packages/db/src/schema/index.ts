@@ -5,4 +5,5 @@ export * from './drift-baselines';
 export * from './invites';
 export * from './operational-settings';
 export * from './organizations';
+export * from './policy-packs';
 export * from './safe-mode-history';
