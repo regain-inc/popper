@@ -23,6 +23,10 @@ export {
   type StateTransitionInput,
 } from './policy-pack-storage';
 export {
+  DrizzleRlhfBundlesStorage,
+  InMemoryRlhfBundlesStorage,
+} from './rlhf-bundles-storage';
+export {
   type ApiSafeModeHistoryEntry,
   DrizzleSafeModeHistoryStorage,
   type SafeModeTrigger,

@@ -32,12 +32,14 @@ import {
   InMemorySafeModeStateStore,
   InMemorySettingsCache,
   InMemorySettingsStore,
+  MockAuditEventReader,
   type PolicyLifecycleEvent,
   PolicyLifecycleManager,
   policyRegistry,
   RedisPolicyPackCache,
   RedisSafeModeStateStore,
   RedisSettingsCache,
+  RLHFFeedbackAggregator,
   SafeModeManager,
   SettingsManager,
   setDefaultEmitter,
@@ -51,6 +53,7 @@ import {
   DrizzleIncidentsStorage,
   DrizzleOperationalSettingsStorage,
   DrizzlePolicyPackStorage,
+  DrizzleRlhfBundlesStorage,
   DrizzleSafeModeHistoryStorage,
   OrganizationService,
 } from '@popper/db';
@@ -68,6 +71,7 @@ import { setPolicyLifecycleManager } from './lib/policy-lifecycle';
 import { PolicyPackStoreAdapter } from './lib/policy-pack-store-adapter';
 import { QueueAuditStorage } from './lib/queue-audit-storage';
 import { setRateLimitCache } from './lib/rate-limit';
+import { setRlhfAggregator } from './lib/rlhf';
 import { setSafeModeManager } from './lib/safe-mode';
 import { setSettingsManager } from './lib/settings';
 import { setDriftTriggersManager } from './lib/triggers';
@@ -205,6 +209,15 @@ async function main(): Promise<void> {
     });
     setDriftTriggersManager(driftTriggersManager);
     logger.info`Drift triggers manager initialized with Redis + PostgreSQL`;
+
+    // RLHF Feedback Aggregator: PostgreSQL for bundles storage
+    const rlhfBundlesStorage = new DrizzleRlhfBundlesStorage(db);
+    const rlhfAggregator = new RLHFFeedbackAggregator({
+      bundleStore: rlhfBundlesStorage,
+      auditReader: new MockAuditEventReader(), // TODO: Replace with DrizzleAuditEventReader
+    });
+    setRlhfAggregator(rlhfAggregator);
+    logger.info`RLHF aggregator initialized with PostgreSQL`;
 
     // Policy lifecycle manager: PostgreSQL for storage, Redis for cache
     const policyPackStorage = new DrizzlePolicyPackStorage(db);
@@ -399,6 +412,15 @@ async function main(): Promise<void> {
     });
     setDriftTriggersManager(driftTriggersManager);
     logger.info`Drift triggers manager initialized with PostgreSQL (in-memory cooldowns)`;
+
+    // RLHF Feedback Aggregator: PostgreSQL for bundles storage
+    const rlhfBundlesStorage = new DrizzleRlhfBundlesStorage(db);
+    const rlhfAggregator = new RLHFFeedbackAggregator({
+      bundleStore: rlhfBundlesStorage,
+      auditReader: new MockAuditEventReader(), // TODO: Replace with DrizzleAuditEventReader
+    });
+    setRlhfAggregator(rlhfAggregator);
+    logger.info`RLHF aggregator initialized with PostgreSQL`;
 
     // Policy lifecycle manager: PostgreSQL for storage
     const policyPackStorage = new DrizzlePolicyPackStorage(db);

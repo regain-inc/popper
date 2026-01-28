@@ -11,6 +11,7 @@ import { GLOBAL_ORG_ID, isValidSettingsKey, type SettingsKey, SYSTEM_ORG_ID } fr
 import { Elysia, t } from 'elysia';
 import { getBaselineCalculator, isBaselineCalculatorInitialized } from '../lib/baselines';
 import { logger } from '../lib/logger';
+import { getRlhfAggregator, isRlhfAggregatorInitialized } from '../lib/rlhf';
 import { getSafeModeManager } from '../lib/safe-mode';
 import {
   effectiveSettingsResponseSchema,
@@ -820,5 +821,335 @@ export const controlPlugin = new Elysia({ name: 'control', prefix: '/v1/popper/c
           },
         },
       ),
+    ),
+  )
+  // RLHF Bundles GET endpoints - require control:read scope
+  .guard(createAuthGuard('control:read'), (app) =>
+    app.guard(createRateLimitGuard(), (app) =>
+      app
+        .get(
+          '/rlhf/bundles',
+          async ({ query, set }) => {
+            if (!isRlhfAggregatorInitialized()) {
+              set.status = 503;
+              return {
+                error: 'service_unavailable',
+                message: 'RLHF aggregator not initialized.',
+              };
+            }
+
+            const aggregator = getRlhfAggregator();
+            const orgId = query.organization_id ?? null;
+            const limit = query.limit ?? 10;
+
+            const bundles = await aggregator.listBundles(orgId, limit);
+
+            return {
+              organization_id: orgId,
+              bundles: bundles.map((b) => ({
+                id: b.id,
+                organization_id: b.organizationId,
+                period_start: b.periodStart.toISOString(),
+                period_end: b.periodEnd.toISOString(),
+                generated_at: b.generatedAt.toISOString(),
+                triggered_by: b.triggeredBy,
+                status: b.status,
+                recommendations_count: b.bundleData.recommendations.length,
+                override_signals_count: b.bundleData.overrideSignals.length,
+              })),
+            };
+          },
+          {
+            query: t.Object({
+              organization_id: t.Optional(t.String()),
+              limit: t.Optional(t.Number({ minimum: 1, maximum: 100 })),
+            }),
+            response: {
+              200: t.Object({
+                organization_id: t.Nullable(t.String()),
+                bundles: t.Array(
+                  t.Object({
+                    id: t.String(),
+                    organization_id: t.Nullable(t.String()),
+                    period_start: t.String(),
+                    period_end: t.String(),
+                    generated_at: t.String(),
+                    triggered_by: t.String(),
+                    status: t.String(),
+                    recommendations_count: t.Number(),
+                    override_signals_count: t.Number(),
+                  }),
+                ),
+              }),
+              401: errorResponseSchema,
+              403: errorResponseSchema,
+              429: errorResponseSchema,
+              503: errorResponseSchema,
+            },
+            detail: {
+              summary: 'List RLHF bundles',
+              description: 'List feedback bundles for an organization',
+              tags: ['Control Plane'],
+            },
+          },
+        )
+        .get(
+          '/rlhf/bundles/:id',
+          async ({ params, set }) => {
+            if (!isRlhfAggregatorInitialized()) {
+              set.status = 503;
+              return {
+                error: 'service_unavailable',
+                message: 'RLHF aggregator not initialized.',
+              };
+            }
+
+            const aggregator = getRlhfAggregator();
+            const bundle = await aggregator.getBundle(params.id);
+
+            if (!bundle) {
+              set.status = 404;
+              return {
+                error: 'not_found',
+                message: `Bundle not found: ${params.id}`,
+              };
+            }
+
+            return {
+              id: bundle.id,
+              organization_id: bundle.organizationId,
+              period_start: bundle.periodStart.toISOString(),
+              period_end: bundle.periodEnd.toISOString(),
+              generated_at: bundle.generatedAt.toISOString(),
+              triggered_by: bundle.triggeredBy,
+              status: bundle.status,
+              bundle_data: bundle.bundleData,
+            };
+          },
+          {
+            params: t.Object({
+              id: t.String(),
+            }),
+            response: {
+              200: t.Object({
+                id: t.String(),
+                organization_id: t.Nullable(t.String()),
+                period_start: t.String(),
+                period_end: t.String(),
+                generated_at: t.String(),
+                triggered_by: t.String(),
+                status: t.String(),
+                bundle_data: t.Unknown(),
+              }),
+              401: errorResponseSchema,
+              403: errorResponseSchema,
+              404: errorResponseSchema,
+              429: errorResponseSchema,
+              503: errorResponseSchema,
+            },
+            detail: {
+              summary: 'Get RLHF bundle',
+              description: 'Get a specific feedback bundle by ID',
+              tags: ['Control Plane'],
+            },
+          },
+        ),
+    ),
+  )
+  // RLHF Bundles POST endpoints - require control:write scope
+  .guard(createAuthGuard('control:write'), (app) =>
+    app.guard(createRateLimitGuard(), (app) =>
+      app
+        .post(
+          '/rlhf/bundles/generate',
+          async ({ body, query, set }) => {
+            if (!isRlhfAggregatorInitialized()) {
+              set.status = 503;
+              return {
+                error: 'service_unavailable',
+                message: 'RLHF aggregator not initialized.',
+              };
+            }
+
+            const aggregator = getRlhfAggregator();
+            const orgId = query.organization_id ?? null;
+
+            logger.info`RLHF bundle generation requested: org=${orgId ?? 'global'} triggered_by=${body.triggered_by}`;
+
+            try {
+              const bundle = await aggregator.generateBundle({
+                organizationId: orgId,
+                triggeredBy: body.triggered_by,
+                periodStart: body.period_start ? new Date(body.period_start) : undefined,
+                periodEnd: body.period_end ? new Date(body.period_end) : undefined,
+                notes: body.notes,
+              });
+
+              logger.info`RLHF bundle generated: id=${bundle.id} recommendations=${bundle.bundleData.recommendations.length}`;
+
+              return {
+                id: bundle.id,
+                organization_id: bundle.organizationId,
+                period_start: bundle.periodStart.toISOString(),
+                period_end: bundle.periodEnd.toISOString(),
+                generated_at: bundle.generatedAt.toISOString(),
+                triggered_by: bundle.triggeredBy,
+                status: bundle.status,
+                bundle_data: bundle.bundleData,
+              };
+            } catch (error) {
+              logger.error`RLHF bundle generation failed: ${error}`;
+              set.status = 500;
+              return {
+                error: 'generation_failed',
+                message: `Failed to generate bundle: ${error}`,
+              };
+            }
+          },
+          {
+            body: t.Object({
+              triggered_by: t.Union([
+                t.Literal('drift_detected'),
+                t.Literal('scheduled'),
+                t.Literal('manual'),
+                t.Literal('sample_threshold'),
+              ]),
+              period_start: t.Optional(t.String()),
+              period_end: t.Optional(t.String()),
+              notes: t.Optional(t.String()),
+            }),
+            query: t.Object({
+              organization_id: t.Optional(t.String()),
+            }),
+            response: {
+              200: t.Object({
+                id: t.String(),
+                organization_id: t.Nullable(t.String()),
+                period_start: t.String(),
+                period_end: t.String(),
+                generated_at: t.String(),
+                triggered_by: t.String(),
+                status: t.String(),
+                bundle_data: t.Unknown(),
+              }),
+              401: errorResponseSchema,
+              403: errorResponseSchema,
+              429: errorResponseSchema,
+              500: errorResponseSchema,
+              503: errorResponseSchema,
+            },
+            detail: {
+              summary: 'Generate RLHF bundle',
+              description: 'Generate a new feedback bundle for RLHF loop closure',
+              tags: ['Control Plane'],
+            },
+          },
+        )
+        .post(
+          '/rlhf/bundles/:id/process',
+          async ({ params, set }) => {
+            if (!isRlhfAggregatorInitialized()) {
+              set.status = 503;
+              return {
+                error: 'service_unavailable',
+                message: 'RLHF aggregator not initialized.',
+              };
+            }
+
+            const aggregator = getRlhfAggregator();
+            const bundle = await aggregator.markProcessed(params.id);
+
+            if (!bundle) {
+              set.status = 404;
+              return {
+                error: 'not_found',
+                message: `Bundle not found: ${params.id}`,
+              };
+            }
+
+            logger.info`RLHF bundle marked as processed: id=${bundle.id}`;
+
+            return {
+              id: bundle.id,
+              status: bundle.status,
+              updated_at: bundle.updatedAt.toISOString(),
+            };
+          },
+          {
+            params: t.Object({
+              id: t.String(),
+            }),
+            response: {
+              200: t.Object({
+                id: t.String(),
+                status: t.String(),
+                updated_at: t.String(),
+              }),
+              401: errorResponseSchema,
+              403: errorResponseSchema,
+              404: errorResponseSchema,
+              429: errorResponseSchema,
+              503: errorResponseSchema,
+            },
+            detail: {
+              summary: 'Mark bundle as processed',
+              description: 'Mark a feedback bundle as processed (sent to Deutsch/TA1)',
+              tags: ['Control Plane'],
+            },
+          },
+        )
+        .post(
+          '/rlhf/bundles/:id/archive',
+          async ({ params, set }) => {
+            if (!isRlhfAggregatorInitialized()) {
+              set.status = 503;
+              return {
+                error: 'service_unavailable',
+                message: 'RLHF aggregator not initialized.',
+              };
+            }
+
+            const aggregator = getRlhfAggregator();
+            const bundle = await aggregator.archiveBundle(params.id);
+
+            if (!bundle) {
+              set.status = 404;
+              return {
+                error: 'not_found',
+                message: `Bundle not found: ${params.id}`,
+              };
+            }
+
+            logger.info`RLHF bundle archived: id=${bundle.id}`;
+
+            return {
+              id: bundle.id,
+              status: bundle.status,
+              updated_at: bundle.updatedAt.toISOString(),
+            };
+          },
+          {
+            params: t.Object({
+              id: t.String(),
+            }),
+            response: {
+              200: t.Object({
+                id: t.String(),
+                status: t.String(),
+                updated_at: t.String(),
+              }),
+              401: errorResponseSchema,
+              403: errorResponseSchema,
+              404: errorResponseSchema,
+              429: errorResponseSchema,
+              503: errorResponseSchema,
+            },
+            detail: {
+              summary: 'Archive bundle',
+              description: 'Archive a feedback bundle after processing',
+              tags: ['Control Plane'],
+            },
+          },
+        ),
     ),
   );

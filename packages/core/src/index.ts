@@ -16,6 +16,8 @@ export * from './hermes';
 export * from './policy-engine';
 // Re-export Policy Lifecycle module
 export * from './policy-lifecycle';
+// Re-export RLHF module
+export * from './rlhf';
 // Re-export Safe-mode module
 export * from './safe-mode';
 // Re-export Settings module
