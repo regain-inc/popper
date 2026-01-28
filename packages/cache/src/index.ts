@@ -24,6 +24,11 @@ export {
   InMemoryBaselineCache,
 } from './baseline-cache';
 export {
+  CooldownTracker,
+  type ICooldownTracker,
+  InMemoryCooldownTracker,
+} from './cooldown-tracker';
+export {
   DRIFT_COUNTER_TTL_SECONDS,
   DRIFT_KEY_PREFIX,
   DRIFT_SIGNALS,

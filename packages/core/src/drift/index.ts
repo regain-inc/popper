@@ -8,7 +8,25 @@
  */
 
 export { BaselineCalculator, type BaselineCalculatorConfig } from './calculator';
+export {
+  DriftTriggersManager,
+  type DriftTriggersManagerConfig,
+  type IDriftCountersReader,
+  type TriggerRunResult,
+} from './manager';
 export { InMemoryBaselineStore, InMemoryDailyAggregateReader } from './stores';
+export {
+  DEFAULT_TRIGGER_RULES,
+  DriftTriggers,
+  type DriftTriggersConfig,
+  type ICooldownTracker,
+  type IncidentRecord,
+  InMemoryCooldownTracker,
+  type SignalEvaluation,
+  type TriggerAction,
+  type TriggerEvaluationResult,
+  type TriggerRule,
+} from './triggers';
 export {
   BASELINE_SIGNALS,
   type BaselineConfig,

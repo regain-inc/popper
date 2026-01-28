@@ -8,6 +8,11 @@ export {
   type StoredBaseline,
 } from './drift-baseline-storage';
 export {
+  DrizzleIncidentsStorage,
+  type IIncidentsStore,
+  InMemoryIncidentsStorage,
+} from './incidents-storage';
+export {
   type ApiOperationalSetting,
   DrizzleOperationalSettingsStorage,
 } from './operational-settings-storage';

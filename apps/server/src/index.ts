@@ -8,6 +8,7 @@ import { resolve } from 'node:path';
 import {
   ApiKeyCache,
   BaselineCache,
+  CooldownTracker,
   DriftCounters,
   IdempotencyCache,
   InMemoryApiKeyCache,
@@ -21,7 +22,10 @@ import type { SupervisionResponse } from '@popper/core';
 import {
   AuditEmitter,
   BaselineCalculator,
+  InMemoryCooldownTracker as CoreInMemoryCooldownTracker,
   createPolicyLifecycleEvent,
+  DriftTriggers,
+  DriftTriggersManager,
   getDefaultEmitter,
   InMemoryPolicyPackCache,
   InMemorySafeModeHistoryStore,
@@ -44,6 +48,7 @@ import {
   DrizzleAuditStorage,
   DrizzleDailyAggregateReader,
   DrizzleDriftBaselineStorage,
+  DrizzleIncidentsStorage,
   DrizzleOperationalSettingsStorage,
   DrizzlePolicyPackStorage,
   DrizzleSafeModeHistoryStorage,
@@ -65,6 +70,7 @@ import { QueueAuditStorage } from './lib/queue-audit-storage';
 import { setRateLimitCache } from './lib/rate-limit';
 import { setSafeModeManager } from './lib/safe-mode';
 import { setSettingsManager } from './lib/settings';
+import { setDriftTriggersManager } from './lib/triggers';
 import { setReady } from './plugins/health';
 
 /** Audit events queue name */
@@ -181,6 +187,24 @@ async function main(): Promise<void> {
     });
     setBaselineCalculator(baselineCalculator);
     logger.info`Baseline calculator initialized with PostgreSQL + Redis cache`;
+
+    // Drift triggers manager: Redis for cooldowns, PostgreSQL for incidents
+    const cooldownRedis = new IORedis(env.REDIS_URL);
+    const driftTriggersManager = new DriftTriggersManager({
+      triggers: new DriftTriggers({ cooldownTracker: new CooldownTracker(cooldownRedis) }),
+      baselineCalculator,
+      driftCounters: new DriftCounters(driftRedis),
+      safeModeManager,
+      incidentsStore: new DrizzleIncidentsStorage(db),
+      cooldownTracker: new CooldownTracker(cooldownRedis),
+      logger: {
+        info: (msg: string) => logger.info`${msg}`,
+        warn: (msg: string) => logger.warning`${msg}`,
+        error: (msg: string) => logger.error`${msg}`,
+      },
+    });
+    setDriftTriggersManager(driftTriggersManager);
+    logger.info`Drift triggers manager initialized with Redis + PostgreSQL`;
 
     // Policy lifecycle manager: PostgreSQL for storage, Redis for cache
     const policyPackStorage = new DrizzlePolicyPackStorage(db);
@@ -359,6 +383,23 @@ async function main(): Promise<void> {
     setBaselineCalculator(baselineCalculator);
     logger.info`Baseline calculator initialized with PostgreSQL (in-memory cache)`;
 
+    // Drift triggers manager: in-memory cooldowns, PostgreSQL for incidents
+    const driftTriggersManager = new DriftTriggersManager({
+      triggers: new DriftTriggers({ cooldownTracker: new CoreInMemoryCooldownTracker() }),
+      baselineCalculator,
+      driftCounters: new InMemoryDriftCounters(),
+      safeModeManager,
+      incidentsStore: new DrizzleIncidentsStorage(db),
+      cooldownTracker: new CoreInMemoryCooldownTracker(),
+      logger: {
+        info: (msg: string) => logger.info`${msg}`,
+        warn: (msg: string) => logger.warning`${msg}`,
+        error: (msg: string) => logger.error`${msg}`,
+      },
+    });
+    setDriftTriggersManager(driftTriggersManager);
+    logger.info`Drift triggers manager initialized with PostgreSQL (in-memory cooldowns)`;
+
     // Policy lifecycle manager: PostgreSQL for storage
     const policyPackStorage = new DrizzlePolicyPackStorage(db);
     const policyLifecycleManager = new PolicyLifecycleManager({
@@ -439,6 +480,10 @@ async function main(): Promise<void> {
     });
     setSettingsManager(settingsManager);
     logger.info`Settings manager initialized with in-memory storage`;
+
+    // Drift triggers not initialized in pure in-memory mode
+    // (requires at least baseline calculator and drift counters which are limited without DB)
+    logger.warning`Drift triggers not available without DATABASE_URL`;
   }
 
   // Create and start the application

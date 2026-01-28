@@ -25,6 +25,7 @@ import {
   singleSettingResponseSchema,
 } from '../lib/schemas';
 import { getSettingsManager } from '../lib/settings';
+import { getDriftTriggersManager, isDriftTriggersManagerInitialized } from '../lib/triggers';
 import { createAuthGuard } from './api-key-auth';
 import { createRateLimitGuard } from './rate-limit';
 
@@ -606,6 +607,215 @@ export const controlPlugin = new Elysia({ name: 'control', prefix: '/v1/popper/c
           detail: {
             summary: 'Get baselines',
             description: 'Get effective baselines for an organization (with global fallback)',
+            tags: ['Control Plane'],
+          },
+        },
+      ),
+    ),
+  )
+  // Drift Triggers endpoints - require control:read scope
+  .guard(createAuthGuard('control:read'), (app) =>
+    app.guard(createRateLimitGuard(), (app) =>
+      app
+        .get(
+          '/triggers/rules',
+          async ({ set }) => {
+            if (!isDriftTriggersManagerInitialized()) {
+              set.status = 503;
+              return {
+                error: 'service_unavailable',
+                message: 'Drift triggers not initialized.',
+              };
+            }
+
+            const manager = getDriftTriggersManager();
+            const rules = manager.getRules();
+
+            return {
+              rules: rules.map((r) => ({
+                signal: r.signal,
+                warning_multiplier: r.warningMultiplier,
+                critical_multiplier: r.criticalMultiplier,
+                warning_action: r.warningAction,
+                critical_action: r.criticalAction,
+                cooldown_seconds: r.cooldownSeconds,
+              })),
+            };
+          },
+          {
+            response: {
+              200: t.Object({
+                rules: t.Array(
+                  t.Object({
+                    signal: t.String(),
+                    warning_multiplier: t.Number(),
+                    critical_multiplier: t.Number(),
+                    warning_action: t.String(),
+                    critical_action: t.String(),
+                    cooldown_seconds: t.Number(),
+                  }),
+                ),
+              }),
+              401: errorResponseSchema,
+              403: errorResponseSchema,
+              429: errorResponseSchema,
+              503: errorResponseSchema,
+            },
+            detail: {
+              summary: 'Get trigger rules',
+              description: 'Get configured drift trigger rules',
+              tags: ['Control Plane'],
+            },
+          },
+        )
+        .get(
+          '/triggers/cooldowns',
+          async ({ query, set }) => {
+            if (!isDriftTriggersManagerInitialized()) {
+              set.status = 503;
+              return {
+                error: 'service_unavailable',
+                message: 'Drift triggers not initialized.',
+              };
+            }
+
+            const manager = getDriftTriggersManager();
+            const orgId = query.organization_id ?? SYSTEM_ORG_ID;
+            const rules = manager.getRules();
+
+            const cooldowns: Record<string, boolean> = {};
+            for (const rule of rules) {
+              cooldowns[rule.signal] = await manager.isInCooldown(orgId, rule.signal);
+            }
+
+            return {
+              organization_id: orgId,
+              cooldowns,
+            };
+          },
+          {
+            query: t.Object({
+              organization_id: t.Optional(t.String()),
+            }),
+            response: {
+              200: t.Object({
+                organization_id: t.String(),
+                cooldowns: t.Record(t.String(), t.Boolean()),
+              }),
+              401: errorResponseSchema,
+              403: errorResponseSchema,
+              429: errorResponseSchema,
+              503: errorResponseSchema,
+            },
+            detail: {
+              summary: 'Get trigger cooldowns',
+              description: 'Check which signals are currently in cooldown',
+              tags: ['Control Plane'],
+            },
+          },
+        ),
+    ),
+  )
+  // Drift Triggers POST endpoints - require control:write scope
+  .guard(createAuthGuard('control:write'), (app) =>
+    app.guard(createRateLimitGuard(), (app) =>
+      app.post(
+        '/triggers/evaluate',
+        async ({ query, set }) => {
+          if (!isDriftTriggersManagerInitialized()) {
+            set.status = 503;
+            return {
+              error: 'service_unavailable',
+              message: 'Drift triggers not initialized.',
+            };
+          }
+
+          const manager = getDriftTriggersManager();
+          const orgId = query.organization_id ?? SYSTEM_ORG_ID;
+
+          logger.info`Trigger evaluation requested: org=${orgId}`;
+
+          try {
+            const result = await manager.evaluate(orgId);
+
+            logger.info`Trigger evaluation complete: org=${orgId} criticals=${result.evaluation.criticals.length} warnings=${result.evaluation.warnings.length} safe_mode_triggered=${result.safeModeTriggered}`;
+
+            return {
+              organization_id: result.organizationId,
+              evaluated_at: result.evaluatedAt.toISOString(),
+              summary: result.evaluation.summary,
+              warnings: result.evaluation.warnings.map((w) => ({
+                signal: w.signal,
+                current_value: w.currentValue,
+                baseline_value: w.baselineValue,
+                threshold: w.warningThreshold,
+                multiplier: w.multiplier,
+                action: w.action,
+              })),
+              criticals: result.evaluation.criticals.map((c) => ({
+                signal: c.signal,
+                current_value: c.currentValue,
+                baseline_value: c.baselineValue,
+                threshold: c.criticalThreshold,
+                multiplier: c.multiplier,
+                action: c.action,
+              })),
+              incidents_created: result.incidentsCreated,
+              safe_mode_triggered: result.safeModeTriggered,
+              ops_alerted: result.opsAlerted,
+            };
+          } catch (error) {
+            logger.error`Trigger evaluation failed: ${error}`;
+            set.status = 500;
+            return {
+              error: 'evaluation_failed',
+              message: `Failed to evaluate triggers: ${error}`,
+            };
+          }
+        },
+        {
+          query: t.Object({
+            organization_id: t.Optional(t.String()),
+          }),
+          response: {
+            200: t.Object({
+              organization_id: t.String(),
+              evaluated_at: t.String(),
+              summary: t.String(),
+              warnings: t.Array(
+                t.Object({
+                  signal: t.String(),
+                  current_value: t.Number(),
+                  baseline_value: t.Number(),
+                  threshold: t.Number(),
+                  multiplier: t.Number(),
+                  action: t.String(),
+                }),
+              ),
+              criticals: t.Array(
+                t.Object({
+                  signal: t.String(),
+                  current_value: t.Number(),
+                  baseline_value: t.Number(),
+                  threshold: t.Number(),
+                  multiplier: t.Number(),
+                  action: t.String(),
+                }),
+              ),
+              incidents_created: t.Array(t.String()),
+              safe_mode_triggered: t.Boolean(),
+              ops_alerted: t.Boolean(),
+            }),
+            401: errorResponseSchema,
+            403: errorResponseSchema,
+            429: errorResponseSchema,
+            500: errorResponseSchema,
+            503: errorResponseSchema,
+          },
+          detail: {
+            summary: 'Evaluate triggers',
+            description:
+              'Manually trigger drift evaluation. Checks current rates against baselines.',
             tags: ['Control Plane'],
           },
         },
