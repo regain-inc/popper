@@ -3,7 +3,7 @@
 import { createContext, type ReactNode, useCallback, useContext } from 'react';
 import { authClient } from '@/lib/auth-client';
 
-export type UserRole = 'admin' | 'viewer';
+export type UserRole = 'admin' | 'viewer' | 'compliance';
 
 export interface AuthUser {
   id: string;
@@ -13,11 +13,27 @@ export interface AuthUser {
   image?: string | null;
 }
 
+// Role-based access helpers
+export function canAccessDashboard(role: UserRole): boolean {
+  return role === 'admin' || role === 'viewer';
+}
+
+export function canAccessCompliance(role: UserRole): boolean {
+  return role === 'compliance' || role === 'admin';
+}
+
+export function canModifySafeMode(role: UserRole): boolean {
+  return role === 'admin';
+}
+
 interface AuthContextValue {
   user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  isCompliance: boolean;
+  canAccessDashboard: boolean;
+  canAccessCompliance: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -73,11 +89,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await refetch();
   }, [refetch]);
 
+  const userRole = user?.role || 'viewer';
+
   const value: AuthContextValue = {
     user,
     isLoading: isPending,
     isAuthenticated: !!user,
-    isAdmin: user?.role === 'admin',
+    isAdmin: userRole === 'admin',
+    isCompliance: userRole === 'compliance',
+    canAccessDashboard: canAccessDashboard(userRole),
+    canAccessCompliance: canAccessCompliance(userRole),
     login,
     logout,
     refresh,

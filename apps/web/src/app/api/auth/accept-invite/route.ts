@@ -1,4 +1,4 @@
-import { invites } from '@popper/db';
+import { invites, user } from '@popper/db';
 import { and, eq, gt, isNull } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { type NextRequest, NextResponse } from 'next/server';
@@ -38,19 +38,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Create user via better-auth admin API
-    // Map 'viewer' role to 'user' if needed (better-auth defaults)
-    const role = invite.role === 'viewer' ? 'user' : invite.role;
+    // Map our app roles to better-auth roles for initial creation
+    // better-auth only knows 'user' and 'admin', so we create as 'user' then update
+    const betterAuthRole = invite.role === 'admin' ? 'admin' : 'user';
     const createResult = await auth.api.createUser({
       body: {
         email: invite.email,
         password,
         name,
-        role: role as 'user' | 'admin',
+        role: betterAuthRole,
         data: {
           invitedBy: invite.invitedBy,
         },
       },
     });
+
+    // If the role is 'compliance' or 'viewer', update the user record directly
+    // since better-auth only supports 'user' and 'admin' in createUser
+    if (createResult?.user && (invite.role === 'compliance' || invite.role === 'viewer')) {
+      await db.update(user).set({ role: invite.role }).where(eq(user.id, createResult.user.id));
+    }
 
     if (!createResult?.user) {
       return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });

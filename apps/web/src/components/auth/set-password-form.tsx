@@ -78,7 +78,9 @@ export function SetPasswordForm() {
       const data = await response.json();
 
       if (data.success) {
-        router.push('/');
+        // Redirect based on role - compliance users go to /compliance
+        const redirectUrl = inviteInfo?.role === 'compliance' ? '/compliance' : '/';
+        router.push(redirectUrl);
         router.refresh();
       } else {
         setError(data.error || 'Failed to create account');

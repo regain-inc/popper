@@ -128,10 +128,14 @@ function InviteUserDialog() {
                 <SelectContent>
                   <SelectItem value="viewer">Viewer</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="compliance">Compliance</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-muted-foreground text-xs">
-                Admins can manage users and system settings. Viewers have read-only access.
+                {role === 'admin' && 'Full access: manage users, settings, and safe-mode controls.'}
+                {role === 'viewer' && 'Read-only access to the ops dashboard.'}
+                {role === 'compliance' &&
+                  'Access to compliance dashboard only (/compliance). De-identified, read-only data for regulatory review.'}
               </p>
             </div>
           </div>
@@ -274,7 +278,14 @@ export default function UsersPage() {
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
-                      <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                      <Badge
+                        variant={user.role === 'admin' ? 'default' : 'secondary'}
+                        className={
+                          user.role === 'compliance'
+                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
+                            : ''
+                        }
+                      >
                         {user.role}
                       </Badge>
                     </TableCell>
@@ -327,7 +338,14 @@ export default function UsersPage() {
                   <TableRow key={invite.id}>
                     <TableCell className="font-medium">{invite.email}</TableCell>
                     <TableCell>
-                      <Badge variant={invite.role === 'admin' ? 'default' : 'secondary'}>
+                      <Badge
+                        variant={invite.role === 'admin' ? 'default' : 'secondary'}
+                        className={
+                          invite.role === 'compliance'
+                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
+                            : ''
+                        }
+                      >
                         {invite.role}
                       </Badge>
                     </TableCell>
