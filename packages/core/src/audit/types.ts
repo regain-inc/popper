@@ -16,6 +16,9 @@ export type AuditEventType =
   | 'SAFE_MODE_CHANGED'
   | 'CONTROL_COMMAND'
   | 'POLICY_LIFECYCLE'
+  | 'EXPORT_GENERATED'
+  | 'EXPORT_DOWNLOADED'
+  | 'EXPORT_ACCESSED'
   | 'OTHER';
 
 /**
@@ -40,7 +43,10 @@ export type AuditEventTag =
   | 'policy_rejected'
   | 'policy_activated'
   | 'policy_archived'
-  | 'policy_rollback';
+  | 'policy_rollback'
+  | 'export_generated'
+  | 'export_downloaded'
+  | 'export_accessed';
 
 /**
  * Audit event payload structure (PHI-redacted)

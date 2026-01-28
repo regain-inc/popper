@@ -320,6 +320,53 @@ export function createPolicyLifecycleEvent(params: {
   };
 }
 
+/**
+ * Create an export bundle audit event
+ *
+ * Used to track export bundle generation and downloads for compliance.
+ *
+ * @param params - Export audit event parameters
+ * @returns AuditEventInput for emission
+ */
+export function createExportAuditEvent(params: {
+  traceId?: string;
+  eventType: 'EXPORT_GENERATED' | 'EXPORT_DOWNLOADED' | 'EXPORT_ACCESSED';
+  bundleId: string;
+  organizationId: string;
+  actor: string;
+  actorKeyId?: string;
+  actorIp?: string;
+  bundleSize?: number;
+  eventCount?: number;
+  incidentCount?: number;
+  timeWindow?: { from: string; to: string };
+}): AuditEventInput {
+  const tagMap: Record<string, AuditEventTag> = {
+    EXPORT_GENERATED: 'export_generated',
+    EXPORT_DOWNLOADED: 'export_downloaded',
+    EXPORT_ACCESSED: 'export_accessed',
+  };
+
+  return {
+    eventType: params.eventType,
+    traceId: params.traceId ?? crypto.randomUUID(),
+    subjectId: 'system', // No patient subject for export events
+    organizationId: params.organizationId,
+    policyPackVersion: 'N/A',
+    payload: {
+      bundle_id: params.bundleId,
+      actor: params.actor,
+      actor_key_id: params.actorKeyId,
+      actor_ip: params.actorIp,
+      bundle_size: params.bundleSize,
+      event_count: params.eventCount,
+      incident_count: params.incidentCount,
+      time_window: params.timeWindow,
+    },
+    tags: [tagMap[params.eventType] ?? 'export_accessed'],
+  };
+}
+
 // Default in-memory emitter for testing
 let defaultEmitter: AuditEmitter | null = null;
 

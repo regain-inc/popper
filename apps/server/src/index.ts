@@ -26,13 +26,17 @@ import {
   createPolicyLifecycleEvent,
   DriftTriggers,
   DriftTriggersManager,
+  ExportBundleGenerator,
   getDefaultEmitter,
+  InMemoryExportBundleStorage,
   InMemoryPolicyPackCache,
   InMemorySafeModeHistoryStore,
   InMemorySafeModeStateStore,
   InMemorySettingsCache,
   InMemorySettingsStore,
+  MockAuditEventExportReader,
   MockAuditEventReader,
+  MockIncidentExportReader,
   type PolicyLifecycleEvent,
   PolicyLifecycleManager,
   policyRegistry,
@@ -50,6 +54,7 @@ import {
   DrizzleAuditStorage,
   DrizzleDailyAggregateReader,
   DrizzleDriftBaselineStorage,
+  DrizzleExportBundlesStorage,
   DrizzleIncidentsStorage,
   DrizzleOperationalSettingsStorage,
   DrizzlePolicyPackStorage,
@@ -64,6 +69,7 @@ import { env } from './config/env';
 import { initApiKeyService, setApiKeyCache } from './lib/api-keys';
 import { setBaselineCalculator } from './lib/baselines';
 import { setDriftCounters } from './lib/drift';
+import { setExportGenerator } from './lib/export';
 import { setIdempotencyCache } from './lib/idempotency';
 import { logger, setupLogger } from './lib/logger';
 import { initOrganizationService } from './lib/organizations';
@@ -218,6 +224,18 @@ async function main(): Promise<void> {
     });
     setRlhfAggregator(rlhfAggregator);
     logger.info`RLHF aggregator initialized with PostgreSQL`;
+
+    // Export Bundle Generator: PostgreSQL for metadata, in-memory for file storage
+    // TODO: Replace InMemoryExportBundleStorage with Minio/S3 storage
+    const exportBundlesStorage = new DrizzleExportBundlesStorage(db);
+    const exportGenerator = new ExportBundleGenerator({
+      storage: new InMemoryExportBundleStorage(),
+      store: exportBundlesStorage,
+      auditReader: new MockAuditEventExportReader(),
+      incidentReader: new MockIncidentExportReader(),
+    });
+    setExportGenerator(exportGenerator);
+    logger.info`Export generator initialized with PostgreSQL`;
 
     // Policy lifecycle manager: PostgreSQL for storage, Redis for cache
     const policyPackStorage = new DrizzlePolicyPackStorage(db);
@@ -421,6 +439,17 @@ async function main(): Promise<void> {
     });
     setRlhfAggregator(rlhfAggregator);
     logger.info`RLHF aggregator initialized with PostgreSQL`;
+
+    // Export Bundle Generator: PostgreSQL for metadata, in-memory for file storage
+    const exportBundlesStorage = new DrizzleExportBundlesStorage(db);
+    const exportGenerator = new ExportBundleGenerator({
+      storage: new InMemoryExportBundleStorage(),
+      store: exportBundlesStorage,
+      auditReader: new MockAuditEventExportReader(),
+      incidentReader: new MockIncidentExportReader(),
+    });
+    setExportGenerator(exportGenerator);
+    logger.info`Export generator initialized with PostgreSQL`;
 
     // Policy lifecycle manager: PostgreSQL for storage
     const policyPackStorage = new DrizzlePolicyPackStorage(db);

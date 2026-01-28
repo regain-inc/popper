@@ -8,6 +8,10 @@ export {
   type StoredBaseline,
 } from './drift-baseline-storage';
 export {
+  DrizzleExportBundlesStorage,
+  InMemoryExportBundlesStorage,
+} from './export-bundles-storage';
+export {
   DrizzleIncidentsStorage,
   type IIncidentsStore,
   InMemoryIncidentsStorage,

@@ -21,12 +21,16 @@ import { logger } from '../lib/logger';
 /** Header name for API key */
 const API_KEY_HEADER = 'x-api-key';
 
+/** System organization ID that has access to all organizations */
+const SYSTEM_ORG_ID = '00000000-0000-0000-0000-000000000000';
+
 /**
  * Development mode context for bypassing auth
+ * Uses SYSTEM_ORG_ID to allow access to all organizations in development
  */
 const DEV_CONTEXT: ApiKeyContext = {
   keyId: 'dev-key',
-  organizationId: 'dev-org',
+  organizationId: SYSTEM_ORG_ID,
   keyName: 'Development Key',
   scopes: [
     'supervision:write',

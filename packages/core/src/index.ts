@@ -10,6 +10,8 @@ export * from './api-keys';
 export * from './audit';
 // Re-export Drift module
 export * from './drift';
+// Re-export Export module
+export * from './export';
 // Re-export Hermes Protocol types and utilities
 export * from './hermes';
 // Re-export Policy Engine
