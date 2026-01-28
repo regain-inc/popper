@@ -16,6 +16,14 @@ export {
   InMemoryApiKeyCache,
 } from './api-key-cache';
 export {
+  BASELINE_CACHE_TTL_SECONDS,
+  BASELINE_KEY_PREFIX,
+  BaselineCache,
+  type CachedBaseline,
+  type IBaselineCache,
+  InMemoryBaselineCache,
+} from './baseline-cache';
+export {
   DRIFT_COUNTER_TTL_SECONDS,
   DRIFT_KEY_PREFIX,
   DRIFT_SIGNALS,

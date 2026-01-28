@@ -7,9 +7,11 @@
 import { resolve } from 'node:path';
 import {
   ApiKeyCache,
+  BaselineCache,
   DriftCounters,
   IdempotencyCache,
   InMemoryApiKeyCache,
+  InMemoryBaselineCache,
   InMemoryDriftCounters,
   InMemoryIdempotencyCache,
   InMemoryRateLimitCache,
@@ -18,6 +20,7 @@ import {
 import type { SupervisionResponse } from '@popper/core';
 import {
   AuditEmitter,
+  BaselineCalculator,
   createPolicyLifecycleEvent,
   getDefaultEmitter,
   InMemoryPolicyPackCache,
@@ -39,6 +42,8 @@ import {
   ApiKeyService,
   createDB,
   DrizzleAuditStorage,
+  DrizzleDailyAggregateReader,
+  DrizzleDriftBaselineStorage,
   DrizzleOperationalSettingsStorage,
   DrizzlePolicyPackStorage,
   DrizzleSafeModeHistoryStorage,
@@ -49,6 +54,7 @@ import IORedis from 'ioredis';
 import { createApp } from './app';
 import { env } from './config/env';
 import { initApiKeyService, setApiKeyCache } from './lib/api-keys';
+import { setBaselineCalculator } from './lib/baselines';
 import { setDriftCounters } from './lib/drift';
 import { setIdempotencyCache } from './lib/idempotency';
 import { logger, setupLogger } from './lib/logger';
@@ -163,6 +169,18 @@ async function main(): Promise<void> {
     });
     setSettingsManager(settingsManager);
     logger.info`Settings manager initialized with PostgreSQL + Redis cache`;
+
+    // Baseline calculator: PostgreSQL for storage, Redis for cache
+    const baselineStore = new DrizzleDriftBaselineStorage(db);
+    const aggregateReader = new DrizzleDailyAggregateReader(db);
+    const baselineCacheRedis = new IORedis(env.REDIS_URL);
+    const baselineCalculator = new BaselineCalculator({
+      store: baselineStore,
+      aggregateReader,
+      cache: new BaselineCache(baselineCacheRedis),
+    });
+    setBaselineCalculator(baselineCalculator);
+    logger.info`Baseline calculator initialized with PostgreSQL + Redis cache`;
 
     // Policy lifecycle manager: PostgreSQL for storage, Redis for cache
     const policyPackStorage = new DrizzlePolicyPackStorage(db);
@@ -329,6 +347,17 @@ async function main(): Promise<void> {
     });
     setSettingsManager(settingsManager);
     logger.info`Settings manager initialized with PostgreSQL (in-memory cache)`;
+
+    // Baseline calculator: PostgreSQL for storage, in-memory cache
+    const baselineStore = new DrizzleDriftBaselineStorage(db);
+    const aggregateReader = new DrizzleDailyAggregateReader(db);
+    const baselineCalculator = new BaselineCalculator({
+      store: baselineStore,
+      aggregateReader,
+      cache: new InMemoryBaselineCache(),
+    });
+    setBaselineCalculator(baselineCalculator);
+    logger.info`Baseline calculator initialized with PostgreSQL (in-memory cache)`;
 
     // Policy lifecycle manager: PostgreSQL for storage
     const policyPackStorage = new DrizzlePolicyPackStorage(db);

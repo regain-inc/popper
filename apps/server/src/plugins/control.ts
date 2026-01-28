@@ -1,14 +1,15 @@
 /**
  * Control Plane Plugin
  *
- * Provides administrative endpoints for safe-mode and settings management.
+ * Provides administrative endpoints for safe-mode, settings, and baseline management.
  * Protected by API Key authentication with control:read/control:write scopes.
  *
  * @module plugins/control
  */
 
-import { GLOBAL_ORG_ID, isValidSettingsKey, type SettingsKey } from '@popper/core';
+import { GLOBAL_ORG_ID, isValidSettingsKey, type SettingsKey, SYSTEM_ORG_ID } from '@popper/core';
 import { Elysia, t } from 'elysia';
+import { getBaselineCalculator, isBaselineCalculatorInitialized } from '../lib/baselines';
 import { logger } from '../lib/logger';
 import { getSafeModeManager } from '../lib/safe-mode';
 import {
@@ -358,6 +359,256 @@ export const controlPlugin = new Elysia({ name: 'control', prefix: '/v1/popper/c
               tags: ['Control Plane'],
             },
           },
+        )
+        // Baseline endpoints (POST)
+        .post(
+          '/baselines/calculate',
+          async ({ query, set }) => {
+            if (!isBaselineCalculatorInitialized()) {
+              set.status = 503;
+              return {
+                error: 'service_unavailable',
+                message: 'Baseline calculator not initialized. Requires PostgreSQL.',
+              };
+            }
+
+            const calculator = getBaselineCalculator();
+            const orgId = query.organization_id ?? SYSTEM_ORG_ID;
+            const triggeredBy =
+              (query.triggered_by as 'scheduled' | 'manual' | 'model_update') ?? 'manual';
+
+            logger.info`Baseline calculation requested: org=${orgId} triggered_by=${triggeredBy}`;
+
+            try {
+              const snapshot = await calculator.calculateBaseline(orgId, triggeredBy);
+
+              logger.info`Baseline calculated: org=${orgId} days=${snapshot.daysIncluded} signals=${Object.keys(snapshot.signals).length}`;
+
+              return {
+                organization_id: snapshot.organizationId,
+                calculated_at: snapshot.calculatedAt.toISOString(),
+                window_start: snapshot.windowStart.toISOString(),
+                window_end: snapshot.windowEnd.toISOString(),
+                days_included: snapshot.daysIncluded,
+                signals: Object.fromEntries(
+                  Object.entries(snapshot.signals).map(([k, v]) => [
+                    k,
+                    {
+                      baseline_value: v.baselineValue,
+                      warning_threshold: v.warningThreshold,
+                      critical_threshold: v.criticalThreshold,
+                      sample_count: v.sampleCount,
+                      std_dev: v.stdDev,
+                    },
+                  ]),
+                ),
+                rates: Object.fromEntries(
+                  Object.entries(snapshot.rates).map(([k, v]) => [
+                    k,
+                    v
+                      ? {
+                          baseline_value: v.baselineValue,
+                          warning_threshold: v.warningThreshold,
+                          critical_threshold: v.criticalThreshold,
+                          sample_count: v.sampleCount,
+                          std_dev: v.stdDev,
+                        }
+                      : null,
+                  ]),
+                ),
+                metadata: snapshot.metadata,
+              };
+            } catch (error) {
+              logger.error`Baseline calculation failed: ${error}`;
+              set.status = 500;
+              return {
+                error: 'calculation_failed',
+                message: `Failed to calculate baseline: ${error}`,
+              };
+            }
+          },
+          {
+            query: t.Object({
+              organization_id: t.Optional(t.String()),
+              triggered_by: t.Optional(
+                t.Union([t.Literal('scheduled'), t.Literal('manual'), t.Literal('model_update')]),
+              ),
+            }),
+            response: {
+              200: t.Object({
+                organization_id: t.String(),
+                calculated_at: t.String(),
+                window_start: t.String(),
+                window_end: t.String(),
+                days_included: t.Number(),
+                signals: t.Record(
+                  t.String(),
+                  t.Object({
+                    baseline_value: t.Number(),
+                    warning_threshold: t.Number(),
+                    critical_threshold: t.Number(),
+                    sample_count: t.Number(),
+                    std_dev: t.Number(),
+                  }),
+                ),
+                rates: t.Record(
+                  t.String(),
+                  t.Nullable(
+                    t.Object({
+                      baseline_value: t.Number(),
+                      warning_threshold: t.Number(),
+                      critical_threshold: t.Number(),
+                      sample_count: t.Number(),
+                      std_dev: t.Number(),
+                    }),
+                  ),
+                ),
+                metadata: t.Object({
+                  calculationMethod: t.String(),
+                  triggeredBy: t.String(),
+                  notes: t.Optional(t.String()),
+                }),
+              }),
+              400: errorResponseSchema,
+              401: errorResponseSchema,
+              403: errorResponseSchema,
+              429: errorResponseSchema,
+              500: errorResponseSchema,
+              503: errorResponseSchema,
+            },
+            detail: {
+              summary: 'Calculate baselines',
+              description:
+                'Trigger baseline calculation for an organization. Uses 7-day rolling window.',
+              tags: ['Control Plane'],
+            },
+          },
         ),
+    ),
+  )
+  // Baseline GET endpoints - require control:read scope
+  .guard(createAuthGuard('control:read'), (app) =>
+    app.guard(createRateLimitGuard(), (app) =>
+      app.get(
+        '/baselines',
+        async ({ query, set }) => {
+          if (!isBaselineCalculatorInitialized()) {
+            set.status = 503;
+            return {
+              error: 'service_unavailable',
+              message: 'Baseline calculator not initialized. Requires PostgreSQL.',
+            };
+          }
+
+          const calculator = getBaselineCalculator();
+          const orgId = query.organization_id ?? SYSTEM_ORG_ID;
+
+          try {
+            const snapshot = await calculator.getEffectiveBaseline(orgId);
+
+            if (!snapshot) {
+              set.status = 404;
+              return {
+                error: 'not_found',
+                message: 'No baselines found for organization. Trigger calculation first.',
+              };
+            }
+
+            return {
+              organization_id: snapshot.organizationId,
+              calculated_at: snapshot.calculatedAt.toISOString(),
+              window_start: snapshot.windowStart.toISOString(),
+              window_end: snapshot.windowEnd.toISOString(),
+              days_included: snapshot.daysIncluded,
+              signals: Object.fromEntries(
+                Object.entries(snapshot.signals).map(([k, v]) => [
+                  k,
+                  {
+                    baseline_value: v.baselineValue,
+                    warning_threshold: v.warningThreshold,
+                    critical_threshold: v.criticalThreshold,
+                    sample_count: v.sampleCount,
+                    std_dev: v.stdDev,
+                  },
+                ]),
+              ),
+              rates: Object.fromEntries(
+                Object.entries(snapshot.rates).map(([k, v]) => [
+                  k,
+                  v
+                    ? {
+                        baseline_value: v.baselineValue,
+                        warning_threshold: v.warningThreshold,
+                        critical_threshold: v.criticalThreshold,
+                        sample_count: v.sampleCount,
+                        std_dev: v.stdDev,
+                      }
+                    : null,
+                ]),
+              ),
+              metadata: snapshot.metadata,
+            };
+          } catch (error) {
+            logger.error`Failed to get baselines: ${error}`;
+            set.status = 500;
+            return {
+              error: 'fetch_failed',
+              message: `Failed to get baselines: ${error}`,
+            };
+          }
+        },
+        {
+          query: t.Object({
+            organization_id: t.Optional(t.String()),
+          }),
+          response: {
+            200: t.Object({
+              organization_id: t.String(),
+              calculated_at: t.String(),
+              window_start: t.String(),
+              window_end: t.String(),
+              days_included: t.Number(),
+              signals: t.Record(
+                t.String(),
+                t.Object({
+                  baseline_value: t.Number(),
+                  warning_threshold: t.Number(),
+                  critical_threshold: t.Number(),
+                  sample_count: t.Number(),
+                  std_dev: t.Number(),
+                }),
+              ),
+              rates: t.Record(
+                t.String(),
+                t.Nullable(
+                  t.Object({
+                    baseline_value: t.Number(),
+                    warning_threshold: t.Number(),
+                    critical_threshold: t.Number(),
+                    sample_count: t.Number(),
+                    std_dev: t.Number(),
+                  }),
+                ),
+              ),
+              metadata: t.Object({
+                calculationMethod: t.String(),
+                triggeredBy: t.String(),
+                notes: t.Optional(t.String()),
+              }),
+            }),
+            401: errorResponseSchema,
+            403: errorResponseSchema,
+            404: errorResponseSchema,
+            429: errorResponseSchema,
+            500: errorResponseSchema,
+            503: errorResponseSchema,
+          },
+          detail: {
+            summary: 'Get baselines',
+            description: 'Get effective baselines for an organization (with global fallback)',
+            tags: ['Control Plane'],
+          },
+        },
+      ),
     ),
   );

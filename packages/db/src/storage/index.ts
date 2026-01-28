@@ -1,5 +1,13 @@
 export { DrizzleAuditStorage, type StoredAuditEvent } from './audit-storage';
 export {
+  type BaselineSignal,
+  type DailyAuditAggregate,
+  DrizzleDailyAggregateReader,
+  DrizzleDriftBaselineStorage,
+  type NewBaseline,
+  type StoredBaseline,
+} from './drift-baseline-storage';
+export {
   type ApiOperationalSetting,
   DrizzleOperationalSettingsStorage,
 } from './operational-settings-storage';
