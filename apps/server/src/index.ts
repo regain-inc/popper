@@ -7,8 +7,10 @@
 import { resolve } from 'node:path';
 import {
   ApiKeyCache,
+  DriftCounters,
   IdempotencyCache,
   InMemoryApiKeyCache,
+  InMemoryDriftCounters,
   InMemoryIdempotencyCache,
   InMemoryRateLimitCache,
   RateLimitCache,
@@ -47,6 +49,7 @@ import IORedis from 'ioredis';
 import { createApp } from './app';
 import { env } from './config/env';
 import { initApiKeyService, setApiKeyCache } from './lib/api-keys';
+import { setDriftCounters } from './lib/drift';
 import { setIdempotencyCache } from './lib/idempotency';
 import { logger, setupLogger } from './lib/logger';
 import { initOrganizationService } from './lib/organizations';
@@ -146,6 +149,11 @@ async function main(): Promise<void> {
     const rateLimitRedis = new IORedis(env.REDIS_URL);
     setRateLimitCache(new RateLimitCache(rateLimitRedis));
     logger.info`Rate limit cache initialized with Redis`;
+
+    // Drift counters via Redis
+    const driftRedis = new IORedis(env.REDIS_URL);
+    setDriftCounters(new DriftCounters(driftRedis));
+    logger.info`Drift counters initialized with Redis`;
 
     // Settings manager: PostgreSQL for storage, Redis for cache
     const settingsRedis = new IORedis(env.REDIS_URL);
@@ -252,6 +260,11 @@ async function main(): Promise<void> {
     setRateLimitCache(new RateLimitCache(rateLimitRedis));
     logger.info`Rate limit cache initialized with Redis`;
 
+    // Drift counters via Redis
+    const driftRedis = new IORedis(env.REDIS_URL);
+    setDriftCounters(new DriftCounters(driftRedis));
+    logger.info`Drift counters initialized with Redis`;
+
     // Settings manager: in-memory storage without database, Redis for cache
     const settingsRedis = new IORedis(env.REDIS_URL);
     const settingsManager = new SettingsManager({
@@ -304,6 +317,10 @@ async function main(): Promise<void> {
     // Rate limit cache: in-memory (Redis recommended for production)
     setRateLimitCache(new InMemoryRateLimitCache());
     logger.warning`Using in-memory rate limit cache. Set REDIS_URL for distributed rate limiting.`;
+
+    // Drift counters: in-memory (Redis recommended for production)
+    setDriftCounters(new InMemoryDriftCounters());
+    logger.warning`Using in-memory drift counters. Set REDIS_URL for distributed drift tracking.`;
 
     // Settings manager: PostgreSQL for storage, in-memory cache
     const settingsManager = new SettingsManager({
@@ -379,7 +396,12 @@ async function main(): Promise<void> {
 
     // Rate limit cache: in-memory for development/testing
     // Note: In dev mode without auth, rate limiting uses dev-org ID
+    setRateLimitCache(new InMemoryRateLimitCache());
     logger.info`Rate limit cache initialized with in-memory storage`;
+
+    // Drift counters: in-memory for development/testing
+    setDriftCounters(new InMemoryDriftCounters());
+    logger.info`Drift counters initialized with in-memory storage`;
 
     // Settings manager: all in-memory for development/testing
     const settingsManager = new SettingsManager({

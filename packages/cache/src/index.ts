@@ -15,7 +15,21 @@ export {
   type IApiKeyCache,
   InMemoryApiKeyCache,
 } from './api-key-cache';
-
+export {
+  DRIFT_COUNTER_TTL_SECONDS,
+  DRIFT_KEY_PREFIX,
+  DRIFT_SIGNALS,
+  DriftCounters,
+  type DriftCounterValues,
+  type DriftRates,
+  type DriftSignal,
+  type DriftSnapshot,
+  formatPrometheusText,
+  type IDriftCounters,
+  InMemoryDriftCounters,
+  type PrometheusMetric,
+  toPrometheusMetrics,
+} from './drift-counters';
 export {
   type CachedEntry,
   computeRequestHash,
@@ -26,7 +40,6 @@ export {
   type IIdempotencyCache,
   InMemoryIdempotencyCache,
 } from './idempotency-cache';
-
 export {
   InMemoryRateLimitCache,
   type IRateLimitCache,

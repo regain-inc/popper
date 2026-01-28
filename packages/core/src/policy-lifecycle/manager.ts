@@ -620,13 +620,4 @@ export class PolicyLifecycleManager {
       await this.cache.setActive(pack);
     }
   }
-
-  /**
-   * Invalidate cache for a policy
-   */
-  private async invalidateCache(organizationId: string | null, policyId: string): Promise<void> {
-    if (this.cache) {
-      await this.cache.deleteActive(organizationId, policyId);
-    }
-  }
 }

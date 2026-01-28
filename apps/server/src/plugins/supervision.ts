@@ -26,6 +26,7 @@ import {
   validateHermesMessage,
 } from '@popper/core';
 import { Elysia, t } from 'elysia';
+import { getDriftCounters, isDriftCountersInitialized } from '../lib/drift';
 import { getIdempotencyCache } from '../lib/idempotency';
 import { logger } from '../lib/logger';
 import { getOrganizationService, isOrganizationServiceInitialized } from '../lib/organizations';
@@ -435,6 +436,21 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
           // Set appropriate status code based on decision
           if (response.decision === 'HARD_STOP') {
             set.status = 200; // Still 200 - HARD_STOP is a valid response
+          }
+
+          // Record drift counters (async, non-blocking)
+          if (isDriftCountersInitialized()) {
+            getDriftCounters()
+              .recordDecision({
+                organizationId: request.subject.organization_id ?? SYSTEM_ORG_ID,
+                decision: response.decision,
+                reasonCodes: response.reason_codes,
+                htvBelowThreshold: response.reason_codes.includes('htv_below_threshold'),
+                validationFailed: false,
+              })
+              .catch((err) => {
+                logger.warning`Failed to record drift counters: ${err}`;
+              });
           }
 
           // 10. Store response in idempotency cache (advocate_clinical only)
