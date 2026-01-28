@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  AlertCircleIcon,
   DashboardSquare02Icon,
   FileSearchIcon,
   FileZipIcon,
@@ -43,6 +44,12 @@ const navigation = [
     href: '/drift',
     icon: FlowIcon,
     description: 'Anomaly detection',
+  },
+  {
+    name: 'Incidents',
+    href: '/incidents',
+    icon: AlertCircleIcon,
+    description: 'Safety incidents',
   },
 ];
 

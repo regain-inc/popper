@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  AlertCircleIcon,
   Analytics01Icon,
   FileSearchIcon,
   FileZipIcon,
@@ -38,6 +39,12 @@ const navigation = [
     href: '/compliance/drift',
     icon: FlowIcon,
     description: 'Anomaly detection signals',
+  },
+  {
+    name: 'Incidents',
+    href: '/compliance/incidents',
+    icon: AlertCircleIcon,
+    description: 'Safety incidents history',
   },
   {
     name: 'Export Bundle',
