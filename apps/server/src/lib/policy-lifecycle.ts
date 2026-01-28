@@ -6,7 +6,13 @@
  * @module lib/policy-lifecycle
  */
 
-import { type IPolicyPackStore, PolicyLifecycleManager, type StoredPolicyPack } from '@popper/core';
+import {
+  InMemoryPolicyPackCache,
+  type IPolicyPackStore,
+  PolicyLifecycleManager,
+  policyRegistry,
+  type StoredPolicyPack,
+} from '@popper/core';
 
 // =============================================================================
 // In-Memory Store (for development/testing when no DB available)
@@ -201,9 +207,14 @@ class InMemoryPolicyPackStore implements IPolicyPackStore {
 // Singleton
 // =============================================================================
 
-// Default to in-memory store (replaced at startup if DB available)
+// Default to in-memory store and cache (replaced at startup if DB available)
 let globalManager: PolicyLifecycleManager = new PolicyLifecycleManager({
   store: new InMemoryPolicyPackStore(),
+  cache: new InMemoryPolicyPackCache(),
+  onPolicyActivated: (pack) => {
+    // Register activated policy in runtime registry for supervision
+    policyRegistry.register(pack.content, true);
+  },
 });
 
 /**

@@ -272,6 +272,54 @@ export function createValidationFailedEvent(params: {
   };
 }
 
+/**
+ * Create a policy lifecycle audit event
+ *
+ * @param params - Policy lifecycle event parameters
+ * @returns AuditEventInput for emission
+ */
+export function createPolicyLifecycleEvent(params: {
+  traceId?: string;
+  eventType: string;
+  policyPackId: string;
+  policyId: string;
+  version: string;
+  organizationId: string | null;
+  actor: string;
+  previousState?: string;
+  newState?: string;
+  metadata?: Record<string, unknown>;
+}): AuditEventInput {
+  // Map policy lifecycle event types to audit tags
+  const tagMap: Record<string, AuditEventTag> = {
+    POLICY_CREATED: 'policy_created',
+    POLICY_SUBMITTED_FOR_REVIEW: 'policy_submitted',
+    POLICY_APPROVED: 'policy_approved',
+    POLICY_REJECTED: 'policy_rejected',
+    POLICY_ACTIVATED: 'policy_activated',
+    POLICY_ARCHIVED: 'policy_archived',
+    POLICY_ROLLBACK: 'policy_rollback',
+  };
+
+  return {
+    eventType: 'POLICY_LIFECYCLE',
+    traceId: params.traceId ?? crypto.randomUUID(),
+    subjectId: 'system', // No patient subject for policy events
+    organizationId: params.organizationId ?? 'global',
+    policyPackVersion: params.version,
+    payload: {
+      policy_pack_id: params.policyPackId,
+      policy_id: params.policyId,
+      version: params.version,
+      actor: params.actor,
+      previous_state: params.previousState,
+      new_state: params.newState,
+      ...params.metadata,
+    },
+    tags: [tagMap[params.eventType] ?? 'policy_violation'],
+  };
+}
+
 // Default in-memory emitter for testing
 let defaultEmitter: AuditEmitter | null = null;
 

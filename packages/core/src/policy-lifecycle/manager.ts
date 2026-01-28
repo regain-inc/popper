@@ -16,6 +16,7 @@ import {
   type ActivateInput,
   type ApproveInput,
   type CreateDraftInput,
+  type IPolicyPackCache,
   type IPolicyPackStore,
   type ListPolicyPacksOptions,
   PolicyLifecycleError,
@@ -37,6 +38,8 @@ import {
 export interface PolicyLifecycleManagerConfig {
   /** Store for policy pack persistence */
   store: IPolicyPackStore;
+  /** Optional cache for fast policy lookups */
+  cache?: IPolicyPackCache;
   /** Optional callback for lifecycle events (audit trail) */
   onLifecycleEvent?: (event: PolicyLifecycleEvent) => void | Promise<void>;
   /** Optional callback for validation (custom validation gates) */
@@ -44,6 +47,11 @@ export interface PolicyLifecycleManagerConfig {
     pack: StoredPolicyPack,
     previousActive: StoredPolicyPack | null,
   ) => Promise<ValidationCheck[]>;
+  /**
+   * Optional callback when a policy is activated.
+   * Use this to integrate with policyRegistry for runtime supervision.
+   */
+  onPolicyActivated?: (pack: StoredPolicyPack) => void | Promise<void>;
 }
 
 // =============================================================================
@@ -57,16 +65,20 @@ export interface PolicyLifecycleManagerConfig {
  */
 export class PolicyLifecycleManager {
   private readonly store: IPolicyPackStore;
+  private readonly cache?: IPolicyPackCache;
   private readonly onLifecycleEvent?: (event: PolicyLifecycleEvent) => void | Promise<void>;
   private readonly customValidation?: (
     pack: StoredPolicyPack,
     previousActive: StoredPolicyPack | null,
   ) => Promise<ValidationCheck[]>;
+  private readonly onPolicyActivated?: (pack: StoredPolicyPack) => void | Promise<void>;
 
   constructor(config: PolicyLifecycleManagerConfig) {
     this.store = config.store;
+    this.cache = config.cache;
     this.onLifecycleEvent = config.onLifecycleEvent;
     this.customValidation = config.customValidation;
+    this.onPolicyActivated = config.onPolicyActivated;
   }
 
   // ===========================================================================
@@ -296,6 +308,12 @@ export class PolicyLifecycleManager {
       metadata: { archived_count: archivedCount },
     });
 
+    // Register in runtime policy registry for supervision
+    await this.notifyPolicyActivated(updated);
+
+    // Update cache
+    await this.updateCache(updated);
+
     return updated;
   }
 
@@ -364,6 +382,12 @@ export class PolicyLifecycleManager {
       },
     });
 
+    // Register in runtime policy registry for supervision
+    await this.notifyPolicyActivated(activated);
+
+    // Update cache
+    await this.updateCache(activated);
+
     return activated;
   }
 
@@ -380,12 +404,30 @@ export class PolicyLifecycleManager {
 
   /**
    * Get the currently active policy pack for an organization
+   *
+   * Uses cache if available, falls back to store.
    */
   async getActive(
     organizationId: string | null,
     policyId: string,
   ): Promise<StoredPolicyPack | null> {
-    return this.store.getActive(organizationId, policyId);
+    // Try cache first
+    if (this.cache) {
+      const cached = await this.cache.getActive(organizationId, policyId);
+      if (cached) {
+        return cached;
+      }
+    }
+
+    // Fetch from store
+    const pack = await this.store.getActive(organizationId, policyId);
+
+    // Populate cache for next time
+    if (pack && this.cache) {
+      await this.cache.setActive(pack);
+    }
+
+    return pack;
   }
 
   /**
@@ -558,6 +600,33 @@ export class PolicyLifecycleManager {
   private async emitEvent(event: PolicyLifecycleEvent): Promise<void> {
     if (this.onLifecycleEvent) {
       await this.onLifecycleEvent(event);
+    }
+  }
+
+  /**
+   * Notify that a policy was activated (for registry integration)
+   */
+  private async notifyPolicyActivated(pack: StoredPolicyPack): Promise<void> {
+    if (this.onPolicyActivated) {
+      await this.onPolicyActivated(pack);
+    }
+  }
+
+  /**
+   * Update cache with activated policy
+   */
+  private async updateCache(pack: StoredPolicyPack): Promise<void> {
+    if (this.cache) {
+      await this.cache.setActive(pack);
+    }
+  }
+
+  /**
+   * Invalidate cache for a policy
+   */
+  private async invalidateCache(organizationId: string | null, policyId: string): Promise<void> {
+    if (this.cache) {
+      await this.cache.deleteActive(organizationId, policyId);
     }
   }
 }

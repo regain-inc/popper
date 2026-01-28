@@ -16,12 +16,17 @@ import {
 import type { SupervisionResponse } from '@popper/core';
 import {
   AuditEmitter,
+  createPolicyLifecycleEvent,
+  getDefaultEmitter,
+  InMemoryPolicyPackCache,
   InMemorySafeModeHistoryStore,
   InMemorySafeModeStateStore,
   InMemorySettingsCache,
   InMemorySettingsStore,
+  type PolicyLifecycleEvent,
   PolicyLifecycleManager,
   policyRegistry,
+  RedisPolicyPackCache,
   RedisSafeModeStateStore,
   RedisSettingsCache,
   SafeModeManager,
@@ -151,13 +156,55 @@ async function main(): Promise<void> {
     setSettingsManager(settingsManager);
     logger.info`Settings manager initialized with PostgreSQL + Redis cache`;
 
-    // Policy lifecycle manager: PostgreSQL for storage
+    // Policy lifecycle manager: PostgreSQL for storage, Redis for cache
     const policyPackStorage = new DrizzlePolicyPackStorage(db);
+    const policyPackCacheRedis = new IORedis(env.REDIS_URL);
     const policyLifecycleManager = new PolicyLifecycleManager({
       store: new PolicyPackStoreAdapter(policyPackStorage),
+      cache: new RedisPolicyPackCache(policyPackCacheRedis),
+      onPolicyActivated: (pack) => {
+        // Register activated policy in runtime registry for supervision
+        // Global policies (org_id=null) are registered for all supervision requests
+        // Organization-specific policies can be handled via policy_id lookup
+        policyRegistry.register(pack.content, true);
+        logger.info`Policy ${pack.policy_id} v${pack.version} activated and registered in runtime registry`;
+      },
+      onLifecycleEvent: (event: PolicyLifecycleEvent) => {
+        // Emit audit event for policy lifecycle changes
+        const auditEvent = createPolicyLifecycleEvent({
+          eventType: event.event_type,
+          policyPackId: event.policy_pack_id,
+          policyId: event.policy_id,
+          version: event.version,
+          organizationId: event.organization_id,
+          actor: event.actor,
+          previousState: event.previous_state,
+          newState: event.new_state,
+          metadata: event.metadata,
+        });
+        getDefaultEmitter()
+          .emit(auditEvent)
+          .catch((err) => {
+            logger.error`Failed to emit policy lifecycle audit event: ${err}`;
+          });
+      },
     });
     setPolicyLifecycleManager(policyLifecycleManager);
-    logger.info`Policy lifecycle manager initialized with PostgreSQL`;
+    logger.info`Policy lifecycle manager initialized with PostgreSQL + Redis cache`;
+
+    // Load and register active policies from database at startup
+    try {
+      const activePolicies = await policyLifecycleManager.list({ state: 'ACTIVE' });
+      for (const pack of activePolicies) {
+        policyRegistry.register(pack.content, true);
+        logger.info`Loaded active policy from DB: ${pack.policy_id} v${pack.version}`;
+      }
+      if (activePolicies.length > 0) {
+        logger.info`Registered ${activePolicies.length} active policy pack(s) from database`;
+      }
+    } catch (err) {
+      logger.warning`Failed to load active policies from database: ${err}`;
+    }
   } else if (env.REDIS_URL) {
     // Redis only (no PostgreSQL for history)
     logger.info`Initializing with Redis only...`;
@@ -270,9 +317,46 @@ async function main(): Promise<void> {
     const policyPackStorage = new DrizzlePolicyPackStorage(db);
     const policyLifecycleManager = new PolicyLifecycleManager({
       store: new PolicyPackStoreAdapter(policyPackStorage),
+      cache: new InMemoryPolicyPackCache(),
+      onPolicyActivated: (pack) => {
+        policyRegistry.register(pack.content, true);
+        logger.info`Policy ${pack.policy_id} v${pack.version} activated and registered in runtime registry`;
+      },
+      onLifecycleEvent: (event: PolicyLifecycleEvent) => {
+        const auditEvent = createPolicyLifecycleEvent({
+          eventType: event.event_type,
+          policyPackId: event.policy_pack_id,
+          policyId: event.policy_id,
+          version: event.version,
+          organizationId: event.organization_id,
+          actor: event.actor,
+          previousState: event.previous_state,
+          newState: event.new_state,
+          metadata: event.metadata,
+        });
+        getDefaultEmitter()
+          .emit(auditEvent)
+          .catch((err) => {
+            logger.error`Failed to emit policy lifecycle audit event: ${err}`;
+          });
+      },
     });
     setPolicyLifecycleManager(policyLifecycleManager);
-    logger.info`Policy lifecycle manager initialized with PostgreSQL`;
+    logger.info`Policy lifecycle manager initialized with PostgreSQL (in-memory cache)`;
+
+    // Load and register active policies from database at startup
+    try {
+      const activePolicies = await policyLifecycleManager.list({ state: 'ACTIVE' });
+      for (const pack of activePolicies) {
+        policyRegistry.register(pack.content, true);
+        logger.info`Loaded active policy from DB: ${pack.policy_id} v${pack.version}`;
+      }
+      if (activePolicies.length > 0) {
+        logger.info`Registered ${activePolicies.length} active policy pack(s) from database`;
+      }
+    } catch (err) {
+      logger.warning`Failed to load active policies from database: ${err}`;
+    }
   } else {
     logger.warning`REDIS_URL and DATABASE_URL not configured, using in-memory storage`;
 

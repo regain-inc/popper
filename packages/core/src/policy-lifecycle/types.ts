@@ -268,6 +268,38 @@ export interface RollbackInput {
 }
 
 // =============================================================================
+// Cache Interface
+// =============================================================================
+
+/** Redis key prefix for policy pack cache */
+export const POLICY_PACK_CACHE_PREFIX = 'policy_pack';
+
+/** Default TTL for cached policy packs (5 minutes) */
+export const POLICY_PACK_CACHE_TTL_SECONDS = 300;
+
+/** Organization ID placeholder for global policies */
+export const GLOBAL_POLICY_ORG_ID = '__global__';
+
+/**
+ * Cache interface for active policy packs
+ *
+ * Provides fast reads for frequently accessed policies.
+ */
+export interface IPolicyPackCache {
+  /** Get cached active policy pack */
+  getActive(organizationId: string | null, policyId: string): Promise<StoredPolicyPack | null>;
+
+  /** Set active policy pack in cache */
+  setActive(pack: StoredPolicyPack, ttlSeconds?: number): Promise<void>;
+
+  /** Delete cached active policy pack */
+  deleteActive(organizationId: string | null, policyId: string): Promise<void>;
+
+  /** Delete all cached policies for an organization */
+  deleteAll(organizationId: string | null): Promise<void>;
+}
+
+// =============================================================================
 // Error Types
 // =============================================================================
 

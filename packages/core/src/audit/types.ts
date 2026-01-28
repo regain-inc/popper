@@ -15,6 +15,7 @@ export type AuditEventType =
   | 'VALIDATION_FAILED'
   | 'SAFE_MODE_CHANGED'
   | 'CONTROL_COMMAND'
+  | 'POLICY_LIFECYCLE'
   | 'OTHER';
 
 /**
@@ -32,7 +33,14 @@ export type AuditEventTag =
   | 'org_not_found'
   | 'mode_not_allowed'
   | 'high_risk'
-  | 'low_risk';
+  | 'low_risk'
+  | 'policy_created'
+  | 'policy_submitted'
+  | 'policy_approved'
+  | 'policy_rejected'
+  | 'policy_activated'
+  | 'policy_archived'
+  | 'policy_rollback';
 
 /**
  * Audit event payload structure (PHI-redacted)
