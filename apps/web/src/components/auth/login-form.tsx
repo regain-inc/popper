@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/use-auth';
 
 export function LoginForm() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, refresh } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -23,8 +23,13 @@ export function LoginForm() {
     try {
       const result = await login(email, password);
       if (result.success) {
-        router.push('/');
-        router.refresh();
+        // Refresh auth state to get user role, then redirect
+        await refresh();
+        // Small delay to ensure session is loaded
+        setTimeout(() => {
+          router.push('/');
+          router.refresh();
+        }, 100);
       } else {
         setError(result.error || 'Login failed');
       }

@@ -2,69 +2,55 @@
 
 import {
   AlertCircleIcon,
-  DashboardSquare02Icon,
+  Analytics01Icon,
   FileSearchIcon,
   FileZipIcon,
   FlowIcon,
-  SecurityCheckIcon,
-  Settings01Icon,
   ShieldKeyIcon,
-  UserMultipleIcon,
 } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 
 const navigation = [
   {
-    name: 'Status',
-    href: '/',
-    icon: DashboardSquare02Icon,
-    description: 'System health and metrics',
+    name: 'Overview',
+    href: '/compliance',
+    icon: Analytics01Icon,
+    description: 'Aggregated system metrics',
   },
   {
     name: 'Audit Log',
-    href: '/audit',
+    href: '/compliance/audit',
     icon: FileSearchIcon,
-    description: 'Decision history',
+    description: 'De-identified decision history',
   },
   {
-    name: 'Safe-Mode',
-    href: '/safe-mode',
+    name: 'Safe-Mode History',
+    href: '/compliance/safe-mode',
     icon: ShieldKeyIcon,
-    description: 'Safety controls',
+    description: 'Safety control history',
   },
   {
     name: 'Drift Signals',
-    href: '/drift',
+    href: '/compliance/drift',
     icon: FlowIcon,
-    description: 'Anomaly detection',
+    description: 'Anomaly detection signals',
   },
   {
     name: 'Incidents',
-    href: '/incidents',
+    href: '/compliance/incidents',
     icon: AlertCircleIcon,
-    description: 'Safety incidents',
-  },
-];
-
-const bottomNavigation = [
-  {
-    name: 'User management',
-    href: '/settings/users',
-    icon: UserMultipleIcon,
-    description: 'User management',
+    description: 'Safety incidents history',
   },
   {
-    name: 'Settings',
-    href: '/settings',
-    icon: Settings01Icon,
-    description: 'Configuration',
+    name: 'Export Bundle',
+    href: '/compliance/export',
+    icon: FileZipIcon,
+    description: 'Generate compliance exports',
   },
 ];
 
@@ -114,27 +100,12 @@ function NavItem({ item, isActive, collapsed }: NavItemProps) {
   return content;
 }
 
-interface SidebarProps {
+interface ComplianceSidebarProps {
   collapsed?: boolean;
 }
 
-export function Sidebar({ collapsed = false }: SidebarProps) {
+export function ComplianceSidebar({ collapsed = false }: ComplianceSidebarProps) {
   const pathname = usePathname();
-  const { isAdmin } = useAuth();
-
-  const exportNavItem = {
-    name: 'Export Bundle',
-    href: '/export',
-    icon: FileZipIcon,
-    description: 'Generate data exports',
-  };
-
-  const complianceNavItem = {
-    name: 'Compliance',
-    href: '/compliance',
-    icon: SecurityCheckIcon,
-    description: 'Regulatory compliance view',
-  };
 
   return (
     <aside
@@ -147,11 +118,16 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
       <div
         className={cn('flex h-14 items-center border-b px-4', collapsed && 'justify-center px-2')}
       >
-        <Link href="/" className="flex items-center gap-2">
-          <div className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-lg font-bold">
-            P
+        <Link href={'/compliance' as Route} className="flex items-center gap-2">
+          <div className="bg-amber-600 text-white flex size-8 items-center justify-center rounded-lg font-bold">
+            C
           </div>
-          {!collapsed && <span className="text-lg font-semibold tracking-tight">Popper</span>}
+          {!collapsed && (
+            <div className="flex flex-col">
+              <span className="text-lg font-semibold tracking-tight">Popper</span>
+              <span className="text-muted-foreground text-xs">Compliance</span>
+            </div>
+          )}
         </Link>
       </div>
 
@@ -161,45 +137,29 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
           <NavItem
             key={item.href}
             item={item}
-            isActive={pathname === item.href}
-            collapsed={collapsed}
-          />
-        ))}
-      </nav>
-
-      {/* Admin-only links: Export and Compliance */}
-      {isAdmin && (
-        <>
-          <Separator />
-          <nav className="space-y-1 p-2">
-            <NavItem item={exportNavItem} isActive={pathname === '/export'} collapsed={collapsed} />
-            <NavItem
-              item={complianceNavItem}
-              isActive={pathname.startsWith('/compliance')}
-              collapsed={collapsed}
-            />
-          </nav>
-        </>
-      )}
-
-      <Separator />
-
-      {/* Bottom navigation */}
-      <nav className="space-y-1 p-2">
-        {bottomNavigation.map((item) => (
-          <NavItem
-            key={item.href}
-            item={item}
             isActive={
-              pathname === item.href ||
-              (item.href === '/settings' &&
-                pathname.startsWith('/settings') &&
-                pathname !== '/settings/users')
+              item.href === '/compliance'
+                ? pathname === '/compliance'
+                : pathname.startsWith(item.href)
             }
             collapsed={collapsed}
           />
         ))}
       </nav>
+
+      {/* Compliance badge */}
+      {!collapsed && (
+        <div className="border-t p-4">
+          <div className="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 rounded-lg border p-3">
+            <p className="text-amber-800 dark:text-amber-200 text-xs font-medium">
+              Read-Only Access
+            </p>
+            <p className="text-amber-600 dark:text-amber-400 mt-1 text-xs">
+              All data is de-identified for regulatory compliance.
+            </p>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

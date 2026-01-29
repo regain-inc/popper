@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email and role are required' }, { status: 400 });
     }
 
-    if (!['admin', 'viewer'].includes(role)) {
+    if (!['admin', 'viewer', 'compliance'].includes(role)) {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
     }
 

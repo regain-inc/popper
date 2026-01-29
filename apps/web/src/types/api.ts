@@ -172,3 +172,46 @@ export interface Organization {
   id: string;
   name: string;
 }
+
+// Incident Types
+export type IncidentType = 'drift_threshold_breach' | 'manual' | 'model_update';
+export type IncidentStatus = 'open' | 'acknowledged' | 'resolved';
+export type IncidentTriggerLevel = 'warning' | 'critical';
+
+export interface Incident {
+  id: string;
+  organization_id: string;
+  type: IncidentType;
+  status: IncidentStatus;
+  trigger_signal: string | null;
+  trigger_level: IncidentTriggerLevel | null;
+  trigger_value: string | null;
+  threshold_value: string | null;
+  baseline_value: string | null;
+  title: string;
+  description: string | null;
+  metadata: Record<string, unknown> | null;
+  safe_mode_enabled: string | null;
+  resolved_at: string | null;
+  resolved_by: string | null;
+  resolution_notes: string | null;
+  cooldown_until: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface IncidentsResponse {
+  organization_id: string | null;
+  incidents: Incident[];
+  total: number;
+}
+
+export interface ResolveIncidentRequest {
+  resolution_notes: string;
+}
+
+export interface IncidentUpdateResponse {
+  id: string;
+  status: IncidentStatus;
+  updated_at: string;
+}

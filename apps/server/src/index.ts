@@ -71,6 +71,7 @@ import { setBaselineCalculator } from './lib/baselines';
 import { setDriftCounters } from './lib/drift';
 import { setExportGenerator } from './lib/export';
 import { setIdempotencyCache } from './lib/idempotency';
+import { setIncidentsStore } from './lib/incidents';
 import { logger, setupLogger } from './lib/logger';
 import { initOrganizationService } from './lib/organizations';
 import { setPolicyLifecycleManager } from './lib/policy-lifecycle';
@@ -198,6 +199,11 @@ async function main(): Promise<void> {
     setBaselineCalculator(baselineCalculator);
     logger.info`Baseline calculator initialized with PostgreSQL + Redis cache`;
 
+    // Incidents store: PostgreSQL
+    const incidentsStore = new DrizzleIncidentsStorage(db);
+    setIncidentsStore(incidentsStore);
+    logger.info`Incidents store initialized with PostgreSQL`;
+
     // Drift triggers manager: Redis for cooldowns, PostgreSQL for incidents
     const cooldownRedis = new IORedis(env.REDIS_URL);
     const driftTriggersManager = new DriftTriggersManager({
@@ -205,7 +211,7 @@ async function main(): Promise<void> {
       baselineCalculator,
       driftCounters: new DriftCounters(driftRedis),
       safeModeManager,
-      incidentsStore: new DrizzleIncidentsStorage(db),
+      incidentsStore,
       cooldownTracker: new CooldownTracker(cooldownRedis),
       logger: {
         info: (msg: string) => logger.info`${msg}`,
@@ -414,13 +420,18 @@ async function main(): Promise<void> {
     setBaselineCalculator(baselineCalculator);
     logger.info`Baseline calculator initialized with PostgreSQL (in-memory cache)`;
 
+    // Incidents store: PostgreSQL
+    const incidentsStore = new DrizzleIncidentsStorage(db);
+    setIncidentsStore(incidentsStore);
+    logger.info`Incidents store initialized with PostgreSQL`;
+
     // Drift triggers manager: in-memory cooldowns, PostgreSQL for incidents
     const driftTriggersManager = new DriftTriggersManager({
       triggers: new DriftTriggers({ cooldownTracker: new CoreInMemoryCooldownTracker() }),
       baselineCalculator,
       driftCounters: new InMemoryDriftCounters(),
       safeModeManager,
-      incidentsStore: new DrizzleIncidentsStorage(db),
+      incidentsStore,
       cooldownTracker: new CoreInMemoryCooldownTracker(),
       logger: {
         info: (msg: string) => logger.info`${msg}`,

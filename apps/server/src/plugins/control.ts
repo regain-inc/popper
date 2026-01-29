@@ -10,13 +10,19 @@
 import { GLOBAL_ORG_ID, isValidSettingsKey, type SettingsKey, SYSTEM_ORG_ID } from '@popper/core';
 import { Elysia, t } from 'elysia';
 import { getBaselineCalculator, isBaselineCalculatorInitialized } from '../lib/baselines';
+import { getIncidentsStore, isIncidentsStoreInitialized } from '../lib/incidents';
 import { logger } from '../lib/logger';
 import { getRlhfAggregator, isRlhfAggregatorInitialized } from '../lib/rlhf';
 import { getSafeModeManager } from '../lib/safe-mode';
 import {
+  acknowledgeIncidentRequestSchema,
   effectiveSettingsResponseSchema,
   errorResponseSchema,
+  incidentListResponseSchema,
+  incidentSchema,
+  incidentUpdateResponseSchema,
   operationalSettingSchema,
+  resolveIncidentRequestSchema,
   safeModeChangeRequestSchema,
   safeModeHistoryResponseSchema,
   safeModeStateSchema,
@@ -1147,6 +1153,255 @@ export const controlPlugin = new Elysia({ name: 'control', prefix: '/v1/popper/c
             detail: {
               summary: 'Archive bundle',
               description: 'Archive a feedback bundle after processing',
+              tags: ['Control Plane'],
+            },
+          },
+        ),
+    ),
+  )
+  // Incidents GET endpoints - require control:read scope
+  .guard(createAuthGuard('control:read'), (app) =>
+    app.guard(createRateLimitGuard(), (app) =>
+      app
+        .get(
+          '/incidents',
+          async ({ query, set }) => {
+            if (!isIncidentsStoreInitialized()) {
+              set.status = 503;
+              return {
+                error: 'service_unavailable',
+                message: 'Incidents store not initialized. Requires PostgreSQL.',
+              };
+            }
+
+            const store = getIncidentsStore();
+            const orgId = query.organization_id;
+
+            const incidents =
+              query.status === 'open' && orgId
+                ? await store.getOpen(orgId)
+                : orgId
+                  ? await store.getHistory(orgId, query.limit ?? 100)
+                  : [];
+
+            return {
+              organization_id: orgId ?? null,
+              incidents: incidents.map((i) => ({
+                id: i.id,
+                organization_id: i.organizationId,
+                type: i.type,
+                status: i.status,
+                trigger_signal: i.triggerSignal,
+                trigger_level: i.triggerLevel,
+                trigger_value: i.triggerValue,
+                threshold_value: i.thresholdValue,
+                baseline_value: i.baselineValue,
+                title: i.title,
+                description: i.description,
+                metadata: i.metadata,
+                safe_mode_enabled: i.safeModeEnabled?.toISOString() ?? null,
+                resolved_at: i.resolvedAt?.toISOString() ?? null,
+                resolved_by: i.resolvedBy,
+                resolution_notes: i.resolutionNotes,
+                cooldown_until: i.cooldownUntil?.toISOString() ?? null,
+                created_at: i.createdAt.toISOString(),
+                updated_at: i.updatedAt.toISOString(),
+              })),
+              total: incidents.length,
+            };
+          },
+          {
+            query: t.Object({
+              organization_id: t.Optional(t.String()),
+              status: t.Optional(t.Union([t.Literal('open'), t.Literal('all')])),
+              limit: t.Optional(t.Number({ minimum: 1, maximum: 1000 })),
+            }),
+            response: {
+              200: incidentListResponseSchema,
+              401: errorResponseSchema,
+              403: errorResponseSchema,
+              429: errorResponseSchema,
+              503: errorResponseSchema,
+            },
+            detail: {
+              summary: 'List incidents',
+              description: 'List incidents for an organization',
+              tags: ['Control Plane'],
+            },
+          },
+        )
+        .get(
+          '/incidents/:id',
+          async ({ params, set }) => {
+            if (!isIncidentsStoreInitialized()) {
+              set.status = 503;
+              return {
+                error: 'service_unavailable',
+                message: 'Incidents store not initialized. Requires PostgreSQL.',
+              };
+            }
+
+            const store = getIncidentsStore();
+            const incident = await store.getById(params.id);
+
+            if (!incident) {
+              set.status = 404;
+              return {
+                error: 'not_found',
+                message: `Incident not found: ${params.id}`,
+              };
+            }
+
+            return {
+              id: incident.id,
+              organization_id: incident.organizationId,
+              type: incident.type,
+              status: incident.status,
+              trigger_signal: incident.triggerSignal,
+              trigger_level: incident.triggerLevel,
+              trigger_value: incident.triggerValue,
+              threshold_value: incident.thresholdValue,
+              baseline_value: incident.baselineValue,
+              title: incident.title,
+              description: incident.description,
+              metadata: incident.metadata,
+              safe_mode_enabled: incident.safeModeEnabled?.toISOString() ?? null,
+              resolved_at: incident.resolvedAt?.toISOString() ?? null,
+              resolved_by: incident.resolvedBy,
+              resolution_notes: incident.resolutionNotes,
+              cooldown_until: incident.cooldownUntil?.toISOString() ?? null,
+              created_at: incident.createdAt.toISOString(),
+              updated_at: incident.updatedAt.toISOString(),
+            };
+          },
+          {
+            params: t.Object({
+              id: t.String(),
+            }),
+            response: {
+              200: incidentSchema,
+              401: errorResponseSchema,
+              403: errorResponseSchema,
+              404: errorResponseSchema,
+              429: errorResponseSchema,
+              503: errorResponseSchema,
+            },
+            detail: {
+              summary: 'Get incident',
+              description: 'Get incident details by ID',
+              tags: ['Control Plane'],
+            },
+          },
+        ),
+    ),
+  )
+  // Incidents POST endpoints - require control:write scope
+  .guard(createAuthGuard('control:write'), (app) =>
+    app.guard(createRateLimitGuard(), (app) =>
+      app
+        .post(
+          '/incidents/:id/acknowledge',
+          async ({ params, set }) => {
+            if (!isIncidentsStoreInitialized()) {
+              set.status = 503;
+              return {
+                error: 'service_unavailable',
+                message: 'Incidents store not initialized. Requires PostgreSQL.',
+              };
+            }
+
+            const store = getIncidentsStore();
+            const incident = await store.updateStatus(params.id, 'acknowledged');
+
+            if (!incident) {
+              set.status = 404;
+              return {
+                error: 'not_found',
+                message: `Incident not found: ${params.id}`,
+              };
+            }
+
+            logger.info`Incident acknowledged: id=${incident.id}`;
+
+            return {
+              id: incident.id,
+              status: incident.status,
+              updated_at: incident.updatedAt.toISOString(),
+            };
+          },
+          {
+            params: t.Object({
+              id: t.String(),
+            }),
+            body: t.Optional(acknowledgeIncidentRequestSchema),
+            response: {
+              200: incidentUpdateResponseSchema,
+              401: errorResponseSchema,
+              403: errorResponseSchema,
+              404: errorResponseSchema,
+              429: errorResponseSchema,
+              503: errorResponseSchema,
+            },
+            detail: {
+              summary: 'Acknowledge incident',
+              description: 'Mark an incident as acknowledged',
+              tags: ['Control Plane'],
+            },
+          },
+        )
+        .post(
+          '/incidents/:id/resolve',
+          async ({ params, body, apiKey, set }) => {
+            if (!isIncidentsStoreInitialized()) {
+              set.status = 503;
+              return {
+                error: 'service_unavailable',
+                message: 'Incidents store not initialized. Requires PostgreSQL.',
+              };
+            }
+
+            const store = getIncidentsStore();
+            const resolvedBy = apiKey?.keyName ?? 'system';
+
+            const incident = await store.updateStatus(
+              params.id,
+              'resolved',
+              resolvedBy,
+              body.resolution_notes,
+            );
+
+            if (!incident) {
+              set.status = 404;
+              return {
+                error: 'not_found',
+                message: `Incident not found: ${params.id}`,
+              };
+            }
+
+            logger.info`Incident resolved: id=${incident.id} by=${resolvedBy}`;
+
+            return {
+              id: incident.id,
+              status: incident.status,
+              updated_at: incident.updatedAt.toISOString(),
+            };
+          },
+          {
+            params: t.Object({
+              id: t.String(),
+            }),
+            body: resolveIncidentRequestSchema,
+            response: {
+              200: incidentUpdateResponseSchema,
+              401: errorResponseSchema,
+              403: errorResponseSchema,
+              404: errorResponseSchema,
+              429: errorResponseSchema,
+              503: errorResponseSchema,
+            },
+            detail: {
+              summary: 'Resolve incident',
+              description: 'Mark an incident as resolved with resolution notes',
               tags: ['Control Plane'],
             },
           },
