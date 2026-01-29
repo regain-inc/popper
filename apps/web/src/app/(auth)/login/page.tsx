@@ -10,11 +10,16 @@ export default function LoginPage() {
   return (
     <div className="space-y-6">
       {/* Logo */}
-      <div className="flex items-center justify-center gap-3">
-        <div className="bg-primary text-primary-foreground flex size-10 items-center justify-center rounded-xl text-lg font-bold">
-          P
+      <div className="flex flex-col items-center justify-center gap-1">
+        <div className="flex items-center gap-3">
+          <div className="bg-primary text-primary-foreground flex size-10 items-center justify-center rounded-xl text-lg font-bold">
+            P
+          </div>
+          <span className="text-2xl font-semibold tracking-tight">
+            Popper<sup className="text-xs font-normal ml-0.5">TM</sup>
+          </span>
         </div>
-        <span className="text-2xl font-semibold tracking-tight">Popper</span>
+        <span className="text-muted-foreground text-xs">TA2 supervisory agent</span>
       </div>
 
       {/* Header */}

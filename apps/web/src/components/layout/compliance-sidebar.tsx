@@ -124,8 +124,12 @@ export function ComplianceSidebar({ collapsed = false }: ComplianceSidebarProps)
           </div>
           {!collapsed && (
             <div className="flex flex-col">
-              <span className="text-lg font-semibold tracking-tight">Popper</span>
-              <span className="text-muted-foreground text-xs">Compliance</span>
+              <span className="text-lg font-semibold tracking-tight">
+                Popper<sup className="text-[8px] font-normal ml-0.5">TM</sup>
+              </span>
+              <span className="text-muted-foreground text-[10px] leading-tight">
+                TA2 supervisory agent
+              </span>
             </div>
           )}
         </Link>
