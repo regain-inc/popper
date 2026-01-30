@@ -4,8 +4,8 @@ import { SetPasswordForm } from '@/components/auth/set-password-form';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export const metadata: Metadata = {
-  title: 'Accept Invite - Popper Dashboard',
-  description: 'Set up your Popper Dashboard account',
+  title: 'Accept Invite - TA2 Supervisory Agent',
+  description: 'Set up your TA2 Supervisory Agent account',
 };
 
 function FormSkeleton() {
@@ -28,11 +28,13 @@ export default function AcceptInvitePage() {
           <div className="bg-primary text-primary-foreground flex size-10 items-center justify-center rounded-xl text-lg font-bold">
             P
           </div>
-          <span className="text-2xl font-semibold tracking-tight">
-            Popper<sup className="text-xs font-normal ml-0.5">TM</sup>
-          </span>
+          <div className="flex flex-col">
+            <span className="text-2xl font-semibold tracking-tight">TA2 Supervisory Agent</span>
+            <span className="text-muted-foreground text-xs">
+              Regain Popper<sup className="text-[8px] font-normal ml-0.5">TM</sup>
+            </span>
+          </div>
         </div>
-        <span className="text-muted-foreground text-xs">TA2 supervisory agent</span>
       </div>
 
       {/* Header */}

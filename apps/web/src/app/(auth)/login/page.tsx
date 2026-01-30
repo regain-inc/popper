@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import { LoginForm } from '@/components/auth/login-form';
 
 export const metadata: Metadata = {
-  title: 'Login - Popper Dashboard',
-  description: 'Sign in to access the Popper Safety Operations Dashboard',
+  title: 'Login - TA2 Supervisory Agent',
+  description: 'Sign in to access the TA2 Supervisory Agent Dashboard',
 };
 
 export default function LoginPage() {
@@ -15,11 +15,13 @@ export default function LoginPage() {
           <div className="bg-primary text-primary-foreground flex size-10 items-center justify-center rounded-xl text-lg font-bold">
             P
           </div>
-          <span className="text-2xl font-semibold tracking-tight">
-            Popper<sup className="text-xs font-normal ml-0.5">TM</sup>
-          </span>
+          <div className="flex flex-col">
+            <span className="text-2xl font-semibold tracking-tight">TA2 Supervisory Agent</span>
+            <span className="text-muted-foreground text-xs">
+              Regain Popper<sup className="text-[8px] font-normal ml-0.5">TM</sup>
+            </span>
+          </div>
         </div>
-        <span className="text-muted-foreground text-xs">TA2 supervisory agent</span>
       </div>
 
       {/* Header */}
