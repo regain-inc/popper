@@ -16,6 +16,9 @@ import { Elysia } from 'elysia';
 import { setIdempotencyCache } from '../lib/idempotency';
 import { supervisionPlugin } from './supervision';
 
+/** System org ID used by dev-mode auth (must match supervision.ts) */
+const SYSTEM_ORG_ID = '00000000-0000-0000-0000-000000000000';
+
 // =============================================================================
 // Test Setup
 // =============================================================================
@@ -170,7 +173,7 @@ describe('POST /v1/popper/supervise', () => {
         subject: {
           subject_id: 'patient-123',
           subject_type: 'patient',
-          organization_id: 'dev-org',
+          organization_id: SYSTEM_ORG_ID,
         },
       };
 
@@ -252,7 +255,7 @@ describe('POST /v1/popper/supervise', () => {
         subject: {
           subject_id: 'patient-123',
           subject_type: 'patient',
-          organization_id: 'dev-org',
+          organization_id: SYSTEM_ORG_ID,
         },
       });
 
@@ -326,7 +329,7 @@ describe('POST /v1/popper/supervise', () => {
         subject: {
           subject_id: 'patient-audit',
           subject_type: 'patient',
-          organization_id: 'dev-org',
+          organization_id: SYSTEM_ORG_ID,
         },
       });
 
@@ -340,7 +343,7 @@ describe('POST /v1/popper/supervise', () => {
       expect(decisionEvent).toBeDefined();
       expect(decisionEvent?.traceId).toBe('audit-test-123');
       expect(decisionEvent?.subjectId).toBe('patient-audit');
-      expect(decisionEvent?.organizationId).toBe('dev-org');
+      expect(decisionEvent?.organizationId).toBe(SYSTEM_ORG_ID);
       expect(decisionEvent?.decision).toBeDefined();
     });
 
@@ -430,7 +433,7 @@ describe('POST /v1/popper/supervise', () => {
       subject: {
         subject_id: 'patient-123',
         subject_type: 'patient',
-        organization_id: 'dev-org',
+        organization_id: SYSTEM_ORG_ID,
       },
       ...overrides,
     });
@@ -540,14 +543,22 @@ describe('POST /v1/popper/supervise', () => {
     test('different idempotency keys are independent', async () => {
       // Two requests with different idempotency keys should both succeed
       const request1 = createClinicalRequest('idem-key-1', {
-        subject: { subject_id: 'patient-1', subject_type: 'patient', organization_id: 'dev-org' },
+        subject: {
+          subject_id: 'patient-1',
+          subject_type: 'patient',
+          organization_id: SYSTEM_ORG_ID,
+        },
       });
       const response1 = await postSupervise(request1);
       expect(response1.status).toBe(200);
 
       // Different idempotency_key should not get cached response
       const request2 = createClinicalRequest('idem-key-2', {
-        subject: { subject_id: 'patient-2', subject_type: 'patient', organization_id: 'dev-org' },
+        subject: {
+          subject_id: 'patient-2',
+          subject_type: 'patient',
+          organization_id: SYSTEM_ORG_ID,
+        },
       });
       const response2 = await postSupervise(request2);
       expect(response2.status).toBe(200);

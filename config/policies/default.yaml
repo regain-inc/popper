@@ -314,6 +314,19 @@ rules:
   # CROSS-DOMAIN CONFLICTS (Priority 300-399)
   # ═══════════════════════════════════════════════════════════════════════════
 
+  - rule_id: conflict_count_too_high
+    description: Too many cross-domain conflicts
+    priority: 360
+    when:
+      kind: conflict_count_exceeds
+      threshold: 5
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - policy_violation
+        - needs_human_review
+      explanation: Too many cross-domain conflicts detected. Clinician review required.
+
   - rule_id: conflict_escalated
     description: Cross-domain conflict escalated
     priority: 350
@@ -336,6 +349,19 @@ rules:
       reason_codes:
         - insufficient_evidence
       explanation: Cross-domain conflict resolution lacks supporting evidence.
+
+  - rule_id: conflict_low_confidence
+    description: Conflict resolution confidence is low
+    priority: 335
+    when:
+      kind: conflict_resolution_confidence
+      level: low
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - high_uncertainty
+        - needs_human_review
+      explanation: Cross-domain conflict resolution confidence is low. Clinician review required.
 
   - rule_id: domain_failed
     description: Clinical domain processing failed
