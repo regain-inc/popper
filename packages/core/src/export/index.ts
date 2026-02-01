@@ -8,6 +8,9 @@
  */
 
 export * from './generator';
+export * from './interop-types';
 export * from './redaction';
 export * from './stores';
+export * from './tefca';
 export * from './types';
+export * from './uscdi';

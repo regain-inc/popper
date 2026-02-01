@@ -71,6 +71,13 @@
       "when": 1769660000000,
       "tag": "0009_export_bundles",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1769670000000,
+      "tag": "0010_export_bundles_compliance",
+      "breakpoints": true
     }
   ]
 }

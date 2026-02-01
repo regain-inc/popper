@@ -7,6 +7,10 @@
  * @module export/types
  */
 
+import type { InteropPayloadRef } from './interop-types';
+import type { TEFCAComplianceInfo } from './tefca';
+import type { USCDICoverageReport } from './uscdi';
+
 /**
  * Bundle manifest - describes the export bundle contents
  */
@@ -43,6 +47,12 @@ export interface BundleManifest {
     audit_events: string;
     supervision_receipts: string;
     incident_summaries?: string;
+  };
+  /** TEFCA/USCDI compliance metadata */
+  compliance?: {
+    uscdi_v3?: USCDICoverageReport;
+    tefca?: TEFCAComplianceInfo;
+    interop_refs?: InteropPayloadRef[];
   };
 }
 
@@ -219,6 +229,8 @@ export interface StoredExportBundle {
   status: 'pending' | 'ready' | 'downloaded' | 'expired';
   /** Expiration time */
   expires_at?: Date;
+  /** TEFCA/USCDI compliance summary (interop_refs omitted — stored in serialized bundle) */
+  compliance?: Omit<NonNullable<BundleManifest['compliance']>, 'interop_refs'>;
   /** Created at */
   created_at: Date;
   /** Updated at */
@@ -294,6 +306,10 @@ export interface ExportBundleConfig {
   maxEventsPerBundle: number;
   /** Enable gzip compression */
   enableCompression: boolean;
+  /** Enable USCDI v3 coverage validation (default: true) */
+  enableUSCDIValidation: boolean;
+  /** Enable TEFCA metadata enrichment (default: true) */
+  enableTEFCAMetadata: boolean;
 }
 
 /**
@@ -305,4 +321,6 @@ export const DEFAULT_EXPORT_CONFIG: ExportBundleConfig = {
   bundleExpirationDays: 30,
   maxEventsPerBundle: 100000,
   enableCompression: true,
+  enableUSCDIValidation: true,
+  enableTEFCAMetadata: true,
 };

@@ -19,6 +19,7 @@ import {
   redactObject,
   sanitizeText,
 } from './redaction';
+import { assessTEFCACompliance, buildInteropRefs } from './tefca';
 import {
   type BundleManifest,
   DEFAULT_EXPORT_CONFIG,
@@ -32,6 +33,7 @@ import {
   type IExportBundleStore,
   type StoredExportBundle,
 } from './types';
+import { analyzeUSCDICoverage } from './uscdi';
 
 /**
  * Interface for reading audit events
@@ -107,6 +109,7 @@ export class ExportBundleGenerator {
   private readonly auditReader: IAuditEventExportReader;
   private readonly incidentReader: IIncidentExportReader;
   private readonly _hashSalt: string | undefined;
+  private readonly onLog?: (level: 'info' | 'warn', message: string) => void;
 
   /** Get hash salt - returns undefined to use env variable if not explicitly set */
   private get hashSalt(): string | undefined {
@@ -120,6 +123,7 @@ export class ExportBundleGenerator {
     auditReader: IAuditEventExportReader;
     incidentReader: IIncidentExportReader;
     hashSalt?: string;
+    onLog?: (level: 'info' | 'warn', message: string) => void;
   }) {
     this.config = { ...DEFAULT_EXPORT_CONFIG, ...params.config };
     this.storage = params.storage;
@@ -128,6 +132,7 @@ export class ExportBundleGenerator {
     this.incidentReader = params.incidentReader;
     // hashSalt is optional - if not provided, hashForPseudonymization will use env variable
     this._hashSalt = params.hashSalt;
+    this.onLog = params.onLog;
   }
 
   /**
@@ -191,6 +196,35 @@ export class ExportBundleGenerator {
       },
     };
 
+    // Enrich manifest with TEFCA/USCDI compliance metadata
+    if (this.config.enableUSCDIValidation || this.config.enableTEFCAMetadata) {
+      manifest.compliance = {};
+
+      if (this.config.enableUSCDIValidation) {
+        const uscdiReport = analyzeUSCDICoverage(
+          auditEvents,
+          supervisionReceipts,
+          incidentSummaries,
+        );
+        manifest.compliance.uscdi_v3 = uscdiReport;
+
+        if (uscdiReport.gaps_summary && uscdiReport.coverage_score < 1.0) {
+          this.onLog?.(
+            'warn',
+            `USCDI v3 coverage gaps (score=${uscdiReport.coverage_score}): ${uscdiReport.gaps_summary}`,
+          );
+        }
+      }
+
+      if (this.config.enableTEFCAMetadata) {
+        manifest.compliance.tefca = assessTEFCACompliance({
+          eventCount: auditEvents.length,
+          incidentCount: incidentSummaries.length,
+        });
+        manifest.compliance.interop_refs = buildInteropRefs(auditEvents);
+      }
+    }
+
     // Build bundle
     const bundle: ExportBundle = {
       bundle_id: bundleId,
@@ -230,11 +264,20 @@ export class ExportBundleGenerator {
       incident_count: incidentSummaries.length,
       status: 'ready',
       expires_at: expiresAt,
+      compliance: manifest.compliance
+        ? {
+            uscdi_v3: manifest.compliance.uscdi_v3,
+            tefca: manifest.compliance.tefca,
+          }
+        : undefined,
       created_at: now,
       updated_at: now,
     };
 
-    return this.store.save(storedBundle);
+    const saved = await this.store.save(storedBundle);
+    // Re-attach compliance: store may not persist it (e.g. DB has no compliance column)
+    saved.compliance = storedBundle.compliance;
+    return saved;
   }
 
   /**

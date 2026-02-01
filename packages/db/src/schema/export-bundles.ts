@@ -1,4 +1,4 @@
-import { index, integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { index, integer, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 /**
  * Export Bundles table
@@ -44,6 +44,9 @@ export const exportBundles = pgTable(
 
     // When the bundle expires
     expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'date' }),
+
+    // TEFCA/USCDI compliance metadata (JSONB, nullable)
+    compliance: jsonb('compliance'),
 
     // Timestamps
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),

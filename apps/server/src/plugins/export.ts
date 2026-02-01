@@ -15,6 +15,51 @@ import { errorResponseSchema } from '../lib/schemas';
 import { type ApiKeyContext, createAuthGuard } from './api-key-auth';
 import { createRateLimitGuard } from './rate-limit';
 
+/** Elysia schema for TEFCA/USCDI compliance metadata in API responses */
+const complianceSchema = t.Optional(
+  t.Object({
+    uscdi_v3: t.Optional(
+      t.Object({
+        version: t.String(),
+        data_classes: t.Array(
+          t.Object({
+            class: t.String(),
+            status: t.Union([t.Literal('present'), t.Literal('partial'), t.Literal('missing')]),
+            source_fields: t.Array(t.String()),
+            gaps: t.Optional(t.Array(t.String())),
+          }),
+        ),
+        coverage_score: t.Number(),
+        gaps_summary: t.String(),
+      }),
+    ),
+    tefca: t.Optional(
+      t.Object({
+        framework_version: t.String(),
+        exchange_purposes: t.Array(t.String()),
+        document_format: t.String(),
+        ccda_convertible: t.Boolean(),
+        qhin_ready: t.Boolean(),
+        push_capable: t.Boolean(),
+        pull_queryable: t.Boolean(),
+      }),
+    ),
+    interop_refs: t.Optional(
+      t.Array(
+        t.Object({
+          interop_id: t.String(),
+          standard: t.String(),
+          content_type: t.String(),
+          message_type: t.Optional(t.String()),
+          uri: t.String(),
+          content_hash: t.Optional(t.String()),
+          audit_redaction: t.Object({ summary: t.String() }),
+        }),
+      ),
+    ),
+  }),
+);
+
 /** System organization ID that has access to all organizations */
 const SYSTEM_ORG_ID = '00000000-0000-0000-0000-000000000000';
 
@@ -131,6 +176,7 @@ export const exportPlugin = new Elysia({ name: 'export', prefix: '/v1/popper/exp
               incident_count: bundle.incident_count,
               status: bundle.status,
               expires_at: bundle.expires_at?.toISOString(),
+              compliance: bundle.compliance,
             };
           } catch (error) {
             logger.error`Export bundle generation failed: ${error}`;
@@ -175,6 +221,7 @@ export const exportPlugin = new Elysia({ name: 'export', prefix: '/v1/popper/exp
               incident_count: t.Number(),
               status: t.String(),
               expires_at: t.Optional(t.String()),
+              compliance: complianceSchema,
             }),
             401: errorResponseSchema,
             403: errorResponseSchema,
@@ -319,6 +366,7 @@ export const exportPlugin = new Elysia({ name: 'export', prefix: '/v1/popper/exp
               incident_count: bundle.incident_count,
               status: bundle.status,
               expires_at: bundle.expires_at?.toISOString(),
+              compliance: bundle.compliance,
             };
           },
           {
@@ -342,6 +390,7 @@ export const exportPlugin = new Elysia({ name: 'export', prefix: '/v1/popper/exp
                 incident_count: t.Number(),
                 status: t.String(),
                 expires_at: t.Optional(t.String()),
+                compliance: complianceSchema,
               }),
               401: errorResponseSchema,
               403: errorResponseSchema,

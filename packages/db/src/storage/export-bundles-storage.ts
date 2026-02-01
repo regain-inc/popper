@@ -36,6 +36,7 @@ function toStoredBundle(record: ExportBundle): StoredExportBundle {
     incident_count: record.incidentCount,
     status: record.status as StoredExportBundle['status'],
     expires_at: record.expiresAt ?? undefined,
+    compliance: (record.compliance as StoredExportBundle['compliance']) ?? undefined,
     created_at: record.createdAt,
     updated_at: record.updatedAt,
   };
@@ -62,6 +63,7 @@ export class DrizzleExportBundlesStorage implements IExportBundleStore {
       incidentCount: bundle.incident_count,
       status: bundle.status,
       expiresAt: bundle.expires_at,
+      compliance: bundle.compliance ?? null,
       createdAt: bundle.created_at,
       updatedAt: bundle.updated_at,
     };
