@@ -1,5 +1,8 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
+// Demo mode: skip all auth checks and allow all routes
+const DEMO_MODE = true;
+
 // Routes that don't require authentication
 const publicRoutes = ['/login', '/accept-invite'];
 
@@ -7,6 +10,11 @@ const publicRoutes = ['/login', '/accept-invite'];
 const apiRoutes = ['/api/'];
 
 export async function middleware(request: NextRequest) {
+  // In demo mode, allow everything through — no auth checks
+  if (DEMO_MODE) {
+    return NextResponse.next();
+  }
+
   const { pathname } = request.nextUrl;
 
   // Allow API routes (auth is handled in each route handler)

@@ -41,7 +41,31 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+// Demo mode: bypass auth and use a mock admin user
+const DEMO_MODE = true;
+
+const DEMO_USER: AuthUser = {
+  id: 'demo-admin-001',
+  email: 'admin@regain.health',
+  name: 'Dr. Sarah Chen',
+  role: 'admin',
+  image: null,
+};
+
+const DEMO_VALUE: AuthContextValue = {
+  user: DEMO_USER,
+  isLoading: false,
+  isAuthenticated: true,
+  isAdmin: true,
+  isCompliance: false,
+  canAccessDashboard: true,
+  canAccessCompliance: true,
+  login: async () => ({ success: true }),
+  logout: async () => {},
+  refresh: async () => {},
+};
+
+function RealAuthProvider({ children }: { children: ReactNode }) {
   const { data: session, isPending, refetch } = authClient.useSession();
 
   const user: AuthUser | null = session?.user
@@ -105,6 +129,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  if (DEMO_MODE) {
+    return <AuthContext.Provider value={DEMO_VALUE}>{children}</AuthContext.Provider>;
+  }
+  return <RealAuthProvider>{children}</RealAuthProvider>;
 }
 
 export function useAuth(): AuthContextValue {
