@@ -1,3 +1,5 @@
+export { DrizzleAuditEventExportReader } from './audit-event-export-reader';
+export { DrizzleAuditEventReader } from './audit-event-reader';
 export { DrizzleAuditStorage, type StoredAuditEvent } from './audit-storage';
 export {
   type BaselineSignal,
@@ -11,6 +13,7 @@ export {
   DrizzleExportBundlesStorage,
   InMemoryExportBundlesStorage,
 } from './export-bundles-storage';
+export { DrizzleIncidentExportReader } from './incident-export-reader';
 export {
   DrizzleIncidentsStorage,
   type IIncidentsStore,
@@ -30,6 +33,10 @@ export {
   DrizzleRlhfBundlesStorage,
   InMemoryRlhfBundlesStorage,
 } from './rlhf-bundles-storage';
+export {
+  S3ExportBundleStorage,
+  type S3ExportStorageConfig,
+} from './s3-export-storage';
 export {
   type ApiSafeModeHistoryEntry,
   DrizzleSafeModeHistoryStorage,

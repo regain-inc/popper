@@ -33,6 +33,13 @@ const envSchema = t.Object({
   // Redis (for future use)
   REDIS_URL: t.Optional(t.String()),
 
+  // S3/MinIO configuration for export bundle storage
+  S3_ENDPOINT: t.Optional(t.String()),
+  S3_ACCESS_KEY: t.Optional(t.String()),
+  S3_SECRET_KEY: t.Optional(t.String()),
+  S3_BUCKET: t.String({ default: 'popper-exports' }),
+  S3_REGION: t.String({ default: 'us-east-1' }),
+
   // Policy configuration
   POLICIES_DIR: t.String({ default: './config/policies' }),
 
@@ -53,6 +60,11 @@ function parseEnv(): Env {
     OTEL_EXPORTER_OTLP_ENDPOINT: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
     DATABASE_URL: process.env.DATABASE_URL,
     REDIS_URL: process.env.REDIS_URL,
+    S3_ENDPOINT: process.env.S3_ENDPOINT,
+    S3_ACCESS_KEY: process.env.S3_ACCESS_KEY,
+    S3_SECRET_KEY: process.env.S3_SECRET_KEY,
+    S3_BUCKET: process.env.S3_BUCKET ?? 'popper-exports',
+    S3_REGION: process.env.S3_REGION ?? 'us-east-1',
     POLICIES_DIR: process.env.POLICIES_DIR ?? './config/policies',
     POPPER_ADMIN_API_KEY: process.env.POPPER_ADMIN_API_KEY,
   } satisfies Env;

@@ -34,9 +34,6 @@ import {
   InMemorySafeModeStateStore,
   InMemorySettingsCache,
   InMemorySettingsStore,
-  MockAuditEventExportReader,
-  MockAuditEventReader,
-  MockIncidentExportReader,
   type PolicyLifecycleEvent,
   PolicyLifecycleManager,
   policyRegistry,
@@ -51,16 +48,20 @@ import {
 import {
   ApiKeyService,
   createDB,
+  DrizzleAuditEventExportReader,
+  DrizzleAuditEventReader,
   DrizzleAuditStorage,
   DrizzleDailyAggregateReader,
   DrizzleDriftBaselineStorage,
   DrizzleExportBundlesStorage,
+  DrizzleIncidentExportReader,
   DrizzleIncidentsStorage,
   DrizzleOperationalSettingsStorage,
   DrizzlePolicyPackStorage,
   DrizzleRlhfBundlesStorage,
   DrizzleSafeModeHistoryStorage,
   OrganizationService,
+  S3ExportBundleStorage,
 } from '@popper/db';
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
@@ -89,6 +90,22 @@ const AUDIT_QUEUE_NAME = 'audit-events';
 
 // Track shutdown state
 let isShuttingDown = false;
+
+/**
+ * Create export file storage: S3/MinIO if configured, in-memory fallback
+ */
+function createExportFileStorage() {
+  if (env.S3_ENDPOINT && env.S3_ACCESS_KEY && env.S3_SECRET_KEY) {
+    return new S3ExportBundleStorage({
+      endpoint: env.S3_ENDPOINT,
+      accessKeyId: env.S3_ACCESS_KEY,
+      secretAccessKey: env.S3_SECRET_KEY,
+      bucket: env.S3_BUCKET,
+      region: env.S3_REGION,
+    });
+  }
+  return new InMemoryExportBundleStorage();
+}
 
 /**
  * Main entry point
@@ -222,26 +239,26 @@ async function main(): Promise<void> {
     setDriftTriggersManager(driftTriggersManager);
     logger.info`Drift triggers manager initialized with Redis + PostgreSQL`;
 
-    // RLHF Feedback Aggregator: PostgreSQL for bundles storage
+    // RLHF Feedback Aggregator: PostgreSQL for bundles storage + audit event reader
     const rlhfBundlesStorage = new DrizzleRlhfBundlesStorage(db);
     const rlhfAggregator = new RLHFFeedbackAggregator({
       bundleStore: rlhfBundlesStorage,
-      auditReader: new MockAuditEventReader(), // TODO: Replace with DrizzleAuditEventReader
+      auditReader: new DrizzleAuditEventReader(db),
     });
     setRlhfAggregator(rlhfAggregator);
-    logger.info`RLHF aggregator initialized with PostgreSQL`;
+    logger.info`RLHF aggregator initialized with PostgreSQL (continuous aggregate + hypertable)`;
 
-    // Export Bundle Generator: PostgreSQL for metadata, in-memory for file storage
-    // TODO: Replace InMemoryExportBundleStorage with Minio/S3 storage
+    // Export Bundle Generator: PostgreSQL for metadata + readers, S3/MinIO for file storage
     const exportBundlesStorage = new DrizzleExportBundlesStorage(db);
+    const exportFileStorage = createExportFileStorage();
     const exportGenerator = new ExportBundleGenerator({
-      storage: new InMemoryExportBundleStorage(),
+      storage: exportFileStorage,
       store: exportBundlesStorage,
-      auditReader: new MockAuditEventExportReader(),
-      incidentReader: new MockIncidentExportReader(),
+      auditReader: new DrizzleAuditEventExportReader(db),
+      incidentReader: new DrizzleIncidentExportReader(db),
     });
     setExportGenerator(exportGenerator);
-    logger.info`Export generator initialized with PostgreSQL`;
+    logger.info`Export generator initialized with PostgreSQL + ${env.S3_ENDPOINT ? 'S3/MinIO' : 'in-memory'} storage`;
 
     // Policy lifecycle manager: PostgreSQL for storage, Redis for cache
     const policyPackStorage = new DrizzlePolicyPackStorage(db);
@@ -442,25 +459,26 @@ async function main(): Promise<void> {
     setDriftTriggersManager(driftTriggersManager);
     logger.info`Drift triggers manager initialized with PostgreSQL (in-memory cooldowns)`;
 
-    // RLHF Feedback Aggregator: PostgreSQL for bundles storage
+    // RLHF Feedback Aggregator: PostgreSQL for bundles storage + audit event reader
     const rlhfBundlesStorage = new DrizzleRlhfBundlesStorage(db);
     const rlhfAggregator = new RLHFFeedbackAggregator({
       bundleStore: rlhfBundlesStorage,
-      auditReader: new MockAuditEventReader(), // TODO: Replace with DrizzleAuditEventReader
+      auditReader: new DrizzleAuditEventReader(db),
     });
     setRlhfAggregator(rlhfAggregator);
-    logger.info`RLHF aggregator initialized with PostgreSQL`;
+    logger.info`RLHF aggregator initialized with PostgreSQL (continuous aggregate + hypertable)`;
 
-    // Export Bundle Generator: PostgreSQL for metadata, in-memory for file storage
+    // Export Bundle Generator: PostgreSQL for metadata + readers, S3/MinIO for file storage
     const exportBundlesStorage = new DrizzleExportBundlesStorage(db);
+    const exportFileStorage = createExportFileStorage();
     const exportGenerator = new ExportBundleGenerator({
-      storage: new InMemoryExportBundleStorage(),
+      storage: exportFileStorage,
       store: exportBundlesStorage,
-      auditReader: new MockAuditEventExportReader(),
-      incidentReader: new MockIncidentExportReader(),
+      auditReader: new DrizzleAuditEventExportReader(db),
+      incidentReader: new DrizzleIncidentExportReader(db),
     });
     setExportGenerator(exportGenerator);
-    logger.info`Export generator initialized with PostgreSQL`;
+    logger.info`Export generator initialized with PostgreSQL + ${env.S3_ENDPOINT ? 'S3/MinIO' : 'in-memory'} storage`;
 
     // Policy lifecycle manager: PostgreSQL for storage
     const policyPackStorage = new DrizzlePolicyPackStorage(db);
