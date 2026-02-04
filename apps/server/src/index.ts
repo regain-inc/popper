@@ -72,7 +72,7 @@ import { setDriftCounters } from './lib/drift';
 import { setExportGenerator } from './lib/export';
 import { setIdempotencyCache } from './lib/idempotency';
 import { setIncidentsStore } from './lib/incidents';
-import { logger, setupLogger } from './lib/logger';
+import { logger, setupLogger, shutdownLogger } from './lib/logger';
 import { initOrganizationService } from './lib/organizations';
 import { setPolicyLifecycleManager } from './lib/policy-lifecycle';
 import { PolicyPackStoreAdapter } from './lib/policy-pack-store-adapter';
@@ -540,6 +540,9 @@ function setupGracefulShutdown(server: ReturnType<typeof Bun.serve>): void {
       // Stop the server
       logger.info`Stopping server...`;
       server.stop(true); // true = wait for pending requests
+
+      // Flush Loki sink before exit
+      await shutdownLogger();
 
       logger.info`Server stopped gracefully`;
       process.exit(0);

@@ -40,6 +40,12 @@ const envSchema = t.Object({
   S3_BUCKET: t.String({ default: 'popper-exports' }),
   S3_REGION: t.String({ default: 'us-east-1' }),
 
+  // Loki
+  LOKI_URL: t.Optional(t.String()),
+  LOKI_BATCH_SIZE: t.Number({ default: 100 }),
+  LOKI_FLUSH_INTERVAL_MS: t.Number({ default: 1000 }),
+  LOKI_HEADERS: t.Optional(t.String()),
+
   // CORS
   CORS_ORIGIN: t.String({ default: 'http://localhost:3002' }),
 
@@ -74,6 +80,10 @@ function parseEnv(): Env {
     S3_SECRET_KEY: process.env.S3_SECRET_KEY,
     S3_BUCKET: process.env.S3_BUCKET ?? 'popper-exports',
     S3_REGION: process.env.S3_REGION ?? 'us-east-1',
+    LOKI_URL: process.env.LOKI_URL,
+    LOKI_BATCH_SIZE: Number(process.env.LOKI_BATCH_SIZE) || 100,
+    LOKI_FLUSH_INTERVAL_MS: Number(process.env.LOKI_FLUSH_INTERVAL_MS) || 1000,
+    LOKI_HEADERS: process.env.LOKI_HEADERS,
     CORS_ORIGIN: process.env.CORS_ORIGIN ?? 'http://localhost:3002',
     POLICIES_DIR: process.env.POLICIES_DIR ?? './config/policies',
     POPPER_ADMIN_API_KEY: process.env.POPPER_ADMIN_API_KEY,

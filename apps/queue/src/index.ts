@@ -9,7 +9,7 @@
 
 import { createDB } from '@popper/db';
 import { config } from './lib/config';
-import { logger, setupLogger } from './lib/logger';
+import { logger, setupLogger, shutdownLogger } from './lib/logger';
 import { createAuditWorker, createRedisConnection, getConnectionOptions } from './lib/queue';
 import {
   flushPendingEvents,
@@ -104,6 +104,9 @@ function setupGracefulShutdown(
       // Close Redis connection
       logger.info`Closing Redis connection...`;
       redis.disconnect();
+
+      // Flush Loki sink before exit
+      await shutdownLogger();
 
       logger.info`Queue worker stopped gracefully`;
       process.exit(0);
