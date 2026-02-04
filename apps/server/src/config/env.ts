@@ -27,8 +27,8 @@ const envSchema = t.Object({
   OTEL_SERVICE_NAME: t.String({ default: 'popper' }),
   OTEL_EXPORTER_OTLP_ENDPOINT: t.Optional(t.String()),
 
-  // Database (for future use)
-  DATABASE_URL: t.Optional(t.String()),
+  // Database (required)
+  DATABASE_URL: t.String(),
 
   // Redis (for future use)
   REDIS_URL: t.Optional(t.String()),
@@ -53,6 +53,12 @@ const envSchema = t.Object({
 type Env = typeof envSchema.static;
 
 function parseEnv(): Env {
+  if (!process.env.DATABASE_URL) {
+    console.error('FATAL: DATABASE_URL environment variable is required but not set.');
+    console.error('Set DATABASE_URL to a valid PostgreSQL connection string.');
+    process.exit(1);
+  }
+
   const env = {
     NODE_ENV: process.env.NODE_ENV ?? 'development',
     PORT: Number(process.env.PORT) || 3000,

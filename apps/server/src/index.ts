@@ -30,10 +30,8 @@ import {
   getDefaultEmitter,
   InMemoryExportBundleStorage,
   InMemoryPolicyPackCache,
-  InMemorySafeModeHistoryStore,
   InMemorySafeModeStateStore,
   InMemorySettingsCache,
-  InMemorySettingsStore,
   type PolicyLifecycleEvent,
   PolicyLifecycleManager,
   policyRegistry,
@@ -93,6 +91,24 @@ const AUDIT_QUEUE_NAME = 'audit-events';
 let isShuttingDown = false;
 
 /**
+ * Test database connection at startup
+ * Exits with code 1 if unreachable
+ */
+async function testDatabaseConnection(connectionString: string): Promise<void> {
+  const { default: postgres } = await import('postgres');
+  const sql = postgres(connectionString, { max: 1, connect_timeout: 5 });
+  try {
+    await sql`SELECT 1`;
+    await sql.end();
+  } catch (error) {
+    await sql.end().catch(() => {});
+    logger.fatal`Database connection failed: ${error}`;
+    logger.fatal`Check DATABASE_URL and ensure PostgreSQL is running.`;
+    process.exit(1);
+  }
+}
+
+/**
  * Create export file storage: S3/MinIO if configured, in-memory fallback
  */
 function createExportFileStorage() {
@@ -136,9 +152,13 @@ async function main(): Promise<void> {
     throw error;
   }
 
+  // Verify database connection before proceeding
+  await testDatabaseConnection(env.DATABASE_URL);
+  logger.info`Database connection verified`;
+
   // Initialize audit storage, idempotency cache, and safe-mode manager
-  // Priority: Redis + PostgreSQL > Direct PostgreSQL > In-memory
-  if (env.REDIS_URL && env.DATABASE_URL) {
+  // Priority: Redis + PostgreSQL > Direct PostgreSQL
+  if (env.REDIS_URL) {
     // Production setup: Redis for state + queue, PostgreSQL for history
     logger.info`Initializing with Redis + PostgreSQL...`;
 
@@ -315,67 +335,7 @@ async function main(): Promise<void> {
     } catch (err) {
       logger.warning`Failed to load active policies from database: ${err}`;
     }
-  } else if (env.REDIS_URL) {
-    // Redis only (no PostgreSQL for history)
-    logger.info`Initializing with Redis only...`;
-    logger.warning`DATABASE_URL not set. Safe-mode history will be in-memory.`;
-
-    const redis = new IORedis(env.REDIS_URL, {
-      maxRetriesPerRequest: null,
-      enableReadyCheck: false,
-    });
-
-    // Audit storage via queue
-    const auditQueue = new Queue(AUDIT_QUEUE_NAME, { connection: redis });
-    const auditStorage = new QueueAuditStorage(auditQueue);
-    const auditEmitter = new AuditEmitter(auditStorage, {
-      batchEnabled: false,
-      asyncWrites: true,
-    });
-    setDefaultEmitter(auditEmitter);
-    logger.info`Audit storage initialized with Redis queue`;
-
-    // Idempotency cache via Redis
-    const idempotencyRedis = new IORedis(env.REDIS_URL);
-    const idempotencyCache = new IdempotencyCache<SupervisionResponse>(idempotencyRedis);
-    setIdempotencyCache(idempotencyCache);
-    logger.info`Idempotency cache initialized with Redis`;
-
-    // Safe-mode manager: Redis for state, in-memory for history
-    const safeModeRedis = new IORedis(env.REDIS_URL);
-    const safeModeManager = new SafeModeManager({
-      stateStore: new RedisSafeModeStateStore(safeModeRedis),
-      historyStore: new InMemorySafeModeHistoryStore(),
-    });
-    setSafeModeManager(safeModeManager);
-    logger.info`Safe-mode manager initialized with Redis (in-memory history)`;
-
-    // API key service: Not available without database
-    // In-memory cache will be used but service won't be initialized
-    const apiKeyRedis = new IORedis(env.REDIS_URL);
-    const apiKeyCache = new ApiKeyCache(apiKeyRedis);
-    setApiKeyCache(apiKeyCache);
-    logger.warning`API key service not available without DATABASE_URL. Key validation disabled.`;
-
-    // Rate limit cache via Redis
-    const rateLimitRedis = new IORedis(env.REDIS_URL);
-    setRateLimitCache(new RateLimitCache(rateLimitRedis));
-    logger.info`Rate limit cache initialized with Redis`;
-
-    // Drift counters via Redis
-    const driftRedis = new IORedis(env.REDIS_URL);
-    setDriftCounters(new DriftCounters(driftRedis));
-    logger.info`Drift counters initialized with Redis`;
-
-    // Settings manager: in-memory storage without database, Redis for cache
-    const settingsRedis = new IORedis(env.REDIS_URL);
-    const settingsManager = new SettingsManager({
-      store: new InMemorySettingsStore(),
-      cache: new RedisSettingsCache(settingsRedis),
-    });
-    setSettingsManager(settingsManager);
-    logger.warning`Settings manager initialized with in-memory storage (no DATABASE_URL)`;
-  } else if (env.DATABASE_URL) {
+  } else {
     // Direct PostgreSQL writes (not recommended for production)
     logger.info`Initializing audit storage with PostgreSQL (direct)...`;
     logger.warning`Direct DB writes not recommended. Set REDIS_URL for queue-based storage.`;
@@ -535,46 +495,6 @@ async function main(): Promise<void> {
     } catch (err) {
       logger.warning`Failed to load active policies from database: ${err}`;
     }
-  } else {
-    logger.warning`REDIS_URL and DATABASE_URL not configured, using in-memory storage`;
-
-    // In-memory idempotency cache for development/testing
-    const idempotencyCache = new InMemoryIdempotencyCache<SupervisionResponse>();
-    setIdempotencyCache(idempotencyCache);
-    logger.info`Idempotency cache initialized with in-memory storage`;
-
-    // Safe-mode manager: all in-memory
-    const safeModeManager = new SafeModeManager({
-      stateStore: new InMemorySafeModeStateStore(),
-      historyStore: new InMemorySafeModeHistoryStore(),
-    });
-    setSafeModeManager(safeModeManager);
-    logger.info`Safe-mode manager initialized with in-memory storage`;
-
-    // API key service: Not available without database
-    // Development mode will bypass auth, but API key management endpoints won't work
-    logger.warning`API key service not available without DATABASE_URL. Key management disabled.`;
-
-    // Rate limit cache: in-memory for development/testing
-    // Note: In dev mode without auth, rate limiting uses dev-org ID
-    setRateLimitCache(new InMemoryRateLimitCache());
-    logger.info`Rate limit cache initialized with in-memory storage`;
-
-    // Drift counters: in-memory for development/testing
-    setDriftCounters(new InMemoryDriftCounters());
-    logger.info`Drift counters initialized with in-memory storage`;
-
-    // Settings manager: all in-memory for development/testing
-    const settingsManager = new SettingsManager({
-      store: new InMemorySettingsStore(),
-      cache: new InMemorySettingsCache(),
-    });
-    setSettingsManager(settingsManager);
-    logger.info`Settings manager initialized with in-memory storage`;
-
-    // Drift triggers not initialized in pure in-memory mode
-    // (requires at least baseline calculator and drift counters which are limited without DB)
-    logger.warning`Drift triggers not available without DATABASE_URL`;
   }
 
   // Create and start the application
