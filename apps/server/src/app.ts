@@ -3,7 +3,9 @@
  * @module app
  */
 
+import { cors } from '@elysiajs/cors';
 import { Elysia } from 'elysia';
+import { env } from './config/env';
 import { adminKeysPlugin } from './plugins/admin-keys';
 import { adminOrgsPlugin } from './plugins/admin-orgs';
 import { controlPlugin } from './plugins/control';
@@ -33,6 +35,14 @@ import { tracingPlugin } from './plugins/tracing';
  */
 export function createApp() {
   return new Elysia({ name: 'popper' })
+    .use(
+      cors({
+        origin: env.CORS_ORIGIN.split(',').map((o) => o.trim()),
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Idempotency-Key'],
+        credentials: true,
+      }),
+    )
     .use(tracingPlugin)
     .use(metricsPlugin)
     .use(httpLoggerPlugin)

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ApiError, api } from '@/lib/api';
 import { mockSafeModeHistory } from '@/lib/mock-data';
 import type {
   SafeModeHistoryResponse,
@@ -9,8 +10,7 @@ import type {
   SafeModeState,
 } from '@/types/api';
 
-// Always use mock mode for now (backend not connected)
-const USE_MOCK = true;
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
 
 async function fetchSafeMode(organizationId?: string): Promise<SafeModeState> {
   if (USE_MOCK) {
@@ -26,8 +26,15 @@ async function fetchSafeMode(organizationId?: string): Promise<SafeModeState> {
     };
   }
 
-  const { getSafeMode } = await import('@/lib/api');
-  return getSafeMode(organizationId);
+  const { data, error } = await api.v1.popper.control['safe-mode'].get({
+    query: { organization_id: organizationId },
+  });
+
+  if (error) {
+    throw new ApiError(error.status, error.value as string);
+  }
+
+  return data as SafeModeState;
 }
 
 async function fetchSafeModeHistory(organizationId?: string): Promise<SafeModeHistoryResponse> {
@@ -41,8 +48,15 @@ async function fetchSafeModeHistory(organizationId?: string): Promise<SafeModeHi
     return { history };
   }
 
-  const { getSafeModeHistory } = await import('@/lib/api');
-  return getSafeModeHistory(20, undefined, organizationId);
+  const { data, error } = await api.v1.popper.control['safe-mode'].history.get({
+    query: { limit: 20, organization_id: organizationId },
+  });
+
+  if (error) {
+    throw new ApiError(error.status, error.value as string);
+  }
+
+  return data as SafeModeHistoryResponse;
 }
 
 async function updateSafeMode(request: SafeModeRequest): Promise<SafeModeResponse> {
@@ -67,8 +81,13 @@ async function updateSafeMode(request: SafeModeRequest): Promise<SafeModeRespons
     };
   }
 
-  const { setSafeMode } = await import('@/lib/api');
-  return setSafeMode(request);
+  const { data, error } = await api.v1.popper.control['safe-mode'].post(request);
+
+  if (error) {
+    throw new ApiError(error.status, error.value as string);
+  }
+
+  return data as SafeModeResponse;
 }
 
 export function useSafeMode(organizationId?: string) {
@@ -93,7 +112,6 @@ export function useSetSafeMode() {
   return useMutation({
     mutationFn: updateSafeMode,
     onSuccess: () => {
-      // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['safe-mode'] });
       queryClient.invalidateQueries({ queryKey: ['safe-mode-history'] });
       queryClient.invalidateQueries({ queryKey: ['status'] });

@@ -1,6 +1,8 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ApiError, api } from '@/lib/api';
+import { mockIncidents } from '@/lib/mock-data';
 import type {
   Incident,
   IncidentStatus,
@@ -9,75 +11,7 @@ import type {
   ResolveIncidentRequest,
 } from '@/types/api';
 
-// Mock incidents data for development
-const mockIncidents: Incident[] = [
-  {
-    id: 'inc_1',
-    organization_id: 'org_demo',
-    type: 'drift_threshold_breach',
-    status: 'open',
-    trigger_signal: 'validation_failure_rate',
-    trigger_level: 'critical',
-    trigger_value: '0.15',
-    threshold_value: '0.10',
-    baseline_value: '0.02',
-    title: 'Critical: validation_failure_rate exceeded threshold',
-    description: 'Validation failure rate spiked to 15%, exceeding critical threshold of 10%',
-    metadata: null,
-    safe_mode_enabled: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-    resolved_at: null,
-    resolved_by: null,
-    resolution_notes: null,
-    cooldown_until: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-    created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'inc_2',
-    organization_id: 'org_demo',
-    type: 'drift_threshold_breach',
-    status: 'acknowledged',
-    trigger_signal: 'hard_stop_rate',
-    trigger_level: 'warning',
-    trigger_value: '0.08',
-    threshold_value: '0.06',
-    baseline_value: '0.03',
-    title: 'Warning: hard_stop_rate approaching threshold',
-    description: 'Hard stop rate increased to 8%, approaching critical threshold',
-    metadata: null,
-    safe_mode_enabled: null,
-    resolved_at: null,
-    resolved_by: null,
-    resolution_notes: null,
-    cooldown_until: null,
-    created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'inc_3',
-    organization_id: 'org_demo',
-    type: 'manual',
-    status: 'resolved',
-    trigger_signal: null,
-    trigger_level: null,
-    trigger_value: null,
-    threshold_value: null,
-    baseline_value: null,
-    title: 'Manual incident: Scheduled maintenance',
-    description: 'Safe-mode enabled for scheduled system maintenance',
-    metadata: null,
-    safe_mode_enabled: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    resolved_at: new Date(Date.now() - 22 * 60 * 60 * 1000).toISOString(),
-    resolved_by: 'ops@regain.health',
-    resolution_notes: 'Maintenance completed successfully. All systems operational.',
-    cooldown_until: null,
-    created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 22 * 60 * 60 * 1000).toISOString(),
-  },
-];
-
-// Always use mock mode for now (backend not connected)
-const USE_MOCK = true;
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
 
 async function fetchIncidents(
   organizationId?: string,
@@ -96,13 +30,15 @@ async function fetchIncidents(
     };
   }
 
-  const params = new URLSearchParams();
-  if (organizationId) params.set('organization_id', organizationId);
-  if (status) params.set('status', status);
+  const { data, error } = await api.v1.popper.control.incidents.get({
+    query: { organization_id: organizationId, status },
+  });
 
-  const response = await fetch(`/api/popper/control/incidents?${params}`);
-  if (!response.ok) throw new Error('Failed to fetch incidents');
-  return response.json();
+  if (error) {
+    throw new ApiError(error.status, error.value as string);
+  }
+
+  return data as IncidentsResponse;
 }
 
 async function fetchIncident(id: string): Promise<Incident> {
@@ -113,9 +49,13 @@ async function fetchIncident(id: string): Promise<Incident> {
     return incident;
   }
 
-  const response = await fetch(`/api/popper/control/incidents/${id}`);
-  if (!response.ok) throw new Error('Failed to fetch incident');
-  return response.json();
+  const { data, error } = await api.v1.popper.control.incidents({ id }).get();
+
+  if (error) {
+    throw new ApiError(error.status, error.value as string);
+  }
+
+  return data as Incident;
 }
 
 async function acknowledgeIncident(id: string): Promise<IncidentUpdateResponse> {
@@ -128,12 +68,13 @@ async function acknowledgeIncident(id: string): Promise<IncidentUpdateResponse> 
     };
   }
 
-  const response = await fetch(`/api/popper/control/incidents/${id}/acknowledge`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-  });
-  if (!response.ok) throw new Error('Failed to acknowledge incident');
-  return response.json();
+  const { data, error } = await api.v1.popper.control.incidents({ id }).acknowledge.post();
+
+  if (error) {
+    throw new ApiError(error.status, error.value as string);
+  }
+
+  return data as IncidentUpdateResponse;
 }
 
 async function resolveIncident(
@@ -149,19 +90,20 @@ async function resolveIncident(
     };
   }
 
-  const response = await fetch(`/api/popper/control/incidents/${id}/resolve`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-  });
-  if (!response.ok) throw new Error('Failed to resolve incident');
-  return response.json();
+  const { data, error } = await api.v1.popper.control.incidents({ id }).resolve.post(request);
+
+  if (error) {
+    throw new ApiError(error.status, error.value as string);
+  }
+
+  return data as IncidentUpdateResponse;
 }
 
 export function useIncidents(organizationId?: string, status?: 'open' | 'all') {
   return useQuery({
     queryKey: ['incidents', organizationId, status],
     queryFn: () => fetchIncidents(organizationId, status),
+    refetchInterval: 60_000,
     staleTime: 10000,
   });
 }

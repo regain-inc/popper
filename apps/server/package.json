@@ -3,6 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/app.ts",
+      "import": "./src/app.ts"
+    }
+  },
   "scripts": {
     "dev": "bun run --hot src/index.ts",
     "build": "bun build src/index.ts --outdir dist --target bun",
@@ -17,6 +23,7 @@
     "clean": "rm -rf dist .turbo coverage"
   },
   "dependencies": {
+    "@elysiajs/cors": "^1.4.1",
     "@elysiajs/opentelemetry": "^1.4.10",
     "@logtape/logtape": "^2.0.2",
     "@opentelemetry/exporter-metrics-otlp-proto": "^0.211.0",
