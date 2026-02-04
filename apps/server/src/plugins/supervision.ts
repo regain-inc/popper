@@ -30,6 +30,7 @@ import { getDriftCounters, isDriftCountersInitialized } from '../lib/drift';
 import { getIdempotencyCache } from '../lib/idempotency';
 import { logger } from '../lib/logger';
 import { getOrganizationService, isOrganizationServiceInitialized } from '../lib/organizations';
+import { getSafeModeManager } from '../lib/safe-mode';
 import { errorResponseSchema } from '../lib/schemas';
 import { supervisionRequestSchema, supervisionResponseSchema } from '../lib/schemas/supervision';
 import { createAuthGuard } from './api-key-auth';
@@ -371,27 +372,35 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
             ]);
           }
 
-          // 6. Create evaluation context
+          // 6. Snapshot safe-mode state from Redis (<5ms)
+          const safeModeState = await getSafeModeManager().snapshot(organizationId);
+
+          // 7. Create evaluation context
           const context: EvaluationContext = {
             request,
             controlPlane: {
               current_time: new Date(),
+              safe_mode: {
+                enabled: safeModeState.enabled,
+                reason: safeModeState.reason,
+                effective_at: safeModeState.effective_at,
+              },
             },
             derivedSignals,
           };
 
-          // 7. Evaluate policies
+          // 8. Evaluate policies
           const evaluator = createEvaluator(policyPack);
           const evaluationResult = evaluator.evaluate(context);
 
-          // 8. Build final response
+          // 9. Build final response
           const response = decisionBuilder.build({
             request,
             evaluationResult,
             stalenessResult,
           });
 
-          // 9. Log metrics and emit audit event
+          // 10. Log metrics and emit audit event
           const latencyMs = performance.now() - startTime;
           logger.info`Supervision completed: decision=${response.decision} latency=${latencyMs.toFixed(2)}ms`;
 
@@ -412,7 +421,7 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
               decision: response.decision,
               reasonCodes: response.reason_codes,
               policyPackVersion: evaluationResult.policy_version,
-              safeModeActive: false, // TODO: integrate with safe mode state
+              safeModeActive: safeModeState.enabled,
               latencyMs,
               proposalCount: request.proposals?.length ?? 0,
               payload: {
