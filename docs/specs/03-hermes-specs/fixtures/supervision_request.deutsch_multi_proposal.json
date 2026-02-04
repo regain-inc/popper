@@ -1,0 +1,104 @@
+{
+  "hermes_version": "1.6.0",
+  "message_type": "supervision_request",
+  "trace": {
+    "trace_id": "deutsch-multi-001",
+    "created_at": "2026-02-04T16:45:00.000Z",
+    "producer": {
+      "system": "deutsch",
+      "service_version": "deutsch-1.2.0",
+      "ruleset_version": "cvd-spec-0.2.0",
+      "model_version": "gpt-5.2"
+    }
+  },
+  "idempotency_key": "01J5K9M2P3Q4R5S6T7U8V9W0X3",
+  "request_timestamp": "2026-02-04T16:45:00.000Z",
+  "mode": "advocate_clinical",
+  "subject": {
+    "subject_type": "patient",
+    "subject_id": "anon_clinical_pt_089",
+    "organization_id": "org_ta3_alpha"
+  },
+  "snapshot": {
+    "snapshot_id": "snap_clinical_089_20260204",
+    "snapshot_hash": "mUlt1Pr0p0s4lPt089Sn4p2026==",
+    "created_at": "2026-02-04T16:44:30.000Z",
+    "sources": ["ehr", "wearable"],
+    "snapshot_uri": "phi://snapshots/snap_clinical_089_20260204",
+    "quality": {
+      "missing_signals": [],
+      "conflicting_signals": []
+    }
+  },
+  "input_risk": {
+    "attachments_present": false,
+    "flags": []
+  },
+  "proposals": [
+    {
+      "proposal_id": "prop_multi_med_001",
+      "kind": "MEDICATION_ORDER_PROPOSAL",
+      "created_at": "2026-02-04T16:45:00.000Z",
+      "medication": {
+        "name": "atorvastatin",
+        "drug_class": "statin"
+      },
+      "change": {
+        "change_type": "initiate",
+        "to_dose": "40 mg daily"
+      },
+      "rationale": "LDL-C persistently elevated at 165 mg/dL despite lifestyle modifications. Patient meets criteria for high-intensity statin therapy per ASCVD guidelines.",
+      "clinician_protocol_ref": "protocol://org_ta3_alpha/cvd/lipid-management/v1.3.0",
+      "evidence_refs": [
+        "ehr://lab_results/lipid_panel/2026-02-01"
+      ],
+      "audit_redaction": {
+        "summary": "Propose statin initiation for elevated LDL-C"
+      }
+    },
+    {
+      "proposal_id": "prop_multi_lab_001",
+      "kind": "LAB_ORDER_PROPOSAL",
+      "created_at": "2026-02-04T16:45:00.000Z",
+      "lab_tests": [
+        {
+          "test_name": "ALT",
+          "loinc_code": "1742-6"
+        },
+        {
+          "test_name": "AST",
+          "loinc_code": "1920-8"
+        },
+        {
+          "test_name": "CK",
+          "loinc_code": "2157-6"
+        }
+      ],
+      "timing": "baseline",
+      "rationale": "Baseline hepatic function and muscle enzyme monitoring required before statin initiation per standard protocol.",
+      "clinician_protocol_ref": "protocol://org_ta3_alpha/cvd/lipid-management/v1.3.0",
+      "audit_redaction": {
+        "summary": "Order baseline labs for statin safety monitoring"
+      }
+    },
+    {
+      "proposal_id": "prop_multi_followup_001",
+      "kind": "FOLLOWUP_SCHEDULING_PROPOSAL",
+      "created_at": "2026-02-04T16:45:00.000Z",
+      "followup_type": "lab_review",
+      "timing": "6_weeks",
+      "rationale": "Follow-up lipid panel and hepatic function tests to assess statin efficacy and safety.",
+      "audit_redaction": {
+        "summary": "Schedule 6-week follow-up for statin monitoring"
+      }
+    }
+  ],
+  "audit_redaction": {
+    "summary": "Deutsch requests supervision for comprehensive lipid management plan: statin initiation, baseline labs, and follow-up scheduling.",
+    "proposal_summaries": [
+      "Propose statin initiation for elevated LDL-C",
+      "Order baseline labs for statin safety monitoring",
+      "Schedule 6-week follow-up for statin monitoring"
+    ]
+  }
+}

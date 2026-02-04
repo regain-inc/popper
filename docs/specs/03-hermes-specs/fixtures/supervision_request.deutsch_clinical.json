@@ -1,0 +1,67 @@
+{
+  "hermes_version": "1.6.0",
+  "message_type": "supervision_request",
+  "trace": {
+    "trace_id": "deutsch-clinical-001",
+    "created_at": "2026-02-04T14:30:00.000Z",
+    "producer": {
+      "system": "deutsch",
+      "service_version": "deutsch-1.2.0",
+      "ruleset_version": "cvd-spec-0.2.0",
+      "model_version": "gpt-5.2"
+    }
+  },
+  "idempotency_key": "01J5K9M2P3Q4R5S6T7U8V9W0X2",
+  "request_timestamp": "2026-02-04T14:30:00.000Z",
+  "mode": "advocate_clinical",
+  "subject": {
+    "subject_type": "patient",
+    "subject_id": "anon_clinical_pt_042",
+    "organization_id": "org_ta3_alpha"
+  },
+  "snapshot": {
+    "snapshot_id": "snap_clinical_042_20260204",
+    "snapshot_hash": "cL1n1c4lPt042Sn4p2026F3b04==",
+    "created_at": "2026-02-04T14:29:30.000Z",
+    "sources": ["ehr", "wearable", "other"],
+    "snapshot_uri": "phi://snapshots/snap_clinical_042_20260204",
+    "quality": {
+      "missing_signals": [],
+      "conflicting_signals": []
+    }
+  },
+  "input_risk": {
+    "attachments_present": false,
+    "flags": []
+  },
+  "proposals": [
+    {
+      "proposal_id": "prop_clinical_med_001",
+      "kind": "MEDICATION_ORDER_PROPOSAL",
+      "created_at": "2026-02-04T14:30:00.000Z",
+      "medication": {
+        "name": "metoprolol succinate",
+        "drug_class": "beta_blocker"
+      },
+      "change": {
+        "change_type": "titrate",
+        "from_dose": "25 mg daily",
+        "to_dose": "50 mg daily"
+      },
+      "rationale": "Patient's heart rate remains elevated (avg 95 bpm) despite current dose. Recent BP readings stable at 132/84 mmHg. Lab results show normal renal function (eGFR 78 mL/min/1.73m²). Guideline-directed therapy optimization indicated.",
+      "clinician_protocol_ref": "protocol://org_ta3_alpha/cvd/hf-gdmt-optimization/v2.1.0",
+      "evidence_refs": [
+        "ehr://vital_signs/heart_rate/2026-01-25_to_2026-02-04",
+        "ehr://vital_signs/blood_pressure/2026-01-25_to_2026-02-04",
+        "ehr://lab_results/renal_panel/2026-02-01"
+      ],
+      "audit_redaction": {
+        "summary": "Propose beta-blocker titration based on HR monitoring and stable renal function"
+      }
+    }
+  ],
+  "audit_redaction": {
+    "summary": "Deutsch clinical mode requests supervision for medication titration under GDMT protocol.",
+    "proposal_summaries": ["Propose beta-blocker titration based on HR monitoring and stable renal function"]
+  }
+}
