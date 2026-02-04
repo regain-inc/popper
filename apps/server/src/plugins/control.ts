@@ -1405,6 +1405,79 @@ export const controlPlugin = new Elysia({ name: 'control', prefix: '/v1/popper/c
               tags: ['Control Plane'],
             },
           },
+        )
+        .post(
+          '/incidents',
+          async ({ body, set }) => {
+            if (!isIncidentsStoreInitialized()) {
+              set.status = 503;
+              return {
+                error: 'service_unavailable',
+                message: 'Incidents store not initialized. Requires PostgreSQL.',
+              };
+            }
+
+            const store = getIncidentsStore();
+            const incident = await store.create({
+              organizationId: body.organization_id,
+              type: body.type,
+              title: body.title,
+              description: body.description ?? null,
+              triggerSignal: body.trigger_signal ?? null,
+              metadata: body.metadata ?? null,
+            });
+
+            logger.info`Incident created: id=${incident.id} type=${incident.type}`;
+
+            set.status = 201;
+            return {
+              id: incident.id,
+              organization_id: incident.organizationId,
+              type: incident.type,
+              status: incident.status,
+              trigger_signal: incident.triggerSignal,
+              trigger_level: incident.triggerLevel,
+              trigger_value: incident.triggerValue,
+              threshold_value: incident.thresholdValue,
+              baseline_value: incident.baselineValue,
+              title: incident.title,
+              description: incident.description,
+              metadata: incident.metadata,
+              safe_mode_enabled: incident.safeModeEnabled?.toISOString() ?? null,
+              resolved_at: incident.resolvedAt?.toISOString() ?? null,
+              resolved_by: incident.resolvedBy,
+              resolution_notes: incident.resolutionNotes,
+              cooldown_until: incident.cooldownUntil?.toISOString() ?? null,
+              created_at: incident.createdAt.toISOString(),
+              updated_at: incident.updatedAt.toISOString(),
+            };
+          },
+          {
+            body: t.Object({
+              organization_id: t.String(),
+              type: t.Union([
+                t.Literal('drift_threshold_breach'),
+                t.Literal('manual'),
+                t.Literal('model_update'),
+              ]),
+              title: t.String({ minLength: 1, maxLength: 500 }),
+              description: t.Optional(t.String()),
+              trigger_signal: t.Optional(t.String()),
+              metadata: t.Optional(t.Record(t.String(), t.Unknown())),
+            }),
+            response: {
+              201: incidentSchema,
+              401: errorResponseSchema,
+              403: errorResponseSchema,
+              429: errorResponseSchema,
+              503: errorResponseSchema,
+            },
+            detail: {
+              summary: 'Create incident',
+              description: 'Create a new incident for an organization',
+              tags: ['Control Plane'],
+            },
+          },
         ),
     ),
   );

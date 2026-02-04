@@ -6,6 +6,7 @@
 
 export * from './api-keys';
 export * from './control';
+export * from './dashboard';
 export * from './incidents';
 export * from './operational-settings';
 export * from './organizations';

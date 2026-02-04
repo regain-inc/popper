@@ -1,5 +1,11 @@
 export { DrizzleAuditEventExportReader } from './audit-event-export-reader';
-export { DrizzleAuditEventReader } from './audit-event-reader';
+export {
+  DrizzleAuditEventReader,
+  type ListEventsOptions,
+  type ListEventsResult,
+  type TimeseriesBucket,
+  type TimeseriesOptions,
+} from './audit-event-reader';
 export { DrizzleAuditStorage, type StoredAuditEvent } from './audit-storage';
 export {
   type BaselineSignal,

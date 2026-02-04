@@ -68,6 +68,7 @@ import IORedis from 'ioredis';
 import { createApp } from './app';
 import { env } from './config/env';
 import { initApiKeyService, setApiKeyCache } from './lib/api-keys';
+import { setAuditReader } from './lib/audit-reader';
 import { setBaselineCalculator } from './lib/baselines';
 import { setDriftCounters } from './lib/drift';
 import { setExportGenerator } from './lib/export';
@@ -239,11 +240,16 @@ async function main(): Promise<void> {
     setDriftTriggersManager(driftTriggersManager);
     logger.info`Drift triggers manager initialized with Redis + PostgreSQL`;
 
+    // Audit event reader (shared between RLHF aggregator and dashboard)
+    const auditReader = new DrizzleAuditEventReader(db);
+    setAuditReader(auditReader);
+    logger.info`Audit reader initialized with PostgreSQL`;
+
     // RLHF Feedback Aggregator: PostgreSQL for bundles storage + audit event reader
     const rlhfBundlesStorage = new DrizzleRlhfBundlesStorage(db);
     const rlhfAggregator = new RLHFFeedbackAggregator({
       bundleStore: rlhfBundlesStorage,
-      auditReader: new DrizzleAuditEventReader(db),
+      auditReader,
     });
     setRlhfAggregator(rlhfAggregator);
     logger.info`RLHF aggregator initialized with PostgreSQL (continuous aggregate + hypertable)`;
@@ -459,11 +465,16 @@ async function main(): Promise<void> {
     setDriftTriggersManager(driftTriggersManager);
     logger.info`Drift triggers manager initialized with PostgreSQL (in-memory cooldowns)`;
 
+    // Audit event reader (shared between RLHF aggregator and dashboard)
+    const auditReader = new DrizzleAuditEventReader(db);
+    setAuditReader(auditReader);
+    logger.info`Audit reader initialized with PostgreSQL`;
+
     // RLHF Feedback Aggregator: PostgreSQL for bundles storage + audit event reader
     const rlhfBundlesStorage = new DrizzleRlhfBundlesStorage(db);
     const rlhfAggregator = new RLHFFeedbackAggregator({
       bundleStore: rlhfBundlesStorage,
-      auditReader: new DrizzleAuditEventReader(db),
+      auditReader,
     });
     setRlhfAggregator(rlhfAggregator);
     logger.info`RLHF aggregator initialized with PostgreSQL (continuous aggregate + hypertable)`;
