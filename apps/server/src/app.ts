@@ -34,26 +34,43 @@ import { tracingPlugin } from './plugins/tracing';
  * 11. Supervision - main supervision API (protected by API key with supervision:write scope)
  */
 export function createApp() {
-  return new Elysia({ name: 'popper' })
-    .use(
-      cors({
-        origin: env.CORS_ORIGIN.split(',').map((o) => o.trim()),
-        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Idempotency-Key'],
-        credentials: true,
-      }),
-    )
-    .use(tracingPlugin)
-    .use(metricsPlugin)
-    .use(httpLoggerPlugin)
-    .use(healthPlugin)
-    .use(adminKeysPlugin)
-    .use(adminOrgsPlugin)
-    .use(controlPlugin)
-    .use(dashboardPlugin)
-    .use(exportPlugin)
-    .use(policyLifecyclePlugin)
-    .use(supervisionPlugin);
+  return (
+    new Elysia({
+      name: 'popper',
+      serve: {
+        maxRequestBodySize: 10 * 1024 * 1024, // 10 MB — prevents DoS via large payloads
+      },
+    })
+      .use(
+        cors({
+          origin: env.CORS_ORIGIN.split(',').map((o) => o.trim()),
+          methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+          allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Idempotency-Key'],
+          credentials: true,
+        }),
+      )
+      // Security headers
+      .onAfterHandle(({ set }) => {
+        set.headers['X-Content-Type-Options'] = 'nosniff';
+        set.headers['X-Frame-Options'] = 'DENY';
+        set.headers['X-XSS-Protection'] = '1; mode=block';
+        set.headers['Content-Security-Policy'] = "default-src 'none'";
+        if (process.env.NODE_ENV === 'production') {
+          set.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload';
+        }
+      })
+      .use(tracingPlugin)
+      .use(metricsPlugin)
+      .use(httpLoggerPlugin)
+      .use(healthPlugin)
+      .use(adminKeysPlugin)
+      .use(adminOrgsPlugin)
+      .use(controlPlugin)
+      .use(dashboardPlugin)
+      .use(exportPlugin)
+      .use(policyLifecyclePlugin)
+      .use(supervisionPlugin)
+  );
 }
 
 export type App = ReturnType<typeof createApp>;
