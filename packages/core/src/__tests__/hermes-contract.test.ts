@@ -36,6 +36,10 @@ const HERMES_MESSAGE_FIXTURES = [
   'supervision_request.with_unresolved_conflicts.json',
   'supervision_request.with_feedback_metrics.json',
   'supervision_request.multi_domain.json',
+  'supervision_request.deutsch_wellness.json',
+  'supervision_request.deutsch_clinical.json',
+  'supervision_request.deutsch_multi_proposal.json',
+  'supervision_request.deutsch_safe_mode_trigger.json',
   'supervision_response.valid.json',
   'supervision_response.partial_approval.json',
   'audit_event.valid.json',
@@ -79,11 +83,11 @@ describe('Hermes Contract Tests', () => {
 
         const result = validateHermesMessage(message);
 
-        expect(result.valid).toBe(true);
         if (!result.valid) {
           // Show errors for debugging if assertion fails
           console.error(`Validation errors for ${fixture}:`, result.errors);
         }
+        expect(result.valid).toBe(true);
       });
     }
   });
@@ -161,5 +165,121 @@ describe('Hermes Contract Tests', () => {
         expect(message.reason_codes).toBeInstanceOf(Array);
       });
     }
+  });
+
+  describe('Deutsch Request Patterns', () => {
+    const DEUTSCH_FIXTURES = HERMES_MESSAGE_FIXTURES.filter((f) => f.includes('deutsch'));
+
+    test('all Deutsch fixtures are valid Hermes messages', async () => {
+      expect(DEUTSCH_FIXTURES.length).toBeGreaterThan(0);
+
+      for (const fixture of DEUTSCH_FIXTURES) {
+        const filePath = resolve(FIXTURES_DIR, fixture);
+        const content = await readFile(filePath, 'utf-8');
+        const message = JSON.parse(content);
+
+        const result = validateHermesMessage(message);
+        expect(result.valid).toBe(true);
+      }
+    });
+
+    test('Deutsch wellness request has correct mode and proposal kind', async () => {
+      const filePath = resolve(FIXTURES_DIR, 'supervision_request.deutsch_wellness.json');
+      const content = await readFile(filePath, 'utf-8');
+      const message = JSON.parse(content);
+
+      expect(message.mode).toBe('wellness');
+      expect(message.proposals[0].kind).toBe('LIFESTYLE_RECOMMENDATION_PROPOSAL');
+      expect(message.trace.producer.system).toBe('deutsch');
+    });
+
+    test('Deutsch clinical request has correct mode and medication proposal', async () => {
+      const filePath = resolve(FIXTURES_DIR, 'supervision_request.deutsch_clinical.json');
+      const content = await readFile(filePath, 'utf-8');
+      const message = JSON.parse(content);
+
+      expect(message.mode).toBe('advocate_clinical');
+      expect(message.proposals[0].kind).toBe('MEDICATION_ORDER_PROPOSAL');
+      expect(message.proposals[0].medication).toBeDefined();
+      expect(message.proposals[0].change).toBeDefined();
+      expect(message.trace.producer.system).toBe('deutsch');
+    });
+
+    test('Deutsch multi-proposal request has multiple distinct proposals', async () => {
+      const filePath = resolve(FIXTURES_DIR, 'supervision_request.deutsch_multi_proposal.json');
+      const content = await readFile(filePath, 'utf-8');
+      const message = JSON.parse(content);
+
+      expect(message.proposals.length).toBeGreaterThan(1);
+      expect(message.mode).toBe('advocate_clinical');
+
+      // Verify distinct proposal kinds
+      const proposalKinds = message.proposals.map((p: { kind: string }) => p.kind);
+      expect(proposalKinds).toContain('MEDICATION_ORDER_PROPOSAL');
+      expect(proposalKinds).toContain('LAB_ORDER_PROPOSAL');
+      expect(proposalKinds).toContain('FOLLOWUP_SCHEDULING_PROPOSAL');
+
+      // Verify all proposals have unique IDs
+      const proposalIds = message.proposals.map((p: { proposal_id: string }) => p.proposal_id);
+      const uniqueIds = new Set(proposalIds);
+      expect(uniqueIds.size).toBe(message.proposals.length);
+    });
+
+    test('Deutsch safe-mode trigger request has valid structure', async () => {
+      const filePath = resolve(FIXTURES_DIR, 'supervision_request.deutsch_safe_mode_trigger.json');
+      const content = await readFile(filePath, 'utf-8');
+      const message = JSON.parse(content);
+
+      expect(message.mode).toBe('advocate_clinical');
+      expect(message.subject.organization_id).toBe('org_ta3_alpha');
+      expect(message.proposals[0].kind).toBe('MEDICATION_ORDER_PROPOSAL');
+
+      // This fixture should trigger safe-mode when enabled
+      expect(message.trace.producer.system).toBe('deutsch');
+    });
+
+    test('all Deutsch requests have valid trace structure', async () => {
+      for (const fixture of DEUTSCH_FIXTURES) {
+        const filePath = resolve(FIXTURES_DIR, fixture);
+        const content = await readFile(filePath, 'utf-8');
+        const message = JSON.parse(content);
+
+        expect(message.trace).toBeDefined();
+        expect(message.trace.trace_id).toBeDefined();
+        expect(typeof message.trace.trace_id).toBe('string');
+        expect(message.trace.created_at).toBeDefined();
+        expect(message.trace.producer).toBeDefined();
+        expect(message.trace.producer.system).toBe('deutsch');
+        expect(message.trace.producer.service_version).toMatch(/^deutsch-\d+\.\d+\.\d+$/);
+      }
+    });
+
+    test('all Deutsch requests have valid idempotency keys', async () => {
+      for (const fixture of DEUTSCH_FIXTURES) {
+        const filePath = resolve(FIXTURES_DIR, fixture);
+        const content = await readFile(filePath, 'utf-8');
+        const message = JSON.parse(content);
+
+        expect(message.idempotency_key).toBeDefined();
+        expect(typeof message.idempotency_key).toBe('string');
+        expect(message.idempotency_key.length).toBeGreaterThan(0);
+        // ULID format: 26 characters, alphanumeric
+        expect(message.idempotency_key).toMatch(/^[0-9A-Z]{26}$/i);
+      }
+    });
+
+    test('all Deutsch requests have audit_redaction', async () => {
+      for (const fixture of DEUTSCH_FIXTURES) {
+        const filePath = resolve(FIXTURES_DIR, fixture);
+        const content = await readFile(filePath, 'utf-8');
+        const message = JSON.parse(content);
+
+        expect(message.audit_redaction).toBeDefined();
+        expect(message.audit_redaction.summary).toBeDefined();
+        expect(typeof message.audit_redaction.summary).toBe('string');
+        expect(message.audit_redaction.proposal_summaries).toBeInstanceOf(Array);
+        expect(message.audit_redaction.proposal_summaries.length).toBe(message.proposals.length);
+      }
+    });
   });
 });
