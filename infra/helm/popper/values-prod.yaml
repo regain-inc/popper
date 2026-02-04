@@ -1,0 +1,56 @@
+# Production overrides
+replicaCount: 3
+
+resources:
+  requests:
+    cpu: 1000m
+    memory: 1Gi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilization: 70
+  targetMemoryUtilization: 80
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+queueWorker:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+ingress:
+  enabled: true
+  hosts:
+    - host: popper-api.regain.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: popper-api-tls
+      hosts:
+        - popper-api.regain.com
+  certManager:
+    enabled: true
+    clusterIssuer: "letsencrypt-prod"
+
+serviceAccount:
+  create: true
+
+externalSecrets:
+  enabled: true
+  environment: "prod"
+  vault:
+    server: "https://vault.internal.regain.com"
+    role: "popper-prod"

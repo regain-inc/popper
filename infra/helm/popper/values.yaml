@@ -1,0 +1,132 @@
+# Default values for Popper Helm chart
+
+replicaCount: 3
+
+image:
+  repository: regain/popper-server
+  pullPolicy: IfNotPresent
+  tag: ""  # Uses Chart.AppVersion by default
+
+queueWorker:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: regain/popper-queue
+    pullPolicy: IfNotPresent
+    tag: ""
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+  name: ""
+  annotations: {}
+
+service:
+  type: ClusterIP
+  port: 80
+
+# Ingress with TLS termination
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations: {}
+  hosts:
+    - host: popper.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  certManager:
+    enabled: false
+    clusterIssuer: "letsencrypt-prod"
+
+# Resource requests and limits
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilization: 70
+  targetMemoryUtilization: 80
+  scaleDownStabilization: 300
+  scaleUpStabilization: 0
+
+# Rolling update strategy
+rollingUpdate:
+  maxSurge: 1
+  maxUnavailable: 0
+  preStopSleepSeconds: 5
+  terminationGracePeriodSeconds: 30
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# Liveness and readiness probes
+probes:
+  liveness:
+    path: /live
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    path: /ready
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# Non-secret configuration
+config:
+  NODE_ENV: "production"
+  LOG_LEVEL: "info"
+  PORT: "3000"
+  HOST: "0.0.0.0"
+  OTEL_ENABLED: "false"
+  OTEL_SERVICE_NAME: "popper"
+  S3_BUCKET: "popper-exports"
+  S3_REGION: "us-east-1"
+  CORS_ORIGIN: "https://popper.example.com"
+  POLICIES_DIR: "./config/policies"
+
+# Sensitive configuration (when externalSecrets is disabled)
+secrets: {}
+
+# External Secrets Operator integration
+externalSecrets:
+  enabled: false
+  environment: "dev"
+  refreshInterval: "1h"
+  secretStoreRef:
+    name: "vault-backend"
+    kind: "ClusterSecretStore"
+  secretStore:
+    create: false
+  vault:
+    server: "https://vault.example.com"
+    role: "popper-dev"
+
+extraEnv: []
+nodeSelector: {}
+tolerations: []
+affinity: {}
