@@ -184,12 +184,13 @@ async function validateApiKey(headers: Record<string, string | undefined>): Prom
  *   );
  * ```
  */
-export function createAuthGuard(...requiredScopes: ApiKeyScope[]) {
+// biome-ignore lint/suspicious/noExplicitAny: Elysia guard types are incompatible with resolved context
+export function createAuthGuard(...requiredScopes: ApiKeyScope[]): any {
   return {
-    resolve: async ({ headers }: { headers: Record<string, string | undefined> }) => {
+    async resolve({ headers }: { headers: Record<string, string | undefined> }) {
       return await validateApiKey(headers);
     },
-    beforeHandle: ({
+    beforeHandle({
       apiKey,
       apiKeyError,
       set,
@@ -197,7 +198,7 @@ export function createAuthGuard(...requiredScopes: ApiKeyScope[]) {
       apiKey: ApiKeyContext | null;
       apiKeyError: { error: string; message: string } | null;
       set: { status: number };
-    }) => {
+    }) {
       // Check authentication
       if (!apiKey) {
         set.status = 401;

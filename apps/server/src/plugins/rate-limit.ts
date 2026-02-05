@@ -85,7 +85,8 @@ async function getRateLimits(apiKey: ApiKeyContext): Promise<RateLimitConfig> {
  *   );
  * ```
  */
-export function createRateLimitGuard() {
+// biome-ignore lint/suspicious/noExplicitAny: Elysia guard types are incompatible with resolved context
+export function createRateLimitGuard(): any {
   return {
     beforeHandle: async ({
       apiKey,

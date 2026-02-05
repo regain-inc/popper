@@ -4,6 +4,7 @@
  */
 
 import { cors } from '@elysiajs/cors';
+import { auth } from '@popper/auth';
 import { Elysia } from 'elysia';
 import { env } from './config/env';
 import { adminKeysPlugin } from './plugins/admin-keys';
@@ -13,6 +14,7 @@ import { dashboardPlugin } from './plugins/dashboard';
 import { exportPlugin } from './plugins/export';
 import { healthPlugin } from './plugins/health';
 import { httpLoggerPlugin } from './plugins/http-logger';
+import { invitePlugin } from './plugins/invite';
 import { metricsPlugin } from './plugins/metrics';
 import { policyLifecyclePlugin } from './plugins/policy-lifecycle';
 import { supervisionPlugin } from './plugins/supervision';
@@ -63,6 +65,10 @@ export function createApp() {
       .use(metricsPlugin)
       .use(httpLoggerPlugin)
       .use(healthPlugin)
+      // Mount Better Auth handler - handles all /api/auth/* routes
+      .mount(auth.handler)
+      // Invite management (requires auth)
+      .use(invitePlugin)
       .use(adminKeysPlugin)
       .use(adminOrgsPlugin)
       .use(controlPlugin)

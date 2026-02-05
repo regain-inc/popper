@@ -66,10 +66,15 @@ function parseEnv(): Env {
   }
 
   const env = {
-    NODE_ENV: process.env.NODE_ENV ?? 'development',
+    NODE_ENV: (process.env.NODE_ENV ?? 'development') as 'development' | 'production' | 'test',
     PORT: Number(process.env.PORT) || 3000,
     HOST: process.env.HOST ?? '0.0.0.0',
-    LOG_LEVEL: process.env.LOG_LEVEL ?? 'info',
+    LOG_LEVEL: (process.env.LOG_LEVEL ?? 'info') as
+      | 'debug'
+      | 'info'
+      | 'warning'
+      | 'error'
+      | 'fatal',
     OTEL_ENABLED: process.env.OTEL_ENABLED === 'true',
     OTEL_SERVICE_NAME: process.env.OTEL_SERVICE_NAME ?? 'popper',
     OTEL_EXPORTER_OTLP_ENDPOINT: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,

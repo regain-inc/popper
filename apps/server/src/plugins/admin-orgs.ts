@@ -82,9 +82,11 @@ export const adminOrgsPlugin = new Elysia({ name: 'admin-orgs', prefix: '/v1/pop
             const service = getOrganizationService();
 
             try {
+              // Type assertion needed because guard returns any
+              const typedQuery = query as { include_inactive?: boolean; limit?: number };
               const orgs = await service.list({
-                includeInactive: query.include_inactive ?? false,
-                limit: query.limit ?? 100,
+                includeInactive: typedQuery.include_inactive ?? false,
+                limit: typedQuery.limit ?? 100,
               });
 
               return {

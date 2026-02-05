@@ -83,8 +83,10 @@ export const controlPlugin = new Elysia({ name: 'control', prefix: '/v1/popper/c
           '/safe-mode/history',
           async ({ query }) => {
             const manager = getSafeModeManager();
-            const orgId = query.organization_id ?? GLOBAL_ORG_ID;
-            const limit = query.limit ?? 100;
+            // Type assertion needed because guard returns any
+            const typedQuery = query as { organization_id?: string; limit?: number };
+            const orgId = typedQuery.organization_id ?? GLOBAL_ORG_ID;
+            const limit = typedQuery.limit ?? 100;
 
             const entries = await manager.getHistory(orgId, limit);
 
@@ -174,23 +176,25 @@ export const controlPlugin = new Elysia({ name: 'control', prefix: '/v1/popper/c
         .get(
           '/settings/history',
           async ({ query, set }) => {
-            if (!query.key || !isValidSettingsKey(query.key)) {
+            // Type assertion needed because guard returns any
+            const typedQuery = query as { organization_id?: string; key?: string; limit?: number };
+            if (!typedQuery.key || !isValidSettingsKey(typedQuery.key)) {
               set.status = 400;
               return {
                 error: 'invalid_key',
-                message: `Invalid settings key: ${query.key}`,
+                message: `Invalid settings key: ${typedQuery.key}`,
               };
             }
 
             const manager = getSettingsManager();
-            const orgId = query.organization_id ?? null;
-            const limit = query.limit ?? 100;
+            const orgId = typedQuery.organization_id ?? null;
+            const limit = typedQuery.limit ?? 100;
 
-            const entries = await manager.getHistory(orgId, query.key as SettingsKey, limit);
+            const entries = await manager.getHistory(orgId, typedQuery.key as SettingsKey, limit);
 
             return {
               organization_id: orgId,
-              key: query.key,
+              key: typedQuery.key,
               entries: entries.map((e) => ({
                 id: e.id,
                 organization_id: e.organization_id,
@@ -310,7 +314,11 @@ export const controlPlugin = new Elysia({ name: 'control', prefix: '/v1/popper/c
         )
         .post(
           '/settings',
-          async ({ body, query, apiKey, set }) => {
+          async (ctx) => {
+            // Type assertions needed because guard returns any
+            const { apiKey } = ctx as unknown as { apiKey: { keyName: string } | null };
+            const typedQuery = ctx.query as { organization_id?: string };
+            const { body, set } = ctx;
             if (!isValidSettingsKey(body.key)) {
               set.status = 400;
               return {
@@ -320,7 +328,7 @@ export const controlPlugin = new Elysia({ name: 'control', prefix: '/v1/popper/c
             }
 
             const manager = getSettingsManager();
-            const orgId = query.organization_id ?? null;
+            const orgId = typedQuery.organization_id ?? null;
 
             // Get actor from API key context
             const createdBy = apiKey?.keyName ?? 'system';
@@ -845,8 +853,10 @@ export const controlPlugin = new Elysia({ name: 'control', prefix: '/v1/popper/c
             }
 
             const aggregator = getRlhfAggregator();
-            const orgId = query.organization_id ?? null;
-            const limit = query.limit ?? 10;
+            // Type assertion needed because guard returns any
+            const typedQuery = query as { organization_id?: string; limit?: number };
+            const orgId = typedQuery.organization_id ?? null;
+            const limit = typedQuery.limit ?? 10;
 
             const bundles = await aggregator.listBundles(orgId, limit);
 
@@ -1175,13 +1185,19 @@ export const controlPlugin = new Elysia({ name: 'control', prefix: '/v1/popper/c
             }
 
             const store = getIncidentsStore();
-            const orgId = query.organization_id;
+            // Type assertion needed because guard returns any
+            const typedQuery = query as {
+              organization_id?: string;
+              status?: string;
+              limit?: number;
+            };
+            const orgId = typedQuery.organization_id;
 
             const incidents =
-              query.status === 'open' && orgId
+              typedQuery.status === 'open' && orgId
                 ? await store.getOpen(orgId)
                 : orgId
-                  ? await store.getHistory(orgId, query.limit ?? 100)
+                  ? await store.getHistory(orgId, typedQuery.limit ?? 100)
                   : [];
 
             return {

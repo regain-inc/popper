@@ -1,6 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { authApi } from '@/lib/api';
 import { authClient } from '@/lib/auth-client';
 import type { UserRole } from './use-auth';
 
@@ -51,12 +52,11 @@ async function fetchUsers(): Promise<UserWithMeta[]> {
 }
 
 async function fetchInvites(): Promise<Invite[]> {
-  const response = await fetch('/api/auth/invites', { credentials: 'include' });
-  if (!response.ok) {
+  const { data, error } = await authApi.api.invites.get();
+  if (error) {
     throw new Error('Failed to fetch invites');
   }
-  const data = await response.json();
-  return data.invites;
+  return (data?.invites || []) as Invite[];
 }
 
 async function inviteUser(params: InviteUserParams): Promise<{
@@ -66,13 +66,17 @@ async function inviteUser(params: InviteUserParams): Promise<{
   emailSent?: boolean;
   error?: string;
 }> {
-  const response = await fetch('/api/auth/invites', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-    credentials: 'include',
-  });
-  return response.json();
+  const { data, error } = await authApi.api.invites.post(params);
+  if (error) {
+    return { success: false, error: 'Failed to create invite' };
+  }
+  return data as {
+    success: boolean;
+    invite?: Invite;
+    inviteUrl?: string;
+    emailSent?: boolean;
+    error?: string;
+  };
 }
 
 async function banUser(userId: string): Promise<{ success: boolean; error?: string }> {
@@ -115,11 +119,11 @@ async function setUserRole(
 }
 
 async function deleteInvite(inviteId: string): Promise<{ success: boolean; error?: string }> {
-  const response = await fetch(`/api/auth/invites/${inviteId}`, {
-    method: 'DELETE',
-    credentials: 'include',
-  });
-  return response.json();
+  const { data, error } = await authApi.api.invites({ inviteId }).delete();
+  if (error) {
+    return { success: false, error: 'Failed to delete invite' };
+  }
+  return data as { success: boolean; error?: string };
 }
 
 export function useUsers() {

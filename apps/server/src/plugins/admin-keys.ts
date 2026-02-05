@@ -11,7 +11,7 @@
  * @module plugins/admin-keys
  */
 
-import type { ApiKeyScope } from '@popper/core';
+import type { ApiKeyContext, ApiKeyScope } from '@popper/core';
 import { Elysia, t } from 'elysia';
 import { getApiKeyService, isApiKeyServiceInitialized } from '../lib/api-keys';
 import { logger } from '../lib/logger';
@@ -26,6 +26,14 @@ import { createAuthGuard } from './api-key-auth';
 import { createRateLimitGuard } from './rate-limit';
 
 /**
+ * Context with authenticated API key
+ * Used for type assertions in handlers protected by auth guard
+ */
+interface AuthenticatedContext {
+  apiKey: ApiKeyContext | null;
+}
+
+/**
  * Admin Keys Plugin
  *
  * Requires API key authentication with appropriate scopes.
@@ -36,7 +44,9 @@ export const adminKeysPlugin = new Elysia({ name: 'admin-keys', prefix: '/v1/pop
     app.guard(createRateLimitGuard(), (app) =>
       app.get(
         '/keys',
-        async ({ apiKey, query, set }) => {
+        async (ctx) => {
+          const { apiKey } = ctx as unknown as AuthenticatedContext;
+          const { query, set } = ctx;
           if (!isApiKeyServiceInitialized()) {
             logger.error`API key service not initialized`;
             set.status = 500;
@@ -49,9 +59,11 @@ export const adminKeysPlugin = new Elysia({ name: 'admin-keys', prefix: '/v1/pop
             // apiKey is guaranteed non-null by guard's beforeHandle
             if (!apiKey) throw new Error('Unreachable: apiKey is null after auth guard');
             const authenticatedKey = apiKey;
+            // Type assertion needed because ctx destructuring loses query schema types
+            const typedQuery = query as { include_revoked?: boolean; limit?: number };
             const keys = await service.listByOrganization(authenticatedKey.organizationId, {
-              includeRevoked: query.include_revoked ?? false,
-              limit: query.limit ?? 100,
+              includeRevoked: typedQuery.include_revoked ?? false,
+              limit: typedQuery.limit ?? 100,
             });
 
             return {
@@ -105,7 +117,9 @@ export const adminKeysPlugin = new Elysia({ name: 'admin-keys', prefix: '/v1/pop
       app
         .post(
           '/keys',
-          async ({ body, apiKey, set }) => {
+          async (ctx) => {
+            const { apiKey } = ctx as unknown as AuthenticatedContext;
+            const { body, set } = ctx;
             if (!isApiKeyServiceInitialized()) {
               logger.error`API key service not initialized`;
               set.status = 500;
@@ -165,7 +179,9 @@ export const adminKeysPlugin = new Elysia({ name: 'admin-keys', prefix: '/v1/pop
         )
         .post(
           '/keys/:id/revoke',
-          async ({ params, apiKey, set }) => {
+          async (ctx) => {
+            const { apiKey } = ctx as unknown as AuthenticatedContext;
+            const { params, set } = ctx;
             if (!isApiKeyServiceInitialized()) {
               logger.error`API key service not initialized`;
               set.status = 500;

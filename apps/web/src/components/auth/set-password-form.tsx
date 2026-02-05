@@ -5,6 +5,7 @@ import { type FormEvent, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { authApi } from '@/lib/api';
 
 interface InviteInfo {
   email: string;
@@ -33,13 +34,14 @@ export function SetPasswordForm() {
       }
 
       try {
-        const response = await fetch(`/api/auth/accept-invite?token=${token}`);
-        const data = await response.json();
+        const { data, error: apiError } = await authApi.api.invites.validate.get({
+          query: { token },
+        });
 
-        if (data.valid) {
-          setInviteInfo({ email: data.email, role: data.role });
+        if (apiError || !data?.valid) {
+          setError(data?.error || 'Invalid or expired invite');
         } else {
-          setError(data.error || 'Invalid or expired invite');
+          setInviteInfo({ email: data.email!, role: data.role! });
         }
       } catch {
         setError('Failed to validate invite');
@@ -68,22 +70,19 @@ export function SetPasswordForm() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/accept-invite', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, name, password }),
-        credentials: 'include',
+      const { data, error: apiError } = await authApi.api.invites.accept.post({
+        token: token!,
+        name,
+        password,
       });
 
-      const data = await response.json();
-
-      if (data.success) {
+      if (apiError || !data?.success) {
+        setError(data?.error || 'Failed to create account');
+      } else {
         // Redirect based on role - compliance users go to /compliance
         const redirectUrl = inviteInfo?.role === 'compliance' ? '/compliance' : '/';
         router.push(redirectUrl);
         router.refresh();
-      } else {
-        setError(data.error || 'Failed to create account');
       }
     } catch {
       setError('An unexpected error occurred');

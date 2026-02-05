@@ -1,49 +1,21 @@
-import { account, session, user, verification } from '@popper/db';
-import { betterAuth } from 'better-auth';
-import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { nextCookies } from 'better-auth/next-js';
-import { admin } from 'better-auth/plugins';
-import { db } from './db';
+'use client';
 
-export const auth = betterAuth({
-  database: drizzleAdapter(db, {
-    provider: 'pg',
-    schema: {
-      user,
-      session,
-      account,
-      verification,
-    },
-  }),
-  emailAndPassword: {
-    enabled: true,
-    minPasswordLength: 8,
-  },
-  session: {
-    expiresIn: 60 * 60 * 24 * 7, // 7 days
-    updateAge: 60 * 60 * 24, // 1 day - update session if older than this
-    cookieCache: {
-      enabled: true,
-      maxAge: 5 * 60, // 5 minutes
-    },
-  },
-  user: {
-    additionalFields: {
-      invitedBy: {
-        type: 'string',
-        required: false,
-      },
-    },
-  },
-  plugins: [
-    admin({
-      defaultRole: 'viewer',
-      adminRoles: ['admin'],
-    }),
-    nextCookies(),
-  ],
-  trustedOrigins: [process.env.BETTER_AUTH_URL || 'http://localhost:3002'],
+import type { auth } from '@popper/auth';
+import { adminClient, inferAdditionalFields } from 'better-auth/client/plugins';
+import { createAuthClient } from 'better-auth/react';
+
+/**
+ * Auth client for web app
+ *
+ * Points to the API server which handles all auth operations.
+ * Web app never accesses the database directly.
+ */
+export const authClient = createAuthClient<typeof auth>({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9001',
+  plugins: [inferAdditionalFields<typeof auth>(), adminClient()],
 });
 
-export type Session = typeof auth.$Infer.Session;
-export type User = typeof auth.$Infer.Session.user;
+export const { signIn, signOut, signUp, useSession, getSession } = authClient;
+
+export type Session = typeof authClient.$Infer.Session;
+export type User = typeof authClient.$Infer.Session.user;

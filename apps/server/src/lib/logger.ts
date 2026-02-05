@@ -50,10 +50,7 @@ export async function setupLogger(): Promise<void> {
     category: '.',
   });
 
-  const prodFormatter = getJsonLinesFormatter({
-    timestamp: 'rfc3339',
-    categorySeparator: '.',
-  });
+  const prodFormatter = getJsonLinesFormatter();
 
   // Use getConsoleSink for both dev and prod (Bun's process.stdout doesn't support getWriter)
   const consoleSink = getConsoleSink({
@@ -88,25 +85,25 @@ export async function setupLogger(): Promise<void> {
       // Root logger for popper
       {
         category: ['popper'],
-        level,
+        lowestLevel: level,
         sinks: allSinks,
       },
       // HTTP request logging
       {
         category: ['popper', 'http'],
-        level,
+        lowestLevel: level,
         sinks: allSinks,
       },
       // Elysia internals (less verbose)
       {
         category: ['elysia'],
-        level: 'warning',
+        lowestLevel: 'warning',
         sinks: ['console'],
       },
       // LogTape meta logger (suppress info messages)
       {
         category: ['logtape', 'meta'],
-        level: 'warning',
+        lowestLevel: 'warning',
         sinks: ['console'],
       },
     ],
