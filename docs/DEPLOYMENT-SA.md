@@ -148,6 +148,50 @@ GitHub Actions workflow `.github/workflows/deploy-sa.yml`:
 - Runner: self-hosted с label `sa`
 - Автоматически запускает `deploy-sa.sh`
 
+## Observability (LGTM Stack)
+
+Popper интегрирован с существующим LGTM стеком на сервере.
+
+### Компоненты
+
+| Сервис | Порт | Описание |
+|--------|------|----------|
+| Loki | 3100 | Хранилище логов |
+| Grafana | 3000 | Визуализация |
+| Tempo | 4317/4318 | Распределённый трейсинг |
+| Promtail | — | Сбор логов из Docker |
+| Prometheus | 9090 | Метрики |
+
+### Логи
+
+Promtail автоматически собирает логи из всех Docker контейнеров:
+
+```bash
+# Запрос логов через Loki API
+curl -s "http://localhost:3100/loki/api/v1/query_range" \
+  --data-urlencode 'query={container="popper-server"}' \
+  --data-urlencode "limit=10"
+
+# Логи через docker
+sudo docker logs -f popper-server
+```
+
+### Grafana
+
+- URL: http://84.8.112.8:3000
+- Datasources: Loki, Tempo, Prometheus
+- Dashboards: предустановлены для мониторинга
+
+### OpenTelemetry (трейсы)
+
+Конфигурация в `.env`:
+
+```bash
+OTEL_ENABLED=true
+OTEL_SERVICE_NAME=popper-server
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+```
+
 ## Troubleshooting
 
 ### Docker build fails
