@@ -13,13 +13,14 @@ import { createLogger } from '../lib/logger';
 
 const log = createLogger('tracing');
 
+// Log OTEL config at module load time
+log.info`OpenTelemetry config: enabled=${env.OTEL_ENABLED}, service=${env.OTEL_SERVICE_NAME}, endpoint=${env.OTEL_EXPORTER_OTLP_ENDPOINT}`;
+
 /**
  * OpenTelemetry tracing plugin for Elysia
  * Automatically instruments HTTP requests and propagates trace context
  */
 export const tracingPlugin = new Elysia({ name: 'tracing' }).use(() => {
-  log.info`OpenTelemetry config: enabled=${env.OTEL_ENABLED}, service=${env.OTEL_SERVICE_NAME}, endpoint=${env.OTEL_EXPORTER_OTLP_ENDPOINT}`;
-
   if (!env.OTEL_ENABLED) {
     return new Elysia();
   }
