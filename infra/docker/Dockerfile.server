@@ -1,0 +1,55 @@
+# Popper Server - Elysia API
+# Optimized production build with binary compilation
+
+FROM oven/bun:1 AS builder
+
+WORKDIR /app
+
+# Copy workspace files for dependency resolution
+COPY package.json bun.lock turbo.json ./
+COPY apps/server/package.json ./apps/server/
+COPY packages/core/package.json ./packages/core/
+COPY packages/db/package.json ./packages/db/
+COPY packages/cache/package.json ./packages/cache/
+
+# Install dependencies
+RUN bun install --frozen-lockfile
+
+# Copy source code
+COPY apps/server ./apps/server
+COPY packages ./packages
+COPY config ./config
+
+ENV NODE_ENV=production
+
+# Build all packages first
+RUN bun run --filter @popper/core build && \
+    bun run --filter @popper/db build && \
+    bun run --filter @popper/cache build
+
+# Compile server to binary (ElysiaJS best practice)
+RUN cd apps/server && bun build \
+    --compile \
+    --minify-whitespace \
+    --minify-syntax \
+    --target bun \
+    --outfile /app/server \
+    src/index.ts
+
+# Production stage - distroless for minimal size
+FROM gcr.io/distroless/base-debian12
+
+WORKDIR /app
+
+# Copy compiled binary
+COPY --from=builder /app/server ./server
+
+# Copy policy configs (needed at runtime)
+COPY --from=builder /app/config/policies ./config/policies
+
+ENV NODE_ENV=production
+
+EXPOSE 3000
+
+# Health check via curl not available in distroless, handled by orchestrator
+CMD ["./server"]

@@ -1,0 +1,56 @@
+# docker-compose.sa.yml - Saudi Arabia Production Configuration
+# Uses locally built images via self-hosted GitHub runner
+# Images are built by CI/CD pipeline on push to 'sa' branch
+
+services:
+  # Popper API Server (Elysia)
+  popper-server:
+    image: popper-server:${TAG:-latest}
+    container_name: popper-server
+    network_mode: host
+    env_file:
+      - ../../.env
+    environment:
+      - PORT=9001
+      - HOST=0.0.0.0
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Popper Queue Worker (BullMQ)
+  popper-queue:
+    image: popper-queue:${TAG:-latest}
+    container_name: popper-queue
+    network_mode: host
+    env_file:
+      - ../../.env
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    depends_on:
+      - popper-server
+
+  # Popper Web Dashboard (Next.js)
+  popper-web:
+    image: popper-web:${TAG:-latest}
+    container_name: popper-web
+    network_mode: host
+    env_file:
+      - ../../.env
+    environment:
+      - PORT=9002
+      - HOSTNAME=0.0.0.0
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    depends_on:
+      - popper-server
