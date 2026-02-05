@@ -27,13 +27,14 @@ RUN bun run --filter @popper/core build && \
     bun run --filter @popper/cache build
 
 # Compile queue worker to binary
-RUN cd apps/queue && bun build \
+# Run from workspace root so node_modules is accessible
+RUN bun build \
     --compile \
     --minify-whitespace \
     --minify-syntax \
     --target bun \
     --outfile /app/queue \
-    src/index.ts
+    apps/queue/src/index.ts
 
 # Production stage - distroless for minimal size
 FROM gcr.io/distroless/base-debian12
