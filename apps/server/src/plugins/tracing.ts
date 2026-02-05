@@ -18,12 +18,13 @@ const log = createLogger('tracing');
  * Automatically instruments HTTP requests and propagates trace context
  */
 export const tracingPlugin = new Elysia({ name: 'tracing' }).use(() => {
+  log.info`OpenTelemetry config: enabled=${env.OTEL_ENABLED}, service=${env.OTEL_SERVICE_NAME}, endpoint=${env.OTEL_EXPORTER_OTLP_ENDPOINT}`;
+
   if (!env.OTEL_ENABLED) {
-    log.debug`OpenTelemetry disabled`;
     return new Elysia();
   }
 
-  log.info`OpenTelemetry enabled, service: ${env.OTEL_SERVICE_NAME}`;
+  log.info`OpenTelemetry tracing started`;
 
   const exporterConfig = env.OTEL_EXPORTER_OTLP_ENDPOINT
     ? { url: env.OTEL_EXPORTER_OTLP_ENDPOINT }
