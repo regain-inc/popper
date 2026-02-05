@@ -6,8 +6,7 @@
  */
 
 import { auth } from '@popper/auth';
-import { createDB, invites, user } from '@popper/db';
-import { and, eq, gt, isNull } from 'drizzle-orm';
+import { and, createDB, eq, gt, invites, isNull, user } from '@popper/db';
 import { Elysia, t } from 'elysia';
 import { env } from '../config/env';
 import { authContext } from '../lib/auth-context';
