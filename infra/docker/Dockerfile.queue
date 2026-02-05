@@ -13,7 +13,7 @@ COPY packages/db/package.json ./packages/db/
 COPY packages/cache/package.json ./packages/cache/
 
 # Install dependencies
-RUN bun install
+RUN bun install --ignore-scripts
 
 # Copy source code
 COPY apps/queue ./apps/queue
