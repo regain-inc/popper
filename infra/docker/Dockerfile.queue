@@ -13,7 +13,7 @@ COPY packages/db/package.json ./packages/db/
 COPY packages/cache/package.json ./packages/cache/
 
 # Install dependencies
-RUN bun install --frozen-lockfile
+RUN bun install
 
 # Copy source code
 COPY apps/queue ./apps/queue
