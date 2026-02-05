@@ -63,6 +63,7 @@ import {
 } from '@popper/db';
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
+import postgres from 'postgres';
 import { createApp } from './app';
 import { env } from './config/env';
 import { initApiKeyService, setApiKeyCache } from './lib/api-keys';
@@ -95,7 +96,6 @@ let isShuttingDown = false;
  * Exits with code 1 if unreachable
  */
 async function testDatabaseConnection(connectionString: string): Promise<void> {
-  const { default: postgres } = await import('postgres');
   const sql = postgres(connectionString, { max: 1, connect_timeout: 5 });
   try {
     await sql`SELECT 1`;
