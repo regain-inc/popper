@@ -1,0 +1,34 @@
+name: Deploy to Saudi Arabia
+
+on:
+  push:
+    branches:
+      - sa
+
+jobs:
+  deploy:
+    name: Deploy to SA Server
+    runs-on: [self-hosted, sa]
+    timeout-minutes: 30
+
+    steps:
+      - name: Deploy
+        run: |
+          sudo TAG="${{ github.sha }}" /mnt/volume/projects/popper/scripts/deploy-sa.sh
+        env:
+          TAG: ${{ github.sha }}
+
+      - name: Notify Success
+        if: success()
+        run: |
+          echo "Deployment successful!"
+          echo "Server: https://api.popper.ksa.salomatic.com"
+          echo "Web: https://popper.ksa.salomatic.com"
+          echo "Commit: ${{ github.sha }}"
+
+      - name: Notify Failure
+        if: failure()
+        run: |
+          echo "Deployment failed!"
+          echo "Commit: ${{ github.sha }}"
+          echo "Check logs for details"
