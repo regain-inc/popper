@@ -116,6 +116,7 @@ secrets: {}
 externalSecrets:
   enabled: false
   environment: "dev"
+  provider: "vault"          # "vault" (default) or "aws"
   refreshInterval: "1h"
   secretStoreRef:
     name: "vault-backend"
@@ -125,6 +126,9 @@ externalSecrets:
   vault:
     server: "https://vault.example.com"
     role: "popper-dev"
+  aws:
+    region: "us-east-1"
+    service: "SecretsManager"
 
 extraEnv: []
 nodeSelector: {}

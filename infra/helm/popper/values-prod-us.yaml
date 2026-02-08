@@ -1,4 +1,4 @@
-# Production overrides
+# US Production overrides (AWS)
 replicaCount: 3
 
 resources:
@@ -33,24 +33,33 @@ queueWorker:
 ingress:
   enabled: true
   hosts:
-    - host: popper-api.regain.com
+    - host: popper-api.us.regain.com
       paths:
         - path: /
           pathType: Prefix
   tls:
-    - secretName: popper-api-tls
+    - secretName: popper-api-us-tls
       hosts:
-        - popper-api.regain.com
+        - popper-api.us.regain.com
   certManager:
     enabled: true
     clusterIssuer: "letsencrypt-prod"
 
 serviceAccount:
   create: true
+  annotations:
+    eks.amazonaws.com/role-arn: "arn:aws:iam::role/popper-prod-eso"
 
 externalSecrets:
   enabled: true
   environment: "prod"
-  vault:
-    server: "https://vault.internal.regain.com"
-    role: "popper-prod"
+  provider: "aws"
+  refreshInterval: "1h"
+  secretStoreRef:
+    name: "aws-secretsmanager-backend"
+    kind: "ClusterSecretStore"
+  secretStore:
+    create: true
+  aws:
+    region: "us-east-1"
+    service: "SecretsManager"

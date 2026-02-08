@@ -1,0 +1,112 @@
+name: Deploy to US (AWS)
+
+on:
+  push:
+    branches:
+      - us
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  DEPLOY_REGION: us
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: popper-server
+  ECR_REPOSITORY_QUEUE: popper-queue
+  EKS_CLUSTER_NAME: regain-us-prod
+
+jobs:
+  build-and-push:
+    name: Build & Push to ECR
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push server image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/Dockerfile.server
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+
+      - name: Build and push queue worker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/Dockerfile.queue
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_QUEUE }}:${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_QUEUE }}:latest
+
+  deploy:
+    name: Deploy to EKS
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install popper ./infra/helm/popper \
+            -f ./infra/helm/popper/values.yaml \
+            -f ./infra/helm/popper/values-prod-us.yaml \
+            --set image.tag=${{ github.sha }} \
+            --set image.repository=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }} \
+            --set queueWorker.image.repository=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_QUEUE }} \
+            --set queueWorker.image.tag=${{ github.sha }} \
+            --namespace popper \
+            --create-namespace \
+            --wait \
+            --timeout 10m
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/popper -n popper --timeout=300s
+          kubectl get pods -n popper -l app.kubernetes.io/name=popper
+
+      - name: Notify Success
+        if: success()
+        run: |
+          echo "US deployment successful!"
+          echo "Server: https://popper-api.us.regain.com"
+          echo "Commit: ${{ github.sha }}"
+
+      - name: Notify Failure
+        if: failure()
+        run: |
+          echo "US deployment failed!"
+          echo "Commit: ${{ github.sha }}"
+          echo "Check logs for details"
