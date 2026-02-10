@@ -16,6 +16,8 @@ export * from './drift';
 export * from './export';
 // Re-export Hermes Protocol types and utilities
 export * from './hermes';
+// Re-export Intervention Risk module
+export * from './intervention-risk';
 // Re-export Policy Engine
 export * from './policy-engine';
 // Re-export Policy Lifecycle module

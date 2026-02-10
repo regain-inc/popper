@@ -10,6 +10,8 @@ import type { AcuityLevel, AcuityScore } from '../acuity/types';
 import { ACUITY_PRECEDENCE } from '../acuity/types';
 import type { EvidenceGrade, ReasonCode, SupervisionDecision, SupervisionRequest } from '../hermes';
 import { compareEvidenceGrades, EVIDENCE_GRADES } from '../hermes';
+import type { InterventionRiskLevel, InterventionRiskScore } from '../intervention-risk/types';
+import { RISK_LEVEL_PRECEDENCE } from '../intervention-risk/types';
 import type {
   ApprovedConstraints,
   ControlCommand,
@@ -72,6 +74,8 @@ export interface DerivedSignals {
   rule_engine_failed?: boolean;
   /** Computed acuity score (SAL-1018) */
   acuity?: AcuityScore;
+  /** Per-proposal intervention risk scores (SAL-1020) */
+  intervention_risks?: InterventionRiskScore[];
 }
 
 /**
@@ -336,6 +340,10 @@ export class PolicyEvaluator {
       case 'acuity_at_least':
         return this.isAcuityAtLeast(context, condition.level);
 
+      // Intervention risk conditions (SAL-1020)
+      case 'intervention_risk_at_least':
+        return this.isInterventionRiskAtLeast(context, condition.level);
+
       // Escape hatch (not implemented in v1)
       case 'other':
         // 'other' conditions with expr are escape hatches
@@ -585,6 +593,19 @@ export class PolicyEvaluator {
     const acuity = context.derivedSignals?.acuity;
     if (!acuity) return false; // No acuity computed — condition doesn't match
     return ACUITY_PRECEDENCE[acuity.level] >= ACUITY_PRECEDENCE[level as AcuityLevel];
+  }
+
+  /**
+   * Check if ANY proposal's intervention risk is at least the given level.
+   */
+  private isInterventionRiskAtLeast(
+    context: EvaluationContext,
+    level: 'low' | 'moderate' | 'high' | 'critical',
+  ): boolean {
+    const risks = context.derivedSignals?.intervention_risks;
+    if (!risks || risks.length === 0) return false;
+    const threshold = RISK_LEVEL_PRECEDENCE[level as InterventionRiskLevel];
+    return risks.some((r) => RISK_LEVEL_PRECEDENCE[r.level] >= threshold);
   }
 
   // ===========================================================================

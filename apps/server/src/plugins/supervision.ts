@@ -11,6 +11,7 @@
 import type { ApiKeyContext } from '@popper/core';
 import {
   buildAuditTags,
+  calculateAllInterventionRisks,
   computeAcuity,
   createDecisionBuilder,
   createEvaluator,
@@ -94,11 +95,15 @@ function buildDerivedSignals(
   schemaValid: boolean,
   stalenessResult: ReturnType<typeof stalenessValidator.validate>,
 ): DerivedSignals {
+  const acuity = computeAcuity(request);
   return {
     schema_invalid: !schemaValid,
     snapshot_stale: stalenessResult.is_stale,
     snapshot_missing: stalenessResult.is_missing,
-    acuity: computeAcuity(request),
+    acuity,
+    intervention_risks: calculateAllInterventionRisks(request, {
+      patientAcuity: acuity.level,
+    }),
   };
 }
 
@@ -441,6 +446,11 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
                       composite: derivedSignals.acuity.composite,
                     }
                   : undefined,
+                intervention_risks: derivedSignals.intervention_risks?.map((r) => ({
+                  proposal_id: r.proposal_id,
+                  level: r.level,
+                  composite: r.composite,
+                })),
                 evaluation: {
                   matched_rules: evaluationResult.matched_rules.map((r) => r.rule_id),
                   policy_version: evaluationResult.policy_version,

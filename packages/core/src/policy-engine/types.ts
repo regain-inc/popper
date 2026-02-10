@@ -171,6 +171,9 @@ export type RuleCondition =
   // Acuity conditions (SAL-1018)
   | AcuityAtLeastCondition
 
+  // Intervention risk conditions (SAL-1020)
+  | InterventionRiskAtLeastCondition
+
   // Escape hatch
   | OtherCondition;
 
@@ -313,6 +316,12 @@ export interface AcuityAtLeastCondition {
   level: 'low' | 'moderate' | 'high' | 'critical';
 }
 
+// Intervention risk conditions (SAL-1020)
+export interface InterventionRiskAtLeastCondition {
+  kind: 'intervention_risk_at_least';
+  level: 'low' | 'moderate' | 'high' | 'critical';
+}
+
 // Escape hatch
 export interface OtherCondition {
   kind: 'other';
@@ -411,5 +420,6 @@ export const CONDITION_KINDS = [
   'hallucination_detected',
   'idk_triggered',
   'acuity_at_least',
+  'intervention_risk_at_least',
   'other',
 ] as const;
