@@ -25,7 +25,8 @@
     },
     "test": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
+      "outputs": ["coverage/**"],
+      "passThroughEnv": ["DATABASE_URL"]
     },
     "test:watch": {
       "cache": false,
@@ -33,7 +34,8 @@
     },
     "test:coverage": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
+      "outputs": ["coverage/**"],
+      "passThroughEnv": ["DATABASE_URL"]
     },
     "clean": {
       "cache": false
