@@ -841,6 +841,274 @@ describe('PolicyEvaluator', () => {
     });
   });
 
+  describe('Acuity Conditions (SAL-1018)', () => {
+    test('acuity_at_least matches when acuity is at or above level', () => {
+      const pack = createPolicyPack([
+        createRule(
+          'acuity-rule',
+          100,
+          { kind: 'acuity_at_least', level: 'high' },
+          { decision: 'ROUTE_TO_CLINICIAN' },
+        ),
+      ]);
+      const evaluator = createEvaluator(pack);
+      const context = createContext(
+        createMinimalRequest(),
+        {},
+        {
+          acuity: {
+            level: 'critical',
+            composite: 0.85,
+            dimensions: [],
+          },
+        },
+      );
+
+      const result = evaluator.evaluate(context);
+
+      expect(result.decision).toBe('ROUTE_TO_CLINICIAN');
+    });
+
+    test('acuity_at_least does not match when acuity is below level', () => {
+      const pack = createPolicyPack([
+        createRule(
+          'acuity-rule',
+          100,
+          { kind: 'acuity_at_least', level: 'high' },
+          { decision: 'HARD_STOP' },
+        ),
+      ]);
+      const evaluator = createEvaluator(pack);
+      const context = createContext(
+        createMinimalRequest(),
+        {},
+        {
+          acuity: {
+            level: 'moderate',
+            composite: 0.35,
+            dimensions: [],
+          },
+        },
+      );
+
+      const result = evaluator.evaluate(context);
+
+      expect(result.decision).toBe('ROUTE_TO_CLINICIAN'); // Default fallback
+      expect(result.matched_rules).toHaveLength(0);
+    });
+
+    test('acuity_at_least does not match when acuity is missing', () => {
+      const pack = createPolicyPack([
+        createRule(
+          'acuity-rule',
+          100,
+          { kind: 'acuity_at_least', level: 'low' },
+          { decision: 'HARD_STOP' },
+        ),
+      ]);
+      const evaluator = createEvaluator(pack);
+      const context = createContext(createMinimalRequest(), {}, {});
+
+      const result = evaluator.evaluate(context);
+
+      expect(result.matched_rules).toHaveLength(0);
+    });
+
+    test('acuity_at_least matches exact level', () => {
+      const pack = createPolicyPack([
+        createRule(
+          'acuity-rule',
+          100,
+          { kind: 'acuity_at_least', level: 'high' },
+          { decision: 'ROUTE_TO_CLINICIAN' },
+        ),
+      ]);
+      const evaluator = createEvaluator(pack);
+      const context = createContext(
+        createMinimalRequest(),
+        {},
+        {
+          acuity: {
+            level: 'high',
+            composite: 0.55,
+            dimensions: [],
+          },
+        },
+      );
+
+      const result = evaluator.evaluate(context);
+
+      expect(result.decision).toBe('ROUTE_TO_CLINICIAN');
+    });
+  });
+
+  describe('Intervention Risk Conditions (SAL-1020)', () => {
+    test('intervention_risk_at_least matches when any proposal meets threshold', () => {
+      const pack = createPolicyPack([
+        createRule(
+          'risk-rule',
+          100,
+          { kind: 'intervention_risk_at_least', level: 'high' },
+          { decision: 'ROUTE_TO_CLINICIAN' },
+        ),
+      ]);
+      const evaluator = createEvaluator(pack);
+      const context = createContext(
+        createMinimalRequest(),
+        {},
+        {
+          intervention_risks: [
+            {
+              proposal_id: 'p1',
+              proposal_kind: 'PATIENT_MESSAGE',
+              level: 'low',
+              composite: 0.1,
+              factors: [],
+            },
+            {
+              proposal_id: 'p2',
+              proposal_kind: 'MEDICATION_ORDER_PROPOSAL',
+              level: 'high',
+              composite: 0.6,
+              factors: [],
+            },
+          ],
+        },
+      );
+
+      const result = evaluator.evaluate(context);
+
+      expect(result.decision).toBe('ROUTE_TO_CLINICIAN');
+    });
+
+    test('intervention_risk_at_least does not match when all below threshold', () => {
+      const pack = createPolicyPack([
+        createRule(
+          'risk-rule',
+          100,
+          { kind: 'intervention_risk_at_least', level: 'high' },
+          { decision: 'HARD_STOP' },
+        ),
+      ]);
+      const evaluator = createEvaluator(pack);
+      const context = createContext(
+        createMinimalRequest(),
+        {},
+        {
+          intervention_risks: [
+            {
+              proposal_id: 'p1',
+              proposal_kind: 'PATIENT_MESSAGE',
+              level: 'low',
+              composite: 0.1,
+              factors: [],
+            },
+            {
+              proposal_id: 'p2',
+              proposal_kind: 'LIFESTYLE_MODIFICATION_PROPOSAL',
+              level: 'moderate',
+              composite: 0.3,
+              factors: [],
+            },
+          ],
+        },
+      );
+
+      const result = evaluator.evaluate(context);
+
+      expect(result.matched_rules).toHaveLength(0);
+    });
+
+    test('intervention_risk_at_least does not match when risks are empty', () => {
+      const pack = createPolicyPack([
+        createRule(
+          'risk-rule',
+          100,
+          { kind: 'intervention_risk_at_least', level: 'low' },
+          { decision: 'HARD_STOP' },
+        ),
+      ]);
+      const evaluator = createEvaluator(pack);
+      const context = createContext(
+        createMinimalRequest(),
+        {},
+        {
+          intervention_risks: [],
+        },
+      );
+
+      const result = evaluator.evaluate(context);
+
+      expect(result.matched_rules).toHaveLength(0);
+    });
+
+    test('intervention_risk_at_least does not match when risks undefined', () => {
+      const pack = createPolicyPack([
+        createRule(
+          'risk-rule',
+          100,
+          { kind: 'intervention_risk_at_least', level: 'low' },
+          { decision: 'HARD_STOP' },
+        ),
+      ]);
+      const evaluator = createEvaluator(pack);
+      const context = createContext(createMinimalRequest(), {}, {});
+
+      const result = evaluator.evaluate(context);
+
+      expect(result.matched_rules).toHaveLength(0);
+    });
+
+    test('combined acuity and intervention risk rules', () => {
+      const pack = createPolicyPack([
+        createRule(
+          'critical-acuity',
+          200,
+          {
+            kind: 'all_of',
+            conditions: [
+              { kind: 'acuity_at_least', level: 'critical' },
+              { kind: 'intervention_risk_at_least', level: 'high' },
+            ],
+          },
+          { decision: 'HARD_STOP' },
+        ),
+        createRule(
+          'high-acuity',
+          100,
+          { kind: 'acuity_at_least', level: 'high' },
+          { decision: 'ROUTE_TO_CLINICIAN' },
+        ),
+      ]);
+      const evaluator = createEvaluator(pack);
+      const context = createContext(
+        createMinimalRequest(),
+        {},
+        {
+          acuity: {
+            level: 'critical',
+            composite: 0.85,
+            dimensions: [],
+          },
+          intervention_risks: [
+            {
+              proposal_id: 'p1',
+              proposal_kind: 'MEDICATION_ORDER_PROPOSAL',
+              level: 'high',
+              composite: 0.6,
+              factors: [],
+            },
+          ],
+        },
+      );
+
+      const result = evaluator.evaluate(context);
+
+      expect(result.decision).toBe('HARD_STOP');
+      expect(result.matched_rules[0].rule_id).toBe('critical-acuity');
+    });
+  });
+
   describe('Conservatism Order', () => {
     test('HARD_STOP > ROUTE_TO_CLINICIAN > REQUEST_MORE_INFO > APPROVED', () => {
       // Test that when multiple rules match with continue=true,

@@ -17,7 +17,7 @@ describe('Policy Pack Loader', () => {
       const pack = await loadPolicyPack(DEFAULT_POLICY_PATH);
 
       expect(pack.policy_id).toBe('popper-default');
-      expect(pack.policy_version).toBe('1.0.0');
+      expect(pack.policy_version).toBe('1.1.0');
       expect(pack.rules.length).toBeGreaterThan(0);
       expect(pack.staleness).toBeDefined();
       expect(pack.staleness?.thresholds.wellness_hours).toBe(24);

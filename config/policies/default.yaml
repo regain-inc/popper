@@ -5,7 +5,7 @@
 # It implements minimum required rules per 03-popper-safety-dsl.md §5.
 
 policy_id: popper-default
-policy_version: 1.0.0
+policy_version: 1.1.0
 
 metadata:
   description: Default Popper safety policy pack
@@ -387,6 +387,118 @@ rules:
       reason_codes:
         - policy_violation
       explanation: Rule engine processing failed. Routing to clinician.
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ACUITY & INTERVENTION RISK (Priority 200-299)
+  # Composite risk scoring — evaluated after individual-factor rules above.
+  # These catch cases where multiple moderate factors combine into high risk.
+  # @see SAL-1018 (acuity scoring), SAL-1020 (intervention risk calculator)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - rule_id: critical_acuity_medication
+    description: Critical patient acuity with medication proposal - hard stop
+    priority: 290
+    when:
+      kind: all_of
+      conditions:
+        - kind: acuity_at_least
+          level: critical
+        - kind: proposal_kind_in
+          kinds:
+            - MEDICATION_ORDER_PROPOSAL
+    then:
+      decision: HARD_STOP
+      reason_codes:
+        - risk_too_high
+        - needs_human_review
+      explanation: Critical patient acuity detected with medication proposal. Cannot proceed without clinician.
+
+  - rule_id: critical_acuity_any
+    description: Critical patient acuity - route all proposals to clinician
+    priority: 285
+    when:
+      kind: acuity_at_least
+      level: critical
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - risk_too_high
+        - needs_human_review
+      explanation: Critical patient acuity detected. All proposals require clinician review.
+
+  - rule_id: critical_intervention_risk
+    description: Critical intervention risk on any proposal - hard stop
+    priority: 280
+    when:
+      kind: intervention_risk_at_least
+      level: critical
+    then:
+      decision: HARD_STOP
+      reason_codes:
+        - risk_too_high
+        - needs_human_review
+      explanation: Critical intervention risk detected. Cannot proceed without clinician authorization.
+
+  - rule_id: high_acuity_any
+    description: High patient acuity - route to clinician
+    priority: 270
+    when:
+      kind: acuity_at_least
+      level: high
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - risk_too_high
+        - needs_human_review
+      explanation: High patient acuity detected. Routing to clinician for review.
+
+  - rule_id: high_intervention_risk
+    description: High intervention risk on any proposal - route to clinician
+    priority: 265
+    when:
+      kind: intervention_risk_at_least
+      level: high
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - risk_too_high
+        - needs_human_review
+      explanation: High intervention risk detected. Routing to clinician for review.
+
+  - rule_id: moderate_acuity_clinical_mode
+    description: Moderate acuity in clinical mode - route to clinician
+    priority: 250
+    when:
+      kind: all_of
+      conditions:
+        - kind: acuity_at_least
+          level: moderate
+        - kind: proposal_kind_in
+          kinds:
+            - MEDICATION_ORDER_PROPOSAL
+            - TRIAGE_ROUTE
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - needs_human_review
+      explanation: Moderate patient acuity with high-risk proposal. Routing to clinician.
+
+  - rule_id: moderate_intervention_risk_medication
+    description: Moderate intervention risk for medication proposals - route to clinician
+    priority: 245
+    when:
+      kind: all_of
+      conditions:
+        - kind: intervention_risk_at_least
+          level: moderate
+        - kind: proposal_kind_in
+          kinds:
+            - MEDICATION_ORDER_PROPOSAL
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - needs_human_review
+      explanation: Moderate intervention risk for medication proposal. Routing to clinician.
 
   # ═══════════════════════════════════════════════════════════════════════════
   # DEFAULT APPROVAL (Priority 0)

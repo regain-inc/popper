@@ -267,6 +267,50 @@ rules: []
       }
     });
 
+    test('parses acuity_at_least condition', () => {
+      const pack = createPackWithCondition({
+        kind: 'acuity_at_least',
+        level: 'high',
+      });
+
+      const condition = pack.rules[0].when;
+      expect(condition.kind).toBe('acuity_at_least');
+      if (condition.kind === 'acuity_at_least') {
+        expect(condition.level).toBe('high');
+      }
+    });
+
+    test('parses intervention_risk_at_least condition', () => {
+      const pack = createPackWithCondition({
+        kind: 'intervention_risk_at_least',
+        level: 'critical',
+      });
+
+      const condition = pack.rules[0].when;
+      expect(condition.kind).toBe('intervention_risk_at_least');
+      if (condition.kind === 'intervention_risk_at_least') {
+        expect(condition.level).toBe('critical');
+      }
+    });
+
+    test('rejects acuity_at_least with invalid level', () => {
+      expect(() =>
+        createPackWithCondition({
+          kind: 'acuity_at_least',
+          level: 'invalid',
+        }),
+      ).toThrow(PolicyParseError);
+    });
+
+    test('rejects intervention_risk_at_least with invalid level', () => {
+      expect(() =>
+        createPackWithCondition({
+          kind: 'intervention_risk_at_least',
+          level: 'invalid',
+        }),
+      ).toThrow(PolicyParseError);
+    });
+
     test('parses domain_status_in condition', () => {
       const pack = createPackWithCondition({
         kind: 'domain_status_in',

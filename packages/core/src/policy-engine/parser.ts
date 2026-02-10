@@ -494,6 +494,28 @@ function validateCondition(data: unknown, path: string): RuleCondition {
         severity: condition.severity as 'minor' | 'significant' | 'critical' | undefined,
       };
 
+    case 'acuity_at_least':
+      if (!['low', 'moderate', 'high', 'critical'].includes(condition.level as string)) {
+        throw new PolicyParseError(
+          `${path}.level must be 'low', 'moderate', 'high', or 'critical' for 'acuity_at_least'`,
+        );
+      }
+      return {
+        kind: 'acuity_at_least',
+        level: condition.level as 'low' | 'moderate' | 'high' | 'critical',
+      };
+
+    case 'intervention_risk_at_least':
+      if (!['low', 'moderate', 'high', 'critical'].includes(condition.level as string)) {
+        throw new PolicyParseError(
+          `${path}.level must be 'low', 'moderate', 'high', or 'critical' for 'intervention_risk_at_least'`,
+        );
+      }
+      return {
+        kind: 'intervention_risk_at_least',
+        level: condition.level as 'low' | 'moderate' | 'high' | 'critical',
+      };
+
     case 'other':
       if (typeof condition.expr !== 'string') {
         throw new PolicyParseError(`${path}.expr is required for 'other'`);
