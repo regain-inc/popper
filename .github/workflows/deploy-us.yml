@@ -28,13 +28,13 @@ jobs:
         include:
           - service: popper-server
             ecr_repo: regain/popper-server
-            dockerfile: apps/server/Dockerfile
+            dockerfile: infra/docker/Dockerfile.server
           - service: popper-worker
             ecr_repo: regain/popper-worker
-            dockerfile: apps/worker/Dockerfile
+            dockerfile: infra/docker/Dockerfile.queue
           - service: popper-web
             ecr_repo: regain/popper-web
-            dockerfile: apps/web/Dockerfile
+            dockerfile: infra/docker/Dockerfile.web
     steps:
       - uses: actions/checkout@v4
         with:
