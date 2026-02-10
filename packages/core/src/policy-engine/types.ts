@@ -168,6 +168,9 @@ export type RuleCondition =
   | HallucinationDetectedCondition
   | IDKTriggeredCondition
 
+  // Acuity conditions (SAL-1018)
+  | AcuityAtLeastCondition
+
   // Escape hatch
   | OtherCondition;
 
@@ -304,6 +307,12 @@ export interface IDKTriggeredCondition {
   kind: 'idk_triggered';
 }
 
+// Acuity conditions (SAL-1018)
+export interface AcuityAtLeastCondition {
+  kind: 'acuity_at_least';
+  level: 'low' | 'moderate' | 'high' | 'critical';
+}
+
 // Escape hatch
 export interface OtherCondition {
   kind: 'other';
@@ -401,5 +410,6 @@ export const CONDITION_KINDS = [
   'evidence_grade_below',
   'hallucination_detected',
   'idk_triggered',
+  'acuity_at_least',
   'other',
 ] as const;

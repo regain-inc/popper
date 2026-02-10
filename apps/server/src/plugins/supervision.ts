@@ -11,6 +11,7 @@
 import type { ApiKeyContext } from '@popper/core';
 import {
   buildAuditTags,
+  computeAcuity,
   createDecisionBuilder,
   createEvaluator,
   createStalenessValidator,
@@ -89,6 +90,7 @@ function validateClockSkew(requestTimestamp: string | undefined): string | undef
  * Build derived signals from validation results.
  */
 function buildDerivedSignals(
+  request: SupervisionRequest,
   schemaValid: boolean,
   stalenessResult: ReturnType<typeof stalenessValidator.validate>,
 ): DerivedSignals {
@@ -96,6 +98,7 @@ function buildDerivedSignals(
     schema_invalid: !schemaValid,
     snapshot_stale: stalenessResult.is_stale,
     snapshot_missing: stalenessResult.is_missing,
+    acuity: computeAcuity(request),
   };
 }
 
@@ -359,8 +362,8 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
           // 3. Staleness validation
           const stalenessResult = stalenessValidator.validate(request);
 
-          // 4. Build derived signals
-          const derivedSignals = buildDerivedSignals(true, stalenessResult);
+          // 4. Build derived signals (includes acuity scoring — SAL-1018)
+          const derivedSignals = buildDerivedSignals(request, true, stalenessResult);
 
           // 5. Get policy pack
           const policyPack = policyRegistry.get(DEFAULT_POLICY_PACK);
@@ -432,6 +435,12 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
                   age_hours: stalenessResult.age_hours,
                   threshold_hours: stalenessResult.threshold_hours,
                 },
+                acuity: derivedSignals.acuity
+                  ? {
+                      level: derivedSignals.acuity.level,
+                      composite: derivedSignals.acuity.composite,
+                    }
+                  : undefined,
                 evaluation: {
                   matched_rules: evaluationResult.matched_rules.map((r) => r.rule_id),
                   policy_version: evaluationResult.policy_version,

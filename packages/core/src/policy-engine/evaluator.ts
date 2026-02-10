@@ -6,6 +6,8 @@
  * @module policy-engine/evaluator
  */
 
+import type { AcuityLevel, AcuityScore } from '../acuity/types';
+import { ACUITY_PRECEDENCE } from '../acuity/types';
 import type { EvidenceGrade, ReasonCode, SupervisionDecision, SupervisionRequest } from '../hermes';
 import { compareEvidenceGrades, EVIDENCE_GRADES } from '../hermes';
 import type {
@@ -68,6 +70,8 @@ export interface DerivedSignals {
   idk_triggered?: boolean;
   /** Rule engine failure */
   rule_engine_failed?: boolean;
+  /** Computed acuity score (SAL-1018) */
+  acuity?: AcuityScore;
 }
 
 /**
@@ -328,6 +332,10 @@ export class PolicyEvaluator {
       case 'idk_triggered':
         return context.derivedSignals?.idk_triggered === true;
 
+      // Acuity conditions (SAL-1018)
+      case 'acuity_at_least':
+        return this.isAcuityAtLeast(context, condition.level);
+
       // Escape hatch (not implemented in v1)
       case 'other':
         // 'other' conditions with expr are escape hatches
@@ -568,6 +576,15 @@ export class PolicyEvaluator {
     const severityOrder = { minor: 1, significant: 2, critical: 3 };
     const detectedSeverity = hallucination.severity ?? 'minor';
     return severityOrder[detectedSeverity] >= severityOrder[severity];
+  }
+
+  private isAcuityAtLeast(
+    context: EvaluationContext,
+    level: 'low' | 'moderate' | 'high' | 'critical',
+  ): boolean {
+    const acuity = context.derivedSignals?.acuity;
+    if (!acuity) return false; // No acuity computed — condition doesn't match
+    return ACUITY_PRECEDENCE[acuity.level] >= ACUITY_PRECEDENCE[level as AcuityLevel];
   }
 
   // ===========================================================================
