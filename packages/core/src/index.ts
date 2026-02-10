@@ -14,6 +14,8 @@ export * from './audit';
 export * from './drift';
 // Re-export Export module
 export * from './export';
+// Re-export Hallucination Detection module
+export * from './hallucination';
 // Re-export Hermes Protocol types and utilities
 export * from './hermes';
 // Re-export Intervention Risk module

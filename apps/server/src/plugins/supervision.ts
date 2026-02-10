@@ -19,6 +19,7 @@ import {
   createSupervisionDecisionEvent,
   createValidationFailedEvent,
   type DerivedSignals,
+  detectHallucinations,
   type EvaluationContext,
   extractRequestMetadata,
   getDefaultEmitter,
@@ -96,6 +97,7 @@ function buildDerivedSignals(
   stalenessResult: ReturnType<typeof stalenessValidator.validate>,
 ): DerivedSignals {
   const acuity = computeAcuity(request);
+  const hallucinationResult = detectHallucinations(request);
   return {
     schema_invalid: !schemaValid,
     snapshot_stale: stalenessResult.is_stale,
@@ -104,6 +106,9 @@ function buildDerivedSignals(
     intervention_risks: calculateAllInterventionRisks(request, {
       patientAcuity: acuity.level,
     }),
+    hallucination: hallucinationResult.detected
+      ? { detected: true, severity: hallucinationResult.severity }
+      : undefined,
   };
 }
 
@@ -451,6 +456,7 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
                   level: r.level,
                   composite: r.composite,
                 })),
+                hallucination: derivedSignals.hallucination,
                 evaluation: {
                   matched_rules: evaluationResult.matched_rules.map((r) => r.rule_id),
                   policy_version: evaluationResult.policy_version,
