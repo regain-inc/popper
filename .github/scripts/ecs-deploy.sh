@@ -30,11 +30,16 @@ TASK_DEF=$(aws ecs describe-task-definition \
   --task-definition "${TASK_FAMILY}" \
   --query 'taskDefinition')
 
-# 2. Create new revision with updated image
+# 2. Create new revision with updated image (and fix role ARNs for account migration)
+ACCOUNT_ID="${AWS_ACCOUNT_ID:-$(aws sts get-caller-identity --query Account --output text)}"
 NEW_TASK_DEF=$(echo "${TASK_DEF}" | jq \
   --arg IMAGE "${IMAGE_URI}" \
   --arg CONTAINER "${CONTAINER_NAME}" \
+  --arg ACCOUNT_ID "${ACCOUNT_ID}" \
   '(.containerDefinitions[] | select(.name == $CONTAINER)).image = $IMAGE |
+   .executionRoleArn = (.executionRoleArn | sub("arn:aws:iam::[0-9]+:"; "arn:aws:iam::" + $ACCOUNT_ID + ":")) |
+   .taskRoleArn = (.taskRoleArn | sub("arn:aws:iam::[0-9]+:"; "arn:aws:iam::" + $ACCOUNT_ID + ":")) |
+   (.containerDefinitions[].secrets // [])[] |= (.valueFrom |= sub("arn:aws:secretsmanager:[^:]+:[0-9]+:"; "arn:aws:secretsmanager:us-east-1:" + $ACCOUNT_ID + ":")) |
    del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
        .compatibilities, .registeredAt, .registeredBy)')
 
