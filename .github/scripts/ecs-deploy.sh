@@ -7,7 +7,7 @@
 #
 # Example:
 #   ./ecs-deploy.sh regain-deutschapi deutschapi \
-#     607336804375.dkr.ecr.us-east-1.amazonaws.com/regain/deutsch-api:abc1234 \
+#     907356469674.dkr.ecr.us-east-1.amazonaws.com/regain/deutsch-api:abc1234 \
 #     regain-deutschapi regain-production
 # =============================================================================
 

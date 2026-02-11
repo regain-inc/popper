@@ -13,8 +13,8 @@ permissions:
 
 env:
   AWS_REGION: us-east-1
-  AWS_ACCOUNT_ID: "607336804375"
-  ECR_REGISTRY: 607336804375.dkr.ecr.us-east-1.amazonaws.com
+  AWS_ACCOUNT_ID: "907356469674"
+  ECR_REGISTRY: 907356469674.dkr.ecr.us-east-1.amazonaws.com
   ECS_CLUSTER: regain-production
 
 jobs:
@@ -43,7 +43,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::607336804375:role/regain-deploy-popper
+          role-to-assume: arn:aws:iam::907356469674:role/regain-deploy-popper
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to ECR
@@ -79,7 +79,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::607336804375:role/regain-deploy-popper
+          role-to-assume: arn:aws:iam::907356469674:role/regain-deploy-popper
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Deploy popper-server
