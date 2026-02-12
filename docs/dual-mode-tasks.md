@@ -53,7 +53,8 @@ All changes are limited to **Helm chart infrastructure** -- switching External S
 ## Task List
 
 > **Audit Date**: 2026-02-08
-> **Audit Result**: 6/7 tasks completed. Task 7 (AWS Secrets Manager provisioning) requires AWS access.
+> **Audit Result**: 6/7 tasks completed and verified. Task 7 (AWS Secrets Manager provisioning) remains BLOCKED -- requires AWS access.
+> **Final Audit**: PASS -- all template conditionals verified correct, no stale references found.
 
 ### TASK 1: Add `values-prod-us.yaml` for AWS deployment -- DONE
 
@@ -326,3 +327,28 @@ Also create the IAM policy for the ESO service account:
 - **TASK 1**: Created `values-prod-us.yaml` with AWS SM config, IRSA annotation, `provider: "aws"`
 - **TASK 6**: Created `deploy-us.yml` -- OIDC auth, ECR push, Helm deploy to EKS, triggers on `us` branch
 - **TASK 7**: BLOCKED -- requires AWS Console/Terraform access to provision secrets
+
+### 2026-02-08 -- Final Audit
+
+**Result**: 6/7 tasks verified. All file-level tasks (1-6) are correctly implemented. Task 7 remains BLOCKED (requires AWS access).
+
+**Verification details**:
+
+| # | Task | Status | Evidence |
+|---|------|--------|----------|
+| 1 | `values-prod-us.yaml` | PASS | File exists with `provider: "aws"`, IRSA annotation, SecretsManager config, correct ingress `popper-api.us.regain.com` |
+| 2 | `secret-store.yaml` conditional | PASS | Conditional `{{- if eq (.Values.externalSecrets.provider \| default "vault") "aws" }}` correctly branches between AWS (JWT/IRSA) and Vault (Kubernetes auth) |
+| 3 | `external-secret.yaml` path prefix | PASS | `$isAws` variable + `ternary` produces empty prefix for AWS SM, `secret/data/` for Vault. All 7 secret keys use `$prefix` correctly |
+| 4 | `values.yaml` defaults | PASS | `provider: "vault"` (line 119), `aws:` block with `region` and `service` (lines 129-131) |
+| 5 | Rename `values-prod.yaml` | PASS | Old file gone, `values-prod-ksa.yaml` exists with explicit `provider: "vault"` and Vault server/role config |
+| 6 | `deploy-us.yml` workflow | PASS | OIDC auth, ECR push (server + queue), EKS Helm deploy using `values-prod-us.yaml`, triggers on `us` branch, rollout verification |
+| 7 | AWS Secrets Manager entries | BLOCKED | Requires AWS Console/Terraform access -- no files to verify |
+
+**Template correctness checks**:
+- `secret-store.yaml`: `{{- if eq ... "aws" }}` guard is correct; default falls through to Vault
+- `external-secret.yaml`: `ternary` argument order is correct (`""` for true/aws, `"secret/data/"` for false/vault)
+- `deploy-us.yml`: Helm command correctly layers `values.yaml` + `values-prod-us.yaml`; uses `--set image.tag` for both server and queue worker
+- `deploy-sa.yml`: Uses shell script, not Helm directly -- no stale `values-prod.yaml` reference
+- No remaining references to `values-prod.yaml` in any non-documentation file
+
+**No issues found.**
