@@ -25,7 +25,10 @@
     "clean": "rm -rf dist .turbo coverage"
   },
   "dependencies": {
-    "@regain/hermes": "^1.0.3",
+    "@popper/cache": "workspace:*",
+    "@popper/db": "workspace:*",
+    "@regain/hermes": "link:@regain/hermes",
+    "drizzle-orm": "^0.38.4",
     "ajv-formats": "^3.0.1",
     "ioredis": "^5.4.1",
     "yaml": "^2.7.0"
