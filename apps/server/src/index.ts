@@ -16,14 +16,20 @@ import {
   InMemoryDriftCounters,
   InMemoryIdempotencyCache,
   InMemoryRateLimitCache,
+  InMemorySignalAggregator,
   RateLimitCache,
+  SignalAggregator,
 } from '@popper/cache';
 import type { SupervisionResponse } from '@popper/core';
 import {
   AuditEmitter,
   BaselineCalculator,
+  ControlHttpClient,
   InMemoryCooldownTracker as CoreInMemoryCooldownTracker,
   createPolicyLifecycleEvent,
+  DeadLetterQueue,
+  DeliveryManager,
+  DesiredStateManager,
   DriftTriggers,
   DriftTriggersManager,
   ExportBundleGenerator,
@@ -32,6 +38,7 @@ import {
   InMemoryPolicyPackCache,
   InMemorySafeModeStateStore,
   InMemorySettingsCache,
+  loadTargetsFromEnv,
   type PolicyLifecycleEvent,
   PolicyLifecycleManager,
   policyRegistry,
@@ -69,6 +76,8 @@ import { env } from './config/env';
 import { initApiKeyService, setApiKeyCache } from './lib/api-keys';
 import { setAuditReader } from './lib/audit-reader';
 import { setBaselineCalculator } from './lib/baselines';
+import { setDeliveryManager } from './lib/delivery-manager';
+import { setDesiredStateManager } from './lib/desired-state';
 import { setDriftCounters } from './lib/drift';
 import { setExportGenerator } from './lib/export';
 import { setIdempotencyCache } from './lib/idempotency';
@@ -82,7 +91,9 @@ import { setRateLimitCache } from './lib/rate-limit';
 import { setRlhfAggregator } from './lib/rlhf';
 import { setSafeModeManager } from './lib/safe-mode';
 import { setSettingsManager } from './lib/settings';
+import { setSignalAggregator } from './lib/signal-aggregator';
 import { setDriftTriggersManager } from './lib/triggers';
+import { setDeadLetterDeps } from './plugins/dead-letters';
 import { setReady } from './plugins/health';
 
 /** Audit events queue name */
@@ -260,6 +271,41 @@ async function main(): Promise<void> {
     setDriftTriggersManager(driftTriggersManager);
     logger.info`Drift triggers manager initialized with Redis + PostgreSQL`;
 
+    // Signal aggregator: Redis-backed sliding window for reconfigure policies
+    const signalRedis = new IORedis(env.REDIS_URL);
+    setSignalAggregator(new SignalAggregator(signalRedis));
+    logger.info`Signal aggregator initialized with Redis`;
+
+    // Desired-state manager: PostgreSQL for per-instance desired state
+    const desiredStateManager = new DesiredStateManager(db);
+    setDesiredStateManager(desiredStateManager);
+    logger.info`Desired-state manager initialized with PostgreSQL`;
+
+    // Push delivery: HTTP client, DLQ, delivery manager, target registration
+    const httpClient = new ControlHttpClient();
+    const deadLetterQueue = new DeadLetterQueue(db);
+    const deliveryManager = new DeliveryManager(httpClient, deadLetterQueue, desiredStateManager, {
+      serviceVersion: '1.0.0',
+      reconciliationIntervalMs: env.RECONCILIATION_INTERVAL_MS,
+      idleReconciliationIntervalMs: env.IDLE_RECONCILIATION_INTERVAL_MS,
+    });
+    setDeliveryManager(deliveryManager);
+    setDeadLetterDeps(deadLetterQueue, deliveryManager);
+
+    // Register targets from env
+    const targets = loadTargetsFromEnv();
+    for (const target of targets) {
+      deliveryManager.registerTarget(target);
+      deliveryManager.startReconciliationLoop(target.instance_id, target.organization_id);
+      logger.info`Registered push target: ${target.instance_id}:${target.organization_id}`;
+    }
+    if (targets.length > 0) {
+      deliveryManager.startupReconciliation().catch((err) => {
+        logger.warning`Startup reconciliation failed: ${err}`;
+      });
+    }
+    logger.info`Push delivery initialized with ${targets.length} target(s)`;
+
     // Audit event reader (shared between RLHF aggregator and dashboard)
     const auditReader = new DrizzleAuditEventReader(db);
     setAuditReader(auditReader);
@@ -425,6 +471,40 @@ async function main(): Promise<void> {
     setDriftTriggersManager(driftTriggersManager);
     logger.info`Drift triggers manager initialized with PostgreSQL (in-memory cooldowns)`;
 
+    // Signal aggregator: in-memory for dev/test
+    setSignalAggregator(new InMemorySignalAggregator());
+    logger.warning`Using in-memory signal aggregator. Set REDIS_URL for production.`;
+
+    // Desired-state manager: PostgreSQL for per-instance desired state
+    const desiredStateManager = new DesiredStateManager(db);
+    setDesiredStateManager(desiredStateManager);
+    logger.info`Desired-state manager initialized with PostgreSQL`;
+
+    // Push delivery: HTTP client, DLQ, delivery manager, target registration
+    const httpClient = new ControlHttpClient();
+    const deadLetterQueue = new DeadLetterQueue(db);
+    const deliveryManager = new DeliveryManager(httpClient, deadLetterQueue, desiredStateManager, {
+      serviceVersion: '1.0.0',
+      reconciliationIntervalMs: env.RECONCILIATION_INTERVAL_MS,
+      idleReconciliationIntervalMs: env.IDLE_RECONCILIATION_INTERVAL_MS,
+    });
+    setDeliveryManager(deliveryManager);
+    setDeadLetterDeps(deadLetterQueue, deliveryManager);
+
+    // Register targets from env
+    const targets = loadTargetsFromEnv();
+    for (const target of targets) {
+      deliveryManager.registerTarget(target);
+      deliveryManager.startReconciliationLoop(target.instance_id, target.organization_id);
+      logger.info`Registered push target: ${target.instance_id}:${target.organization_id}`;
+    }
+    if (targets.length > 0) {
+      deliveryManager.startupReconciliation().catch((err) => {
+        logger.warning`Startup reconciliation failed: ${err}`;
+      });
+    }
+    logger.info`Push delivery initialized with ${targets.length} target(s)`;
+
     // Audit event reader (shared between RLHF aggregator and dashboard)
     const auditReader = new DrizzleAuditEventReader(db);
     setAuditReader(auditReader);
@@ -536,6 +616,19 @@ function setupGracefulShutdown(server: ReturnType<typeof Bun.serve>): void {
       const drainTimeout = 5000;
       logger.info`Draining connections for ${drainTimeout}ms...`;
       await new Promise((resolve) => setTimeout(resolve, drainTimeout));
+
+      // Shut down delivery manager (stop reconciliation loops)
+      try {
+        const { isDeliveryManagerInitialized, getDeliveryManager } = await import(
+          './lib/delivery-manager'
+        );
+        if (isDeliveryManagerInitialized()) {
+          getDeliveryManager().shutdown();
+          logger.info`Delivery manager shut down`;
+        }
+      } catch {
+        /* non-fatal */
+      }
 
       // Stop the server
       logger.info`Stopping server...`;

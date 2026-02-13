@@ -36,6 +36,7 @@ import { getOrganizationService, isOrganizationServiceInitialized } from '../lib
 import { getSafeModeManager } from '../lib/safe-mode';
 import { errorResponseSchema } from '../lib/schemas';
 import { supervisionRequestSchema, supervisionResponseSchema } from '../lib/schemas/supervision';
+import { getSignalAggregator, isSignalAggregatorInitialized } from '../lib/signal-aggregator';
 import { createAuthGuard } from './api-key-auth';
 import { createRateLimitGuard } from './rate-limit';
 
@@ -484,6 +485,41 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
               })
               .catch((err) => {
                 logger.warning`Failed to record drift counters: ${err}`;
+              });
+          }
+
+          // Record signal for reconfigure policy engine (async, non-blocking)
+          if (isSignalAggregatorInitialized()) {
+            getSignalAggregator()
+              .record({
+                organization_id: request.subject.organization_id ?? SYSTEM_ORG_ID,
+                instance_id: request.trace?.producer?.instance_id ?? 'unknown',
+                timestamp: Date.now(),
+                decision: response.decision,
+                htv_score: undefined,
+                hallucination_detected: derivedSignals.hallucination?.detected ?? false,
+                idk_triggered: response.reason_codes.includes('idk_response'),
+                risk_score: derivedSignals.intervention_risks?.[0]?.composite,
+                high_risk_proposal:
+                  derivedSignals.intervention_risks?.some(
+                    (r) => r.level === 'HIGH' || r.level === 'CRITICAL',
+                  ) ?? false,
+                prescription_proposed:
+                  request.proposals?.some(
+                    (p) => p.type === 'prescription' || p.type === 'medication',
+                  ) ?? false,
+                prescription_rejected:
+                  response.decision === 'HARD_STOP' &&
+                  (request.proposals?.some(
+                    (p) => p.type === 'prescription' || p.type === 'medication',
+                  ) ??
+                    false),
+                triage_escalated: response.decision === 'ROUTE_TO_CLINICIAN',
+                stale_snapshot: stalenessResult.is_stale,
+                missing_sources: [],
+              })
+              .catch((err) => {
+                logger.warning`Failed to record signal: ${err}`;
               });
           }
 

@@ -10,13 +10,16 @@ import { env } from './config/env';
 import { adminKeysPlugin } from './plugins/admin-keys';
 import { adminOrgsPlugin } from './plugins/admin-orgs';
 import { controlPlugin } from './plugins/control';
+import { controlV2Plugin } from './plugins/control-v2';
 import { dashboardPlugin } from './plugins/dashboard';
+import { deadLetterPlugin } from './plugins/dead-letters';
 import { exportPlugin } from './plugins/export';
 import { healthPlugin } from './plugins/health';
 import { httpLoggerPlugin } from './plugins/http-logger';
 import { invitePlugin } from './plugins/invite';
 import { metricsPlugin } from './plugins/metrics';
 import { policyLifecyclePlugin } from './plugins/policy-lifecycle';
+import { pushMetricsPlugin } from './plugins/push-metrics';
 import { supervisionPlugin } from './plugins/supervision';
 import { tracingPlugin } from './plugins/tracing';
 
@@ -29,7 +32,8 @@ import { tracingPlugin } from './plugins/tracing';
  * 4. Health - health check endpoints (no auth required)
  * 5. Admin Keys - API key management (protected by API key with admin:keys scopes)
  * 6. Admin Orgs - organization management (protected by API key with admin:orgs scopes)
- * 7. Control - safe-mode and settings management (protected by API key with control scopes)
+ * 7. Control v1 - safe-mode and settings management (protected by API key with control scopes)
+ * 7b. Control v2 - desired-state management, reconciliation (protected by API key with control scopes)
  * 8. Dashboard - ops dashboard status, audit events, timeseries (protected by API key with control:read scope)
  * 9. Export - regulatory export bundle generation (protected by API key with control scopes)
  * 10. Policy Lifecycle - policy pack lifecycle management (protected by API key with control scopes)
@@ -72,10 +76,13 @@ export function createApp() {
       .use(adminKeysPlugin)
       .use(adminOrgsPlugin)
       .use(controlPlugin)
+      .use(controlV2Plugin)
+      .use(deadLetterPlugin)
       .use(dashboardPlugin)
       .use(exportPlugin)
       .use(policyLifecyclePlugin)
       .use(supervisionPlugin)
+      .use(pushMetricsPlugin)
   );
 }
 

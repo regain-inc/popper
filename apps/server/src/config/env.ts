@@ -54,6 +54,15 @@ const envSchema = t.Object({
 
   // Admin API key for control plane endpoints
   POPPER_ADMIN_API_KEY: t.Optional(t.String()),
+
+  // Push delivery configuration
+  DEUTSCH_CONTROL_ENDPOINT: t.Optional(t.String()),
+  DEUTSCH_INSTANCE_ID: t.Optional(t.String()),
+  DEUTSCH_ORGANIZATION_ID: t.Optional(t.String()),
+  POPPER_PUSH_API_KEY: t.Optional(t.String()),
+  CONTROL_TARGETS_FILE: t.Optional(t.String()),
+  RECONCILIATION_INTERVAL_MS: t.Number({ default: 60000 }),
+  IDLE_RECONCILIATION_INTERVAL_MS: t.Number({ default: 300000 }),
 });
 
 type Env = typeof envSchema.static;
@@ -92,6 +101,13 @@ function parseEnv(): Env {
     CORS_ORIGIN: process.env.CORS_ORIGIN ?? 'http://localhost:3002',
     POLICIES_DIR: process.env.POLICIES_DIR ?? './config/policies',
     POPPER_ADMIN_API_KEY: process.env.POPPER_ADMIN_API_KEY,
+    DEUTSCH_CONTROL_ENDPOINT: process.env.DEUTSCH_CONTROL_ENDPOINT,
+    DEUTSCH_INSTANCE_ID: process.env.DEUTSCH_INSTANCE_ID,
+    DEUTSCH_ORGANIZATION_ID: process.env.DEUTSCH_ORGANIZATION_ID,
+    POPPER_PUSH_API_KEY: process.env.POPPER_PUSH_API_KEY,
+    CONTROL_TARGETS_FILE: process.env.CONTROL_TARGETS_FILE,
+    RECONCILIATION_INTERVAL_MS: Number(process.env.RECONCILIATION_INTERVAL_MS) || 60000,
+    IDLE_RECONCILIATION_INTERVAL_MS: Number(process.env.IDLE_RECONCILIATION_INTERVAL_MS) || 300000,
   } satisfies Env;
 
   return env;
