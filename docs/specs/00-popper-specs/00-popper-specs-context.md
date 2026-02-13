@@ -1,9 +1,9 @@
 ---
-version: 1.2.0
-last-updated: 2026-01-25
+version: 1.3.0
+last-updated: 2026-02-13
 status: draft
 owner: Popper Dev Team
-tags: [advocate, ta2, popper, supervision, safety]
+tags: [advocate, ta2, popper, supervision, safety, control-v2]
 ---
 
 # Popper Specs Context (02-popper-specs)
@@ -68,8 +68,18 @@ Popper communicates with Deutsch using Hermes:
   - Popper must be able to "hard stop" without calling an LLM
 - **Control plane**
   - Safe-mode toggles and operational setting changes (Popper → Deutsch)
+- **Control plane v2** *(implemented)*
+  - DSL `reconfigure` side-effects for trend-based operational settings changes
+  - Signal Aggregator (Redis-backed) for supervision signal collection
+  - Reconfigure Policy Engine with configurable thresholds and cooldowns
+  - Desired-State Manager with PostgreSQL persistence and reconciliation loops
+  - Push Delivery pipeline with circuit breaker, dead-letter queue, and retry strategy
+  - 5 new v2 API endpoints (settings, mode, state, reconciliation, manual reconciliation)
+  - 6 Prometheus metrics for push delivery observability
 - **Auditability**
   - Every decision emits audit events joinable by `trace_id`
+  - Control commands emit `CONTROL_COMMAND_ISSUED` audit events
+  - State divergence and reconciliation failures produce audit trails
 - **FDA MDDT Qualification (MANDATORY per ARPA-H TA2 §2.G)**
   - FDA MDDT Qualification application (NAM category)
   - Context of Use (COU) statement aligned with ARPA-H TA2 requirements
@@ -113,6 +123,9 @@ Popper must provide:
 - `04-popper-regulatory-export-and-triage.md` — de-identified export bundles + incident workflow
 - `05-popper-measurement-protocols.md` — accuracy ascertainment + hallucination quantification
 - `10-popper-service-architecture.md` — tech stack, repo structure, data storage, deployment
+- `06-popper-control-plane-v2.md` — control decision engine, signal aggregation, reconfigure policies, desired-state manager *(implemented)*
+- `07-popper-push-delivery.md` — HTTP push delivery, circuit breaker, dead-letter queue, retry strategy, observability *(implemented)*
+- `08-arpa-iso-traceability-matrix.md` — ARPA-H ISO compliance mapping (all 9 gaps GREEN)
 
 ## Optional reference documents (helpful, not required)
 
