@@ -13,7 +13,7 @@ import {
 
 function createMinimalRequest(overrides: Partial<SupervisionRequest> = {}): SupervisionRequest {
   return {
-    hermes_version: '1.6.0',
+    hermes_version: '2.0.0',
     message_type: 'supervision_request',
     trace: {
       trace_id: 'test-trace-1',

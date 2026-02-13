@@ -30,7 +30,7 @@ export const TEST_TRACE_ID = 'test-trace-00000000';
  */
 export function createTestRequest(overrides: Record<string, unknown> = {}): SupervisionRequest {
   return {
-    hermes_version: '1.6.0',
+    hermes_version: '2.0.0',
     message_type: 'supervision_request',
     mode: 'wellness',
     trace: {

@@ -34,7 +34,7 @@
     "@popper/cache": "workspace:*",
     "@popper/core": "workspace:*",
     "@popper/db": "workspace:*",
-    "@regain/hermes": "^1.0.3",
+    "@regain/hermes": "^2.0.0",
     "bullmq": "^5.34.0",
     "elysia": "^1.4.22",
     "elysia-prometheus": "^1.0.0",

@@ -13,7 +13,7 @@ import type { PolicyPack, PolicyRule, RuleAction } from './types';
 // =============================================================================
 
 const createMinimalRequest = (overrides: Partial<SupervisionRequest> = {}): SupervisionRequest => ({
-  hermes_version: '1.6.0',
+  hermes_version: '2.0.0',
   mode: 'wellness',
   trace: {
     request_id: 'test-request-1',

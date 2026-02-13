@@ -134,7 +134,7 @@ describe('Hermes Contract Tests', () => {
         const content = await readFile(filePath, 'utf-8');
         const message = JSON.parse(content);
 
-        expect(message.hermes_version).toBe('1.6.0');
+        expect(message.hermes_version).toBe('2.0.0');
         expect(message.message_type).toBe('supervision_request');
         expect(message.trace).toBeDefined();
         expect(message.trace.trace_id).toBeDefined();
@@ -156,7 +156,7 @@ describe('Hermes Contract Tests', () => {
         const content = await readFile(filePath, 'utf-8');
         const message = JSON.parse(content);
 
-        expect(message.hermes_version).toBe('1.6.0');
+        expect(message.hermes_version).toBe('2.0.0');
         expect(message.message_type).toBe('supervision_response');
         expect(message.decision).toBeDefined();
         expect(['APPROVED', 'REQUEST_MORE_INFO', 'ROUTE_TO_CLINICIAN', 'HARD_STOP']).toContain(

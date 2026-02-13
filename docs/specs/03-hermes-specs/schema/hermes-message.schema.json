@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://regain.health/schemas/hermes-message.schema.json",
-  "title": "Hermes v1.6.0 — Message + Shared Types Schema",
+  "title": "Hermes v2.0.0 — Message + Shared Types Schema",
   "description": "Machine-readable schema for Hermes messages and shared types including imaging data, clinician feedback, and bias detection. This is a spec artifact (not runtime code).",
   "type": "object",
   "oneOf": [

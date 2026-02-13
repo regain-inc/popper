@@ -64,7 +64,7 @@ afterEach(() => {
 
 function createBaseRequest(overrides: Record<string, unknown> = {}) {
   return {
-    hermes_version: '1.6.0',
+    hermes_version: '2.0.0',
     message_type: 'supervision_request',
     mode: 'wellness',
     trace: {

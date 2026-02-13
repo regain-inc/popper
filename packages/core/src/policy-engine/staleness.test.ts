@@ -22,7 +22,7 @@ const createRequest = (
   proposals: SupervisionRequest['proposals'] = [],
 ): SupervisionRequest => {
   const request: SupervisionRequest = {
-    hermes_version: '1.6.0',
+    hermes_version: '2.0.0',
     mode,
     trace: {
       request_id: 'test-request-1',

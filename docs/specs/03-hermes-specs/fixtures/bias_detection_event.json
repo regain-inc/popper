@@ -1,5 +1,5 @@
 {
-  "hermes_version": "1.6.0",
+  "hermes_version": "2.0.0",
   "message_type": "bias_detection",
   "trace": {
     "trace_id": "bias-detection-001-gggg-hhhh",

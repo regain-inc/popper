@@ -190,7 +190,7 @@ describe('InMemoryIdempotencyCache', () => {
 describe('Real-world supervision request hashing', () => {
   it('should produce stable hash for supervision request', () => {
     const request = {
-      hermes_version: '1.6.0',
+      hermes_version: '2.0.0',
       mode: 'advocate_clinical',
       system: 'deutsch',
       idempotency_key: 'req-123',
@@ -227,7 +227,7 @@ describe('Real-world supervision request hashing', () => {
 
   it('should differentiate requests with different proposals', () => {
     const baseRequest = {
-      hermes_version: '1.6.0',
+      hermes_version: '2.0.0',
       mode: 'advocate_clinical',
       idempotency_key: 'req-123',
       subject: { subject_id: 'patient-xyz' },

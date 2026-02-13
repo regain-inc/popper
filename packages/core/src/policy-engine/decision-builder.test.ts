@@ -22,7 +22,7 @@ import type { StalenessResult } from './staleness';
 
 const createRequest = (): SupervisionRequest =>
   ({
-    hermes_version: '1.6.0',
+    hermes_version: '2.0.0',
     message_type: 'supervision_request',
     mode: 'wellness',
     trace: {

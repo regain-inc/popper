@@ -63,7 +63,7 @@ afterEach(() => {
 // =============================================================================
 
 const createValidRequest = (overrides: Record<string, unknown> = {}) => ({
-  hermes_version: '1.6.0',
+  hermes_version: '2.0.0',
   message_type: 'supervision_request',
   mode: 'wellness',
   trace: {
@@ -188,7 +188,7 @@ describe('POST /v1/popper/supervise', () => {
   describe('Schema Validation', () => {
     test('returns 422 for missing required fields', async () => {
       const request = {
-        hermes_version: '1.6.0',
+        hermes_version: '2.0.0',
         message_type: 'supervision_request',
         // Missing mode, trace, subject, etc.
       };

@@ -71,7 +71,7 @@ popper/
 
 - **npm**: https://www.npmjs.com/package/@regain/hermes
 - **Source code**: `/Users/macbookpro/development/hermes`
-- **Version**: 1.0.3+ (Hermes Protocol v1.6.0)
+- **Version**: 2.0.0+ (Hermes Protocol v2.0.0)
 
 ### Что использовать из пакета:
 

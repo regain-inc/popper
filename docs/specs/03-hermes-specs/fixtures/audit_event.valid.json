@@ -1,5 +1,5 @@
 {
-  "hermes_version": "1.6.0",
+  "hermes_version": "2.0.0",
   "message_type": "audit_event",
   "event_type": "VALIDATION_FAILED",
   "occurred_at": "2026-01-23T13:00:00.060Z",
