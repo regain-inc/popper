@@ -53,6 +53,7 @@ export {
   type IIdempotencyCache,
   InMemoryIdempotencyCache,
 } from './idempotency-cache';
+export { InMemorySignalAggregator } from './in-memory-signal-aggregator';
 export {
   InMemoryRateLimitCache,
   type IRateLimitCache,
@@ -61,3 +62,11 @@ export {
   type RateLimitCounts,
   type RateLimitResult,
 } from './rate-limit-cache';
+export {
+  type AggregatedSignals,
+  computeAggregates,
+  computeHtvTrend,
+  type ISignalAggregator,
+  SignalAggregator,
+  type SignalEvent,
+} from './signal-aggregator';
