@@ -227,7 +227,7 @@ describe('E2E Supervision Vectors', () => {
     const body = await response.json();
 
     // Check required Hermes response fields
-    expect(body.hermes_version).toBe('1.6.0');
+    expect(body.hermes_version).toBe('2.0.0');
     expect(body.message_type).toBe('supervision_response');
     expect(body.mode).toBe('wellness');
     expect(body.trace).toBeDefined();

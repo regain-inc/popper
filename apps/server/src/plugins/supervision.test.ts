@@ -124,7 +124,7 @@ describe('POST /v1/popper/supervise', () => {
       expect(response.status).toBe(200);
 
       const body = await response.json();
-      expect(body.hermes_version).toBe('1.6.0');
+      expect(body.hermes_version).toBe('2.0.0');
       expect(body.message_type).toBe('supervision_response');
       expect(body.mode).toBe('wellness');
       expect(body.decision).toBeDefined();
