@@ -23,7 +23,7 @@ export type {
   EvaluationResult,
   MatchedRule,
 } from './evaluator';
-export { createEvaluator, PolicyEvaluator } from './evaluator';
+export { createEvaluator, mergeReconfigureEffects, PolicyEvaluator } from './evaluator';
 // Loader
 export {
   loadPolicyPack,
@@ -81,6 +81,8 @@ export type {
   PolicySource,
   ProposalKindInCondition,
   ProposalMissingFieldCondition,
+  ReconfigureEffect,
+  ReconfigureSettingChange,
   RuleAction,
   RuleCondition,
   RuleEngineFailedCondition,

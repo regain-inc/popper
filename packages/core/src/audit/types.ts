@@ -15,6 +15,10 @@ export type AuditEventType =
   | 'VALIDATION_FAILED'
   | 'SAFE_MODE_CHANGED'
   | 'CONTROL_COMMAND'
+  | 'CONTROL_COMMAND_ISSUED'
+  | 'CONTROL_COMMAND_TIMEOUT'
+  | 'CONTROL_STATE_DIVERGENCE'
+  | 'CONTROL_RECONCILIATION_FAILED'
   | 'POLICY_LIFECYCLE'
   | 'EXPORT_GENERATED'
   | 'EXPORT_DOWNLOADED'
@@ -46,7 +50,11 @@ export type AuditEventTag =
   | 'policy_rollback'
   | 'export_generated'
   | 'export_downloaded'
-  | 'export_accessed';
+  | 'export_accessed'
+  | 'ta1_self_transition'
+  | 'control_v2'
+  | 'reconciliation'
+  | 'auto_revert';
 
 /**
  * Audit event payload structure (PHI-redacted)

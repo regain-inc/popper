@@ -10,6 +10,10 @@ export * from './acuity';
 export * from './api-keys';
 // Re-export Audit module
 export * from './audit';
+// Re-export Control v2 module
+export * from './control-v2';
+// Re-export Desired-State Manager
+export * from './desired-state';
 // Re-export Drift module
 export * from './drift';
 // Re-export Export module
@@ -24,6 +28,10 @@ export * from './intervention-risk';
 export * from './policy-engine';
 // Re-export Policy Lifecycle module
 export * from './policy-lifecycle';
+// Re-export Push Delivery
+export * from './push-delivery';
+// Re-export Reconfigure Policy Engine
+export * from './reconfigure-policy';
 // Re-export RLHF module
 export * from './rlhf';
 // Re-export Safe-mode module

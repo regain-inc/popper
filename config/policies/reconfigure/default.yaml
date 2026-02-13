@@ -1,0 +1,69 @@
+policies:
+  - policy_id: drift-response-restrict
+    name: Drift Response - Restrict Mode
+    description: >
+      When approval rate drops below 70%, restrict operational mode
+      to reduce autonomy and increase clinician oversight.
+    enabled: true
+    trigger:
+      kind: approval_rate_below
+      threshold: 0.7
+    effect:
+      settings:
+        - key: max_autonomy_level
+          value: 2
+          reason: "Approval rate drift detected"
+      mode_transition:
+        target_mode: RESTRICTED
+        reason: "Approval rate below 70% threshold"
+      priority: URGENT
+    cooldown_minutes: 30
+    auto_revert: true
+    revert_after_minutes: 60
+
+  - policy_id: hallucination-emergency
+    name: Hallucination Emergency
+    description: >
+      When 3 or more hallucinations are detected in the window,
+      transition to SAFE_MODE immediately.
+    enabled: true
+    trigger:
+      kind: hallucination_spike
+      threshold: 3
+    effect:
+      settings:
+        - key: max_autonomy_level
+          value: 0
+          reason: "Hallucination spike detected"
+      mode_transition:
+        target_mode: SAFE_MODE
+        reason: "Multiple hallucinations detected in window"
+      priority: EMERGENCY
+    cooldown_minutes: 60
+    auto_revert: true
+    revert_after_minutes: 30
+
+  - policy_id: prescription-safety-gate
+    name: Prescription Safety Gate
+    description: >
+      When more than 50% of prescription proposals are rejected,
+      restrict mode and lower autonomy for prescription-related operations.
+    enabled: true
+    trigger:
+      kind: prescription_rejection_rate_above
+      threshold: 0.5
+    effect:
+      settings:
+        - key: max_autonomy_level
+          value: 1
+          reason: "High prescription rejection rate"
+        - key: prescription_auto_approve
+          value: false
+          reason: "Prescription safety gate triggered"
+      mode_transition:
+        target_mode: RESTRICTED
+        reason: "Prescription rejection rate above 50%"
+      priority: URGENT
+    cooldown_minutes: 45
+    auto_revert: true
+    revert_after_minutes: 90

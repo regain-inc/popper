@@ -17,6 +17,7 @@ import type {
   ControlCommand,
   PolicyPack,
   PolicyRule,
+  ReconfigureEffect,
   RuleCondition,
 } from './types';
 
@@ -122,6 +123,8 @@ export interface EvaluationResult {
   approved_constraints?: ApprovedConstraints;
   /** Optional control commands to execute */
   control_commands?: ControlCommand[];
+  /** Optional merged reconfigure effect (v2) */
+  reconfigure_effect?: ReconfigureEffect;
   /** Policy pack version used */
   policy_version: string;
   /** Evaluation duration in milliseconds */
@@ -165,6 +168,7 @@ export class PolicyEvaluator {
     let finalExplanation = '';
     let finalConstraints: ApprovedConstraints | undefined;
     let allControlCommands: ControlCommand[] = [];
+    const reconfigureEffects: ReconfigureEffect[] = [];
 
     // Evaluate rules in priority order
     for (const rule of this.sortedRules) {
@@ -187,6 +191,11 @@ export class PolicyEvaluator {
         // Collect control commands
         if (rule.then.control_commands) {
           allControlCommands = [...allControlCommands, ...rule.then.control_commands];
+        }
+
+        // Collect reconfigure effects (v2)
+        if (rule.then.reconfigure) {
+          reconfigureEffects.push(rule.then.reconfigure);
         }
 
         // Update decision based on conservatism
@@ -219,6 +228,9 @@ export class PolicyEvaluator {
 
     const endTime = performance.now();
 
+    const mergedReconfigure =
+      reconfigureEffects.length > 0 ? mergeReconfigureEffects(reconfigureEffects) : undefined;
+
     return {
       decision: finalDecision,
       reason_codes: aggregatedReasonCodes,
@@ -226,6 +238,7 @@ export class PolicyEvaluator {
       matched_rules: matchedRules,
       approved_constraints: finalConstraints,
       control_commands: allControlCommands.length > 0 ? allControlCommands : undefined,
+      reconfigure_effect: mergedReconfigure,
       policy_version: this.policyPack.policy_version,
       evaluation_time_ms: endTime - startTime,
     };
@@ -616,6 +629,95 @@ export class PolicyEvaluator {
     const set = new Set([...existing, ...newCodes]);
     return Array.from(set);
   }
+}
+
+// =============================================================================
+// Reconfigure Effect Merging
+// =============================================================================
+
+/** Priority ordering for reconfigure effects: EMERGENCY > URGENT > ROUTINE */
+const RECONFIGURE_PRIORITY_ORDER: Record<string, number> = {
+  ROUTINE: 1,
+  URGENT: 2,
+  EMERGENCY: 3,
+};
+
+/**
+ * Merge multiple ReconfigureEffects from matched rules.
+ *
+ * Merging semantics:
+ * - Settings: accumulate all; same key → higher priority wins
+ * - Mode transition: highest priority wins
+ * - Auto-revert: shortest timer wins
+ * - Priority: highest wins
+ */
+export function mergeReconfigureEffects(effects: ReconfigureEffect[]): ReconfigureEffect {
+  if (effects.length === 1) return effects[0];
+
+  const merged: ReconfigureEffect = {};
+
+  // Track the highest priority across all effects
+  let highestPriority = 0;
+  let highestPriorityLabel: ReconfigureEffect['priority'];
+
+  for (const effect of effects) {
+    const p = RECONFIGURE_PRIORITY_ORDER[effect.priority ?? 'ROUTINE'] ?? 1;
+    if (p > highestPriority) {
+      highestPriority = p;
+      highestPriorityLabel = effect.priority ?? 'ROUTINE';
+    }
+  }
+  merged.priority = highestPriorityLabel;
+
+  // Merge settings: same key → higher-priority effect wins
+  const settingsMap = new Map<
+    string,
+    { change: ReconfigureEffect['settings'][0]; priority: number }
+  >();
+  for (const effect of effects) {
+    const effectPriority = RECONFIGURE_PRIORITY_ORDER[effect.priority ?? 'ROUTINE'] ?? 1;
+    for (const setting of effect.settings ?? []) {
+      const existing = settingsMap.get(setting.key);
+      if (!existing || effectPriority > existing.priority) {
+        settingsMap.set(setting.key, { change: setting, priority: effectPriority });
+      }
+    }
+  }
+  if (settingsMap.size > 0) {
+    merged.settings = Array.from(settingsMap.values()).map((v) => v.change);
+  }
+
+  // Mode transition: highest priority wins
+  let bestModeTransition: ReconfigureEffect['mode_transition'] | undefined;
+  let bestModePriority = 0;
+  for (const effect of effects) {
+    if (effect.mode_transition) {
+      const p = RECONFIGURE_PRIORITY_ORDER[effect.priority ?? 'ROUTINE'] ?? 1;
+      if (p > bestModePriority) {
+        bestModePriority = p;
+        bestModeTransition = effect.mode_transition;
+      }
+    }
+  }
+  if (bestModeTransition) {
+    merged.mode_transition = bestModeTransition;
+  }
+
+  // Auto-revert: if any effect has auto_revert, enable it; shortest timer wins
+  const revertTimers: number[] = [];
+  for (const effect of effects) {
+    if (effect.auto_revert) {
+      merged.auto_revert = true;
+      if (effect.revert_after_minutes !== undefined) {
+        revertTimers.push(effect.revert_after_minutes);
+      }
+    }
+  }
+  if (revertTimers.length > 0) {
+    merged.revert_after_minutes = Math.min(...revertTimers);
+  }
+
+  return merged;
 }
 
 // =============================================================================

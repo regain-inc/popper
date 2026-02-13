@@ -351,6 +351,9 @@ export interface RuleAction {
   /** Optional control commands (safe-mode or settings changes) */
   control_commands?: ControlCommand[];
 
+  /** Optional reconfigure side-effect (v2) */
+  reconfigure?: ReconfigureEffect;
+
   /** If true, continue evaluating subsequent rules and merge reason_codes */
   continue?: boolean;
 }
@@ -378,6 +381,29 @@ export interface ControlCommand {
     key: string;
     value: string;
   };
+}
+
+// =============================================================================
+// Reconfigure Effects (v2)
+// =============================================================================
+
+/** A single setting change in a reconfigure effect */
+export interface ReconfigureSettingChange {
+  key: string;
+  value: unknown;
+  reason?: string;
+}
+
+/** Reconfigure side-effect that a rule can trigger */
+export interface ReconfigureEffect {
+  settings?: ReconfigureSettingChange[];
+  mode_transition?: {
+    target_mode: 'NORMAL' | 'RESTRICTED' | 'SAFE_MODE' | 'MAINTENANCE';
+    reason: string;
+  };
+  priority?: 'ROUTINE' | 'URGENT' | 'EMERGENCY';
+  auto_revert?: boolean;
+  revert_after_minutes?: number;
 }
 
 // =============================================================================
