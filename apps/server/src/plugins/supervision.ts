@@ -11,6 +11,7 @@
 import type { ApiKeyContext } from '@popper/core';
 import {
   buildAuditTags,
+  buildPerProposalDecisions,
   calculateAllInterventionRisks,
   computeAcuity,
   createDecisionBuilder,
@@ -23,7 +24,11 @@ import {
   type EvaluationContext,
   extractRequestMetadata,
   getDefaultEmitter,
+  type InterventionRiskLevel,
+  type InterventionRiskScore,
   policyRegistry,
+  type ReasonCode,
+  type SupervisionDecision,
   type SupervisionRequest,
   type SupervisionResponse,
   validateHermesMessage,
@@ -87,6 +92,38 @@ function validateClockSkew(requestTimestamp: string | undefined): string | undef
   }
 
   return undefined;
+}
+
+/**
+ * Map intervention risk scores to per-proposal decision overrides.
+ * Higher-risk proposals get escalated to more conservative decisions.
+ */
+function derivePerProposalOverrides(
+  risks: InterventionRiskScore[],
+): Map<string, { decision: SupervisionDecision; reason_codes: ReasonCode[] }> {
+  const RISK_ESCALATION: Record<
+    InterventionRiskLevel,
+    { decision: SupervisionDecision; reason: ReasonCode } | null
+  > = {
+    low: null,
+    moderate: { decision: 'REQUEST_MORE_INFO', reason: 'high_uncertainty' },
+    high: { decision: 'ROUTE_TO_CLINICIAN', reason: 'risk_too_high' },
+    critical: { decision: 'HARD_STOP', reason: 'risk_too_high' },
+  };
+  const overrides = new Map<
+    string,
+    { decision: SupervisionDecision; reason_codes: ReasonCode[] }
+  >();
+  for (const risk of risks) {
+    const escalation = RISK_ESCALATION[risk.level];
+    if (escalation) {
+      overrides.set(risk.proposal_id, {
+        decision: escalation.decision,
+        reason_codes: [escalation.reason],
+      });
+    }
+  }
+  return overrides;
 }
 
 /**
@@ -407,11 +444,22 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
           const evaluator = createEvaluator(policyPack);
           const evaluationResult = evaluator.evaluate(context);
 
-          // 9. Build final response
+          // 9. Build per-proposal decisions from intervention risks
+          const interventionRisks = derivedSignals.intervention_risks ?? [];
+          const proposalOverrides = derivePerProposalOverrides(interventionRisks);
+          const perProposalDecisions = buildPerProposalDecisions(
+            request.proposals,
+            evaluationResult.decision,
+            evaluationResult.reason_codes,
+            proposalOverrides,
+          );
+
+          // 10. Build final response
           const response = decisionBuilder.build({
             request,
             evaluationResult,
             stalenessResult,
+            perProposalDecisions,
           });
 
           // 10. Log metrics and emit audit event

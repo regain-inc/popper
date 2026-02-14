@@ -80,6 +80,20 @@ export const supervisionResponseSchema = t.Object(
     explanation: t.String(),
     audit_redaction: t.Any(),
     response_timestamp: t.Optional(t.String()),
+    per_proposal_decisions: t.Optional(
+      t.Array(
+        t.Object({
+          proposal_id: t.String(),
+          decision: t.Union([
+            t.Literal('APPROVED'),
+            t.Literal('REQUEST_MORE_INFO'),
+            t.Literal('ROUTE_TO_CLINICIAN'),
+            t.Literal('HARD_STOP'),
+          ]),
+          reason_codes: t.Array(t.String()),
+        }),
+      ),
+    ),
   },
   { additionalProperties: true },
 );
