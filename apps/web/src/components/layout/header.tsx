@@ -22,10 +22,12 @@ import {
 } from '@/components/ui/select';
 import { useAuth } from '@/hooks/use-auth';
 import { useOrganization } from '@/hooks/use-organization';
+import { useSettings } from '@/hooks/use-settings';
 
 export function Header() {
   const { user, logout } = useAuth();
   const { selectedOrgId, setSelectedOrgId, organizations } = useOrganization();
+  const { mockMode } = useSettings();
 
   // Get initials from user name
   const initials = user?.name
@@ -63,11 +65,12 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-4">
-        {/* Status indicator */}
-        <div className="hidden items-center gap-2 text-sm sm:flex">
-          <div className="bg-success size-2 animate-pulse rounded-full" />
-          <span className="text-muted-foreground">System Healthy</span>
-        </div>
+        {/* Data source indicator */}
+        {mockMode && (
+          <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-600 dark:text-amber-400">
+            MOCK
+          </div>
+        )}
 
         {/* User menu */}
         <DropdownMenu>

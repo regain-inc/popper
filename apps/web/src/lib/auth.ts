@@ -10,8 +10,14 @@ import { createAuthClient } from 'better-auth/react';
  * Points to the API server which handles all auth operations.
  * Web app never accesses the database directly.
  */
+function getAuthBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
+  if (typeof window !== 'undefined') return window.location.origin;
+  return 'http://localhost:3000';
+}
+
 export const authClient = createAuthClient<typeof auth>({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9001',
+  baseURL: getAuthBaseUrl(),
   plugins: [inferAdditionalFields<typeof auth>(), adminClient()],
 });
 

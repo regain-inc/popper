@@ -1,12 +1,18 @@
 'use client';
 
-import { ArrowRight01Icon, Timer01Icon, UserMultiple02Icon } from '@hugeicons/core-free-icons';
+import {
+  ArrowRight01Icon,
+  Database01Icon,
+  Timer01Icon,
+  UserMultiple02Icon,
+} from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/hooks/use-auth';
 import { useSettings } from '@/hooks/use-settings';
 
@@ -20,7 +26,7 @@ const refreshOptions = [
 
 export default function SettingsPage() {
   const { isAdmin } = useAuth();
-  const { refreshInterval, setRefreshInterval } = useSettings();
+  const { refreshInterval, setRefreshInterval, mockMode, setMockMode } = useSettings();
 
   const handleRefreshChange = (value: string) => {
     const interval = Number.parseInt(value, 10);
@@ -32,12 +38,49 @@ export default function SettingsPage() {
     }
   };
 
+  const handleMockModeChange = (checked: boolean) => {
+    setMockMode(checked);
+    if (checked) {
+      toast.success('Switched to mock data');
+    } else {
+      toast.success('Switched to live data');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="text-muted-foreground text-sm">Configure dashboard preferences</p>
       </div>
+
+      {/* Data Source */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-muted flex size-10 items-center justify-center rounded-lg">
+                <HugeiconsIcon icon={Database01Icon} className="text-muted-foreground size-5" />
+              </div>
+              <div>
+                <CardTitle className="text-base">Mock Mode</CardTitle>
+                <CardDescription>Use simulated data instead of the live Popper API</CardDescription>
+              </div>
+            </div>
+            <Switch checked={mockMode} onCheckedChange={handleMockModeChange} />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2 text-sm">
+            <div
+              className={`size-2 rounded-full ${mockMode ? 'bg-amber-500' : 'bg-emerald-500'}`}
+            />
+            <span className="text-muted-foreground">
+              {mockMode ? 'Using mock data' : 'Connected to live API'}
+            </span>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Refresh Interval */}
       <Card>

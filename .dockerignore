@@ -1,0 +1,14 @@
+node_modules
+.turbo
+.git
+.env
+.env.local
+apps/web/.env.local
+apps/server/.env
+**/.env.local
+**/.env
+**/node_modules
+**/.turbo
+**/.next
+**/dist
+**/coverage

@@ -4,11 +4,10 @@ import { useQuery } from '@tanstack/react-query';
 import { ApiError, api } from '@/lib/api';
 import { mockStatus } from '@/lib/mock-data';
 import type { StatusResponse } from '@/types/api';
+import { useSettings } from './use-settings';
 
-const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
-
-async function fetchStatus(organizationId?: string): Promise<StatusResponse> {
-  if (USE_MOCK) {
+async function fetchStatus(mockMode: boolean, organizationId?: string): Promise<StatusResponse> {
+  if (mockMode) {
     await new Promise((resolve) => setTimeout(resolve, 300));
 
     if (organizationId) {
@@ -35,9 +34,11 @@ async function fetchStatus(organizationId?: string): Promise<StatusResponse> {
 }
 
 export function useStatus(organizationId?: string, refetchInterval?: number) {
+  const { mockMode } = useSettings();
+
   return useQuery({
-    queryKey: ['status', organizationId],
-    queryFn: () => fetchStatus(organizationId),
+    queryKey: ['status', organizationId, { mockMode }],
+    queryFn: () => fetchStatus(mockMode, organizationId),
     refetchInterval: refetchInterval ? refetchInterval * 1000 : 10_000,
     staleTime: 10000,
   });

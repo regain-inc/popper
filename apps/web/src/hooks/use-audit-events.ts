@@ -9,11 +9,13 @@ import type {
   AuditTimeseriesParams,
   AuditTimeseriesResponse,
 } from '@/types/api';
+import { useSettings } from './use-settings';
 
-const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
-
-async function fetchAuditEvents(params: AuditEventsParams): Promise<AuditEventsResponse> {
-  if (USE_MOCK) {
+async function fetchAuditEvents(
+  mockMode: boolean,
+  params: AuditEventsParams,
+): Promise<AuditEventsResponse> {
+  if (mockMode) {
     await new Promise((resolve) => setTimeout(resolve, 300));
     return getMockAuditEventsResponse(params.offset || 0, params.limit || 50);
   }
@@ -39,9 +41,10 @@ async function fetchAuditEvents(params: AuditEventsParams): Promise<AuditEventsR
 }
 
 async function fetchAuditTimeseries(
+  mockMode: boolean,
   params: AuditTimeseriesParams,
 ): Promise<AuditTimeseriesResponse> {
-  if (USE_MOCK) {
+  if (mockMode) {
     await new Promise((resolve) => setTimeout(resolve, 300));
     return getMockTimeseries();
   }
@@ -64,18 +67,22 @@ async function fetchAuditTimeseries(
 }
 
 export function useAuditEvents(params: AuditEventsParams = {}) {
+  const { mockMode } = useSettings();
+
   return useQuery({
-    queryKey: ['audit-events', params],
-    queryFn: () => fetchAuditEvents(params),
+    queryKey: ['audit-events', params, { mockMode }],
+    queryFn: () => fetchAuditEvents(mockMode, params),
     refetchInterval: 30_000,
     staleTime: 10000,
   });
 }
 
 export function useAuditTimeseries(params: AuditTimeseriesParams) {
+  const { mockMode } = useSettings();
+
   return useQuery({
-    queryKey: ['audit-timeseries', params],
-    queryFn: () => fetchAuditTimeseries(params),
+    queryKey: ['audit-timeseries', params, { mockMode }],
+    queryFn: () => fetchAuditTimeseries(mockMode, params),
     refetchInterval: 30_000,
     staleTime: 30000,
   });

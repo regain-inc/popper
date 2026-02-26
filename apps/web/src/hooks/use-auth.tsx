@@ -42,7 +42,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 // Demo mode: bypass auth and use a mock admin user
-const DEMO_MODE = true;
+const DEMO_MODE = false;
 
 const DEMO_USER: AuthUser = {
   id: 'demo-admin-001',

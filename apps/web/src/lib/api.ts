@@ -2,23 +2,20 @@ import { treaty } from '@elysiajs/eden';
 import type { App } from '@popper/server';
 import type { Organization } from '@/types/api';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9001';
+function getApiBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/api/proxy`;
+  }
+  return 'http://localhost:3000';
+}
 
-/**
- * API client with API key authentication
- * Used for machine-to-machine API calls
- */
-export const api = treaty<App>(API_BASE_URL, {
-  headers: () => {
-    const apiKey = process.env.NEXT_PUBLIC_API_KEY;
-    return apiKey ? { 'X-API-Key': apiKey } : {};
-  },
-});
+const API_BASE_URL = getApiBaseUrl();
 
-/**
- * Authenticated API client with cookie credentials
- * Used for user-authenticated requests from the browser
- */
+export const api = treaty<App>(API_BASE_URL);
+
 export const authApi = treaty<App>(API_BASE_URL, {
   fetch: {
     credentials: 'include',

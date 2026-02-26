@@ -10,14 +10,14 @@ import type {
   IncidentUpdateResponse,
   ResolveIncidentRequest,
 } from '@/types/api';
-
-const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
+import { useSettings } from './use-settings';
 
 async function fetchIncidents(
+  mockMode: boolean,
   organizationId?: string,
   status?: 'open' | 'all',
 ): Promise<IncidentsResponse> {
-  if (USE_MOCK) {
+  if (mockMode) {
     await new Promise((resolve) => setTimeout(resolve, 300));
     let filtered = mockIncidents;
     if (status === 'open') {
@@ -41,8 +41,8 @@ async function fetchIncidents(
   return data as IncidentsResponse;
 }
 
-async function fetchIncident(id: string): Promise<Incident> {
-  if (USE_MOCK) {
+async function fetchIncident(mockMode: boolean, id: string): Promise<Incident> {
+  if (mockMode) {
     await new Promise((resolve) => setTimeout(resolve, 200));
     const incident = mockIncidents.find((i) => i.id === id);
     if (!incident) throw new Error('Incident not found');
@@ -58,8 +58,8 @@ async function fetchIncident(id: string): Promise<Incident> {
   return data as Incident;
 }
 
-async function acknowledgeIncident(id: string): Promise<IncidentUpdateResponse> {
-  if (USE_MOCK) {
+async function acknowledgeIncident(mockMode: boolean, id: string): Promise<IncidentUpdateResponse> {
+  if (mockMode) {
     await new Promise((resolve) => setTimeout(resolve, 300));
     return {
       id,
@@ -78,10 +78,11 @@ async function acknowledgeIncident(id: string): Promise<IncidentUpdateResponse> 
 }
 
 async function resolveIncident(
+  mockMode: boolean,
   id: string,
   request: ResolveIncidentRequest,
 ): Promise<IncidentUpdateResponse> {
-  if (USE_MOCK) {
+  if (mockMode) {
     await new Promise((resolve) => setTimeout(resolve, 300));
     return {
       id,
@@ -100,27 +101,32 @@ async function resolveIncident(
 }
 
 export function useIncidents(organizationId?: string, status?: 'open' | 'all') {
+  const { mockMode } = useSettings();
+
   return useQuery({
-    queryKey: ['incidents', organizationId, status],
-    queryFn: () => fetchIncidents(organizationId, status),
+    queryKey: ['incidents', organizationId, status, { mockMode }],
+    queryFn: () => fetchIncidents(mockMode, organizationId, status),
     refetchInterval: 60_000,
     staleTime: 10000,
   });
 }
 
 export function useIncident(id: string) {
+  const { mockMode } = useSettings();
+
   return useQuery({
-    queryKey: ['incident', id],
-    queryFn: () => fetchIncident(id),
+    queryKey: ['incident', id, { mockMode }],
+    queryFn: () => fetchIncident(mockMode, id),
     staleTime: 5000,
   });
 }
 
 export function useAcknowledgeIncident() {
   const queryClient = useQueryClient();
+  const { mockMode } = useSettings();
 
   return useMutation({
-    mutationFn: acknowledgeIncident,
+    mutationFn: (id: string) => acknowledgeIncident(mockMode, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incidents'] });
       queryClient.invalidateQueries({ queryKey: ['incident'] });
@@ -130,10 +136,11 @@ export function useAcknowledgeIncident() {
 
 export function useResolveIncident() {
   const queryClient = useQueryClient();
+  const { mockMode } = useSettings();
 
   return useMutation({
     mutationFn: ({ id, request }: { id: string; request: ResolveIncidentRequest }) =>
-      resolveIncident(id, request),
+      resolveIncident(mockMode, id, request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incidents'] });
       queryClient.invalidateQueries({ queryKey: ['incident'] });

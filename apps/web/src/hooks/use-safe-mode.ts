@@ -9,11 +9,10 @@ import type {
   SafeModeResponse,
   SafeModeState,
 } from '@/types/api';
+import { useSettings } from './use-settings';
 
-const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
-
-async function fetchSafeMode(organizationId?: string): Promise<SafeModeState> {
-  if (USE_MOCK) {
+async function fetchSafeMode(mockMode: boolean, organizationId?: string): Promise<SafeModeState> {
+  if (mockMode) {
     await new Promise((resolve) => setTimeout(resolve, 200));
     return {
       enabled: false,
@@ -37,8 +36,11 @@ async function fetchSafeMode(organizationId?: string): Promise<SafeModeState> {
   return data as SafeModeState;
 }
 
-async function fetchSafeModeHistory(organizationId?: string): Promise<SafeModeHistoryResponse> {
-  if (USE_MOCK) {
+async function fetchSafeModeHistory(
+  mockMode: boolean,
+  organizationId?: string,
+): Promise<SafeModeHistoryResponse> {
+  if (mockMode) {
     await new Promise((resolve) => setTimeout(resolve, 200));
     const history = organizationId
       ? mockSafeModeHistory.filter(
@@ -59,8 +61,11 @@ async function fetchSafeModeHistory(organizationId?: string): Promise<SafeModeHi
   return data as SafeModeHistoryResponse;
 }
 
-async function updateSafeMode(request: SafeModeRequest): Promise<SafeModeResponse> {
-  if (USE_MOCK) {
+async function updateSafeMode(
+  mockMode: boolean,
+  request: SafeModeRequest,
+): Promise<SafeModeResponse> {
+  if (mockMode) {
     await new Promise((resolve) => setTimeout(resolve, 500));
     return {
       success: true,
@@ -91,26 +96,31 @@ async function updateSafeMode(request: SafeModeRequest): Promise<SafeModeRespons
 }
 
 export function useSafeMode(organizationId?: string) {
+  const { mockMode } = useSettings();
+
   return useQuery({
-    queryKey: ['safe-mode', organizationId],
-    queryFn: () => fetchSafeMode(organizationId),
+    queryKey: ['safe-mode', organizationId, { mockMode }],
+    queryFn: () => fetchSafeMode(mockMode, organizationId),
     staleTime: 5000,
   });
 }
 
 export function useSafeModeHistory(organizationId?: string) {
+  const { mockMode } = useSettings();
+
   return useQuery({
-    queryKey: ['safe-mode-history', organizationId],
-    queryFn: () => fetchSafeModeHistory(organizationId),
+    queryKey: ['safe-mode-history', organizationId, { mockMode }],
+    queryFn: () => fetchSafeModeHistory(mockMode, organizationId),
     staleTime: 30000,
   });
 }
 
 export function useSetSafeMode() {
   const queryClient = useQueryClient();
+  const { mockMode } = useSettings();
 
   return useMutation({
-    mutationFn: updateSafeMode,
+    mutationFn: (request: SafeModeRequest) => updateSafeMode(mockMode, request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['safe-mode'] });
       queryClient.invalidateQueries({ queryKey: ['safe-mode-history'] });

@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
 // Demo mode: skip all auth checks and allow all routes
-const DEMO_MODE = true;
+const DEMO_MODE = false;
 
 // Routes that don't require authentication
 const publicRoutes = ['/login', '/accept-invite'];
@@ -28,8 +28,10 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check for better-auth session cookie
-  // better-auth uses 'better-auth.session_token' by default
-  const sessionToken = request.cookies.get('better-auth.session_token')?.value;
+  // In production with useSecureCookies, the cookie gets a __Secure- prefix
+  const sessionToken =
+    request.cookies.get('better-auth.session_token')?.value ||
+    request.cookies.get('__Secure-better-auth.session_token')?.value;
 
   if (!sessionToken) {
     // Redirect to login

@@ -15,6 +15,7 @@
 
 import type { CachedApiKeyContext } from '@popper/cache';
 import { type ApiKeyContext, type ApiKeyScope, hashApiKey, isValidKeyFormat } from '@popper/core';
+import { env } from '../config/env';
 import { getApiKeyCache, getApiKeyService, isApiKeyServiceInitialized } from '../lib/api-keys';
 import { logger } from '../lib/logger';
 
@@ -80,6 +81,14 @@ async function validateApiKey(headers: Record<string, string | undefined>): Prom
     return {
       apiKey: null,
       apiKeyError: { error: 'unauthorized', message: 'Missing API key' },
+    };
+  }
+
+  // Admin key bypass: matches POPPER_ADMIN_API_KEY env var (for dashboard proxy / bootstrap)
+  if (env.POPPER_ADMIN_API_KEY && providedKey === env.POPPER_ADMIN_API_KEY) {
+    return {
+      apiKey: DEV_CONTEXT,
+      apiKeyError: null,
     };
   }
 
