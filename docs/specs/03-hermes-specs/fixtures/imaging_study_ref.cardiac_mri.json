@@ -1,0 +1,21 @@
+{
+  "study_id": "img-mri-001",
+  "modality": "cardiac_mri",
+  "study_date": "2026-01-20",
+  "accession_number": "ACC-2026-001",
+  "facility": "Regional Medical Center",
+  "derived_findings": [
+    {
+      "finding_id": "df-lvef-001",
+      "finding_type": "lvef",
+      "value": 35,
+      "unit": "%"
+    },
+    {
+      "finding_id": "df-lvedv-001",
+      "finding_type": "lvedv",
+      "value": 220,
+      "unit": "mL"
+    }
+  ]
+}

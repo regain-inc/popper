@@ -1,0 +1,14 @@
+{
+  "conflict_id": "xdc-001",
+  "domains": [
+    "cvd",
+    "renal"
+  ],
+  "conflict_type": "contraindication",
+  "severity": "high",
+  "description": "ACE-I beneficial for HF but contraindicated with advanced CKD",
+  "proposed_resolution": {
+    "strategy": "conservative",
+    "recommendation": "Use ARB instead of ACE-I"
+  }
+}

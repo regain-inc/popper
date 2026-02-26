@@ -1,0 +1,31 @@
+{
+  "snapshot_id": "snap-img-001",
+  "created_at": "2026-01-25T09:55:00.000Z",
+  "sources": [
+    "ehr",
+    "imaging"
+  ],
+  "quality": {
+    "missing_signals": [],
+    "conflicting_signals": []
+  },
+  "imaging_studies": [
+    {
+      "study_id": "img-001",
+      "modality": "cardiac_mri",
+      "study_date": "2026-01-20",
+      "derived_findings": [
+        {
+          "finding_id": "df-001",
+          "finding_type": "lvef",
+          "value": 35,
+          "unit": "%",
+          "reference_range": {
+            "low": 55,
+            "high": 70
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "finding_id": "df-lvef-001",
+  "finding_type": "lvef",
+  "value": 35,
+  "unit": "%",
+  "reference_range": {
+    "low": 55,
+    "high": 70
+  },
+  "clinical_significance": "Reduced EF consistent with HFrEF",
+  "source_study_id": "img-mri-001"
+}

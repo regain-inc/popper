@@ -1,0 +1,48 @@
+{
+  "hermes_version": "2.0.0",
+  "message_type": "supervision_request",
+  "trace": {
+    "trace_id": "tr-dw-001",
+    "span_id": "sp-dw-001",
+    "created_at": "2026-01-25T10:00:00.000Z",
+    "producer": {
+      "system": "deutsch",
+      "service_version": "deutsch-1.0.0"
+    }
+  },
+  "mode": "wellness",
+  "subject": {
+    "subject_type": "patient",
+    "subject_id": "pt-wellness-001"
+  },
+  "snapshot": {
+    "snapshot_id": "snap-dw-001",
+    "created_at": "2026-01-25T09:55:00.000Z",
+    "sources": [
+      "wearable",
+      "patient_reported"
+    ]
+  },
+  "idempotency_key": "01HQXYZ000000000AABBC00008",
+  "proposals": [
+    {
+      "proposal_id": "prop-dw-001",
+      "kind": "LIFESTYLE_RECOMMENDATION_PROPOSAL",
+      "created_at": "2026-01-25T10:00:00.000Z",
+      "modification_type": "physical_activity",
+      "recommendations": [
+        "Walk 30 minutes daily",
+        "Consider low-impact exercises"
+      ],
+      "audit_redaction": {
+        "summary": "Lifestyle activity recommendation"
+      }
+    }
+  ],
+  "audit_redaction": {
+    "summary": "Wellness lifestyle recommendation",
+    "proposal_summaries": [
+      "Lifestyle activity recommendation"
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "hermes_version": "2.0.0",
+  "message_type": "supervision_response",
+  "trace": {
+    "trace_id": "tr-valid-001",
+    "span_id": "sp-resp-001",
+    "parent_span_id": "sp-001",
+    "created_at": "2026-01-25T10:00:05.000Z",
+    "producer": {
+      "system": "popper",
+      "service_version": "1.0.0",
+      "ruleset_version": "2.3.0"
+    }
+  },
+  "mode": "advocate_clinical",
+  "subject": {
+    "subject_type": "patient",
+    "subject_id": "pt-12345",
+    "organization_id": "org_ta3_alpha"
+  },
+  "snapshot": {
+    "snapshot_id": "snap-001",
+    "created_at": "2026-01-25T09:55:00.000Z",
+    "sources": [
+      "ehr"
+    ]
+  },
+  "decision": "APPROVED",
+  "reason_codes": [],
+  "explanation": "All proposals meet safety criteria.",
+  "safe_mode_state_used": {
+    "enabled": false
+  },
+  "audit_redaction": {
+    "summary": "Supervision approved",
+    "decision": "APPROVED",
+    "reason_codes": []
+  }
+}

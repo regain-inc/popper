@@ -1,0 +1,51 @@
+{
+  "hermes_version": "2.0.0",
+  "message_type": "clinician_feedback",
+  "trace": {
+    "trace_id": "tr-fb-modify-001",
+    "created_at": "2026-01-25T10:30:00.000Z",
+    "producer": {
+      "system": "gateway",
+      "service_version": "1.0.0"
+    }
+  },
+  "mode": "advocate_clinical",
+  "subject": {
+    "subject_type": "patient",
+    "subject_id": "pt-11111",
+    "organization_id": "org_ta3_alpha"
+  },
+  "original_trace_id": "tr-med-001",
+  "original_proposal_id": "prop-med-001",
+  "snapshot_ref": {
+    "snapshot_id": "snap-med-001",
+    "created_at": "2026-01-25T09:55:00.000Z",
+    "sources": [
+      "ehr",
+      "wearable"
+    ]
+  },
+  "action": "modified",
+  "occurred_at": "2026-01-25T11:00:00.000Z",
+  "response_time_seconds": 600,
+  "clinician_ref": {
+    "clinician_id": "clin-003",
+    "role": "specialist",
+    "specialty": "nephrology"
+  },
+  "rationale": {
+    "summary": "Reduced dose appropriate given current renal function",
+    "category": "demographic_consideration",
+    "confidence": "high"
+  },
+  "modified_action": {
+    "intervention_kind": "MEDICATION_ORDER_PROPOSAL",
+    "summary": "Reduced starting dose from 10mg to 5mg"
+  },
+  "audit_redaction": {
+    "summary": "Clinician modified dose due to renal function",
+    "action": "modified",
+    "category": "demographic_consideration",
+    "response_time_bucket": "5-15min"
+  }
+}

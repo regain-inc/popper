@@ -1,0 +1,70 @@
+{
+  "hermes_version": "2.0.0",
+  "message_type": "supervision_response",
+  "trace": {
+    "trace_id": "tr-partial-001",
+    "span_id": "sp-resp-002",
+    "parent_span_id": "sp-001",
+    "created_at": "2026-01-25T10:00:05.000Z",
+    "producer": {
+      "system": "popper",
+      "service_version": "1.0.0",
+      "ruleset_version": "2.3.0"
+    }
+  },
+  "mode": "advocate_clinical",
+  "subject": {
+    "subject_type": "patient",
+    "subject_id": "pt-12345",
+    "organization_id": "org_ta3_alpha"
+  },
+  "snapshot": {
+    "snapshot_id": "snap-001",
+    "created_at": "2026-01-25T09:55:00.000Z",
+    "sources": [
+      "ehr",
+      "wearable",
+      "patient_reported"
+    ]
+  },
+  "request_idempotency_key": "idem-partial-001",
+  "response_timestamp": "2026-01-25T10:00:05.000Z",
+  "decision": "ROUTE_TO_CLINICIAN",
+  "reason_codes": [
+    "needs_human_review"
+  ],
+  "explanation": "Medication change requires clinician review; lifestyle recommendations approved.",
+  "per_proposal_decisions": [
+    {
+      "proposal_id": "prop-med-001",
+      "decision": "ROUTE_TO_CLINICIAN",
+      "reason_codes": [
+        "needs_human_review",
+        "risk_too_high"
+      ],
+      "explanation": "Medication titration needs review"
+    },
+    {
+      "proposal_id": "prop-nutr-001",
+      "decision": "APPROVED",
+      "reason_codes": [],
+      "explanation": "Nutrition plan approved"
+    },
+    {
+      "proposal_id": "prop-exer-001",
+      "decision": "APPROVED",
+      "reason_codes": [],
+      "explanation": "Exercise plan approved"
+    }
+  ],
+  "safe_mode_state_used": {
+    "enabled": false
+  },
+  "audit_redaction": {
+    "summary": "Partial approval: medication routed, lifestyle approved",
+    "decision": "ROUTE_TO_CLINICIAN",
+    "reason_codes": [
+      "needs_human_review"
+    ]
+  }
+}

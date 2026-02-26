@@ -1,0 +1,51 @@
+{
+  "hermes_version": "2.0.0",
+  "message_type": "supervision_request",
+  "trace": {
+    "trace_id": "tr-dsm-001",
+    "span_id": "sp-dsm-001",
+    "created_at": "2026-01-25T10:00:00.000Z",
+    "producer": {
+      "system": "deutsch",
+      "service_version": "deutsch-1.0.0"
+    }
+  },
+  "mode": "advocate_clinical",
+  "subject": {
+    "subject_type": "patient",
+    "subject_id": "pt-12345",
+    "organization_id": "org_ta3_alpha"
+  },
+  "snapshot": {
+    "snapshot_id": "snap-dsm-001",
+    "created_at": "2026-01-25T09:55:00.000Z",
+    "sources": [
+      "ehr"
+    ]
+  },
+  "idempotency_key": "01HQXYZ000000000AABBC00011",
+  "proposals": [
+    {
+      "proposal_id": "prop-dsm-001",
+      "kind": "MEDICATION_ORDER_PROPOSAL",
+      "created_at": "2026-01-25T10:00:00.000Z",
+      "medication": {
+        "name": "Digoxin",
+        "rxnorm_code": "197604"
+      },
+      "change": {
+        "change_type": "initiate",
+        "to_dose": "0.25 mg daily"
+      },
+      "audit_redaction": {
+        "summary": "Digoxin initiation (high-risk)"
+      }
+    }
+  ],
+  "audit_redaction": {
+    "summary": "High-risk medication proposal (safe-mode trigger test)",
+    "proposal_summaries": [
+      "Digoxin initiation (high-risk)"
+    ]
+  }
+}

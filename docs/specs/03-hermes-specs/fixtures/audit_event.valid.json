@@ -1,0 +1,27 @@
+{
+  "hermes_version": "2.0.0",
+  "message_type": "audit_event",
+  "event_type": "SUPERVISION_RESPONSE_DECIDED",
+  "occurred_at": "2026-01-25T10:00:00.050Z",
+  "trace": {
+    "trace_id": "tr-001",
+    "span_id": "sp-popper-001",
+    "created_at": "2026-01-25T10:00:00.050Z",
+    "producer": {
+      "system": "popper",
+      "service_version": "1.0.0",
+      "ruleset_version": "2.3.0"
+    }
+  },
+  "mode": "advocate_clinical",
+  "subject": {
+    "subject_type": "patient",
+    "subject_id": "pt-12345",
+    "organization_id": "org_ta3_alpha"
+  },
+  "summary": "Supervision decision: APPROVED",
+  "tags": {
+    "decision": "APPROVED",
+    "latency_ms": "40"
+  }
+}

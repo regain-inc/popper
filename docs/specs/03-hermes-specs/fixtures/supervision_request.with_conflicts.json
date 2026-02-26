@@ -1,0 +1,80 @@
+{
+  "hermes_version": "2.0.0",
+  "message_type": "supervision_request",
+  "trace": {
+    "trace_id": "tr-conflicts-001",
+    "span_id": "sp-003",
+    "created_at": "2026-01-25T10:00:00.000Z",
+    "producer": {
+      "system": "deutsch",
+      "service_version": "deutsch-1.0.0"
+    }
+  },
+  "mode": "advocate_clinical",
+  "subject": {
+    "subject_type": "patient",
+    "subject_id": "pt-12345",
+    "organization_id": "org_ta3_alpha"
+  },
+  "snapshot": {
+    "snapshot_id": "snap-conflict-001",
+    "created_at": "2026-01-25T09:55:00.000Z",
+    "sources": ["ehr", "wearable"]
+  },
+  "idempotency_key": "01HQXYZ000000000000000003ABC",
+  "cross_domain_conflicts": [
+    {
+      "conflict_id": "xdc-001",
+      "conflict_type": "contraindication",
+      "triggering_rule": {
+        "rule_id": "drug-interaction-001",
+        "rule_source": "cvd-renal-interaction",
+        "rule_version": "1.0.0"
+      },
+      "conflicting_domains": ["cvd", "renal"],
+      "conflicting_proposal_ids": ["prop-conflict-001"],
+      "original_proposals": {
+        "prop-conflict-001": "ACE-I titration for HF management"
+      },
+      "resolution_strategy": "constrain",
+      "resolution_confidence": "high",
+      "evidence_refs": [
+        {
+          "evidence_id": "ev-xdc-001",
+          "evidence_type": "guideline",
+          "citation": "KDIGO CKD Guidelines 2024",
+          "evidence_grade": "systematic_review"
+        }
+      ],
+      "uncertainty": {
+        "level": "low",
+        "notes": "Well-established contraindication"
+      },
+      "audit_redaction": {
+        "summary": "ACE-I contraindicated with advanced CKD; ARB substituted"
+      }
+    }
+  ],
+  "proposals": [
+    {
+      "proposal_id": "prop-conflict-001",
+      "kind": "MEDICATION_ORDER_PROPOSAL",
+      "created_at": "2026-01-25T10:00:00.000Z",
+      "medication": {
+        "name": "Losartan",
+        "rxnorm_code": "197884"
+      },
+      "change": {
+        "change_type": "initiate",
+        "to_dose": "25 mg daily"
+      },
+      "audit_redaction": {
+        "summary": "ARB initiation (cross-domain resolution)"
+      }
+    }
+  ],
+  "audit_redaction": {
+    "summary": "Supervision request with cross-domain conflict",
+    "proposal_summaries": ["ARB initiation (cross-domain resolution)"]
+  }
+}

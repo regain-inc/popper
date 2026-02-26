@@ -1,0 +1,23 @@
+{
+  "snapshot_id": "snap-oh-handoff-001",
+  "created_at": "2026-01-25T09:55:00.000Z",
+  "sources": [
+    "ehr"
+  ],
+  "override_history": [
+    {
+      "original_trace_id": "tr-handoff-001",
+      "action": "modified",
+      "rationale_summary": "Reduced dose for renal function",
+      "rationale_category": "demographic_consideration",
+      "age_days": 10,
+      "is_permanent": false
+    }
+  ],
+  "handoff_context": {
+    "from_clinician": "clin-001",
+    "to_clinician": "clin-002",
+    "handoff_date": "2026-01-20T00:00:00.000Z",
+    "notes": "Patient transferred to new PCP"
+  }
+}

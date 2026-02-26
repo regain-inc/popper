@@ -1,0 +1,61 @@
+{
+  "hermes_version": "2.0.0",
+  "message_type": "supervision_request",
+  "trace": {
+    "trace_id": "tr-unresolved-001",
+    "span_id": "sp-005",
+    "created_at": "2026-01-25T10:00:00.000Z",
+    "producer": {
+      "system": "deutsch",
+      "service_version": "deutsch-1.0.0"
+    }
+  },
+  "mode": "advocate_clinical",
+  "subject": {
+    "subject_type": "patient",
+    "subject_id": "pt-12345",
+    "organization_id": "org_ta3_alpha"
+  },
+  "snapshot": {
+    "snapshot_id": "snap-001",
+    "created_at": "2026-01-25T09:55:00.000Z",
+    "sources": [
+      "ehr"
+    ]
+  },
+  "idempotency_key": "01HQXYZ000000000000000005ABC",
+  "unresolved_override_conflicts": [
+    {
+      "conflict_id": "oc-001",
+      "conflict_type": "disagreement",
+      "affected_intervention_kinds": [
+        "MEDICATION_ORDER_PROPOSAL"
+      ],
+      "override_trace_ids": [
+        "tr-old-001",
+        "tr-old-002"
+      ],
+      "conflict_summary": "Primary care rejected but cardiologist accepted ACE-I",
+      "requires_attending_resolution": true,
+      "recommended_action": "Escalate to attending physician"
+    }
+  ],
+  "proposals": [
+    {
+      "proposal_id": "prop-unresolved-001",
+      "kind": "PATIENT_MESSAGE",
+      "created_at": "2026-01-25T10:00:00.000Z",
+      "message_markdown": "Check your blood pressure today.",
+      "audit_redaction": {
+        "summary": "Patient message about BP check"
+      }
+    }
+  ],
+  "audit_redaction": {
+    "summary": "Supervision request with unresolved conflicts",
+    "proposal_summaries": [
+      "Patient message about BP check"
+    ],
+    "has_unresolved_conflicts": true
+  }
+}

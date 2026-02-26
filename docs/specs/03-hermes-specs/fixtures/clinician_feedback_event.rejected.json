@@ -1,0 +1,47 @@
+{
+  "hermes_version": "2.0.0",
+  "message_type": "clinician_feedback",
+  "trace": {
+    "trace_id": "tr-fb-reject-001",
+    "created_at": "2026-01-25T10:30:00.000Z",
+    "producer": {
+      "system": "gateway",
+      "service_version": "1.0.0"
+    }
+  },
+  "mode": "advocate_clinical",
+  "subject": {
+    "subject_type": "patient",
+    "subject_id": "pt-67890",
+    "organization_id": "org_ta3_alpha"
+  },
+  "original_trace_id": "tr-med-001",
+  "original_proposal_id": "prop-med-001",
+  "snapshot_ref": {
+    "snapshot_id": "snap-med-001",
+    "created_at": "2026-01-25T09:55:00.000Z",
+    "sources": [
+      "ehr",
+      "wearable"
+    ]
+  },
+  "action": "rejected",
+  "occurred_at": "2026-01-25T10:15:00.000Z",
+  "response_time_seconds": 900,
+  "clinician_ref": {
+    "clinician_id": "clin-002",
+    "role": "attending",
+    "specialty": "cardiology"
+  },
+  "rationale": {
+    "summary": "Patient not a candidate for this medication",
+    "category": "clinical_judgment",
+    "confidence": "high"
+  },
+  "audit_redaction": {
+    "summary": "Clinician rejected medication proposal",
+    "action": "rejected",
+    "category": "clinical_judgment",
+    "response_time_bucket": "5-15min"
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "hermes_version": "2.0.0",
+  "message_type": "supervision_request",
+  "trace": {
+    "trace_id": "tr-dc-001",
+    "span_id": "sp-dc-001",
+    "created_at": "2026-01-25T10:00:00.000Z",
+    "producer": {
+      "system": "deutsch",
+      "service_version": "deutsch-1.0.0"
+    }
+  },
+  "mode": "advocate_clinical",
+  "subject": {
+    "subject_type": "patient",
+    "subject_id": "pt-12345",
+    "organization_id": "org_ta3_alpha"
+  },
+  "snapshot": {
+    "snapshot_id": "snap-dc-001",
+    "created_at": "2026-01-25T09:55:00.000Z",
+    "sources": [
+      "ehr",
+      "wearable"
+    ]
+  },
+  "idempotency_key": "01HQXYZ000000000AABBC00009",
+  "proposals": [
+    {
+      "proposal_id": "prop-dc-001",
+      "kind": "MEDICATION_ORDER_PROPOSAL",
+      "created_at": "2026-01-25T10:00:00.000Z",
+      "medication": {
+        "name": "Lisinopril",
+        "rxnorm_code": "197884"
+      },
+      "change": {
+        "change_type": "titrate",
+        "from_dose": "10 mg daily",
+        "to_dose": "20 mg daily"
+      },
+      "clinician_protocol_ref": "protocol://org_ta3_alpha/cvd/hf-gdmt/v1.0.0",
+      "claim_type": "treatment_rec",
+      "htv_score": {
+        "interdependence": 0.9,
+        "specificity": 0.85,
+        "parsimony": 0.8,
+        "falsifiability": 0.9,
+        "composite": 0.8625
+      },
+      "evidence_refs": [
+        {
+          "evidence_id": "ev-001",
+          "evidence_type": "guideline",
+          "citation": "AHA/ACC HF Guidelines 2024, Section 7.2",
+          "evidence_grade": "systematic_review"
+        }
+      ],
+      "audit_redaction": {
+        "summary": "ACE-I titration proposal per GDMT protocol"
+      }
+    }
+  ],
+  "audit_redaction": {
+    "summary": "Medication supervision request",
+    "proposal_summaries": [
+      "ACE-I titration proposal per GDMT protocol"
+    ]
+  }
+}

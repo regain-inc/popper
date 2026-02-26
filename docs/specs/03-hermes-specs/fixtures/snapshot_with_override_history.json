@@ -1,0 +1,17 @@
+{
+  "snapshot_id": "snap-oh-001",
+  "created_at": "2026-01-25T09:55:00.000Z",
+  "sources": [
+    "ehr"
+  ],
+  "override_history": [
+    {
+      "original_trace_id": "tr-old-001",
+      "action": "rejected",
+      "rationale_summary": "Patient has documented ACE-I intolerance",
+      "rationale_category": "contraindication",
+      "age_days": 45,
+      "is_permanent": true
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "hermes_version": "2.0.0",
+  "message_type": "bias_detection",
+  "trace": {
+    "trace_id": "tr-bias-001",
+    "created_at": "2026-01-25T10:00:00.000Z",
+    "producer": {
+      "system": "popper",
+      "service_version": "1.0.0"
+    }
+  },
+  "mode": "advocate_clinical",
+  "organization_id": "org_ta3_alpha",
+  "detection_id": "bd-001",
+  "detection_type": "demographic_override_disparity",
+  "severity": "warning",
+  "detected_at": "2026-01-25T10:00:00.000Z",
+  "analysis_period": {
+    "start": "2025-12-25T00:00:00.000Z",
+    "end": "2026-01-25T00:00:00.000Z",
+    "days": 31
+  },
+  "affected_dimension": {
+    "dimension_type": "age_group",
+    "dimension_value": "65+"
+  },
+  "metrics": {
+    "overall_override_rate": 0.25,
+    "affected_group_override_rate": 0.45,
+    "control_group_override_rate": 0.20,
+    "rate_difference": 0.25,
+    "rate_ratio": 2.25,
+    "sample_size_affected": 50,
+    "sample_size_control": 200,
+    "statistical_significance": {
+      "is_significant": true,
+      "p_value": 0.003,
+      "confidence_interval_95": [0.12, 0.38]
+    }
+  },
+  "recommendations": [
+    {
+      "priority": "high",
+      "action": "review_proposal_logic",
+      "description": "Review age-based dosing recommendations for elderly patients"
+    },
+    {
+      "priority": "medium",
+      "action": "training_data_review",
+      "description": "Examine training data representation for 65+ age group"
+    }
+  ],
+  "audit_redaction": {
+    "summary": "Demographic bias detected in override rates for 65+ age group",
+    "detection_type": "demographic_override_disparity",
+    "severity": "warning",
+    "affected_dimension": "age_group:65+",
+    "rate_difference": "0.25",
+    "recommendations_count": 2
+  }
+}
