@@ -25,13 +25,9 @@ COPY packages ./packages
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Build dependencies first
-RUN bun run --filter @popper/core build && \
-    bun run --filter @popper/db build && \
-    bun run --filter @popper/cache build && \
-    bun run --filter @popper/server build
-
 # Build Next.js with standalone output
+# Web only uses type-only imports from workspace packages (import type {...})
+# so no pre-build of server/core/db/cache is needed
 RUN bun run --filter @popper/web build
 
 # Production stage - minimal Node.js image
