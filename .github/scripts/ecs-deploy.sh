@@ -40,7 +40,6 @@ NEW_TASK_DEF=$(echo "${TASK_DEF}" | jq \
    .executionRoleArn = (.executionRoleArn | sub("arn:aws:iam::[0-9]+:"; "arn:aws:iam::" + $ACCOUNT_ID + ":")) |
    .taskRoleArn = (.taskRoleArn | sub("arn:aws:iam::[0-9]+:"; "arn:aws:iam::" + $ACCOUNT_ID + ":")) |
    (.containerDefinitions[].secrets // [])[] |= (.valueFrom |= sub("arn:aws:secretsmanager:[^:]+:[0-9]+:"; "arn:aws:secretsmanager:us-east-1:" + $ACCOUNT_ID + ":")) |
-   .runtimePlatform = {"cpuArchitecture": "ARM64", "operatingSystemFamily": "LINUX"} |
    del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
        .compatibilities, .registeredAt, .registeredBy)')
 
