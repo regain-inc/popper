@@ -73,6 +73,7 @@ export type {
   IDKTriggeredCondition,
   InputRiskFlagInCondition,
   MissingFieldCondition,
+  ModeIsCondition,
   NotCondition,
   OtherCondition,
   PolicyPack,

@@ -53,6 +53,27 @@ rules:
       explanation: No health state snapshot provided. Cannot evaluate safety without patient data.
 
   # ═══════════════════════════════════════════════════════════════════════════
+  # MODE VIOLATION RULES (Priority 1050)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - rule_id: wellness_mode_medication_violation
+    description: Medication proposals not allowed in wellness mode
+    priority: 1050
+    when:
+      kind: all_of
+      conditions:
+        - kind: mode_is
+          mode: wellness
+        - kind: proposal_kind_in
+          kinds:
+            - MEDICATION_ORDER_PROPOSAL
+    then:
+      decision: HARD_STOP
+      reason_codes:
+        - policy_violation
+      explanation: Medication proposals are not permitted in wellness mode.
+
+  # ═══════════════════════════════════════════════════════════════════════════
   # STALENESS RULES (Priority 900-999)
   # Popper is AUTHORITATIVE - does NOT trust Brain's validation
   # ═══════════════════════════════════════════════════════════════════════════
@@ -91,7 +112,7 @@ rules:
   # ═══════════════════════════════════════════════════════════════════════════
 
   - rule_id: safe_mode_medication
-    description: Safe mode enabled - route medication proposals
+    description: Safe mode enabled - block medication proposals
     priority: 850
     when:
       kind: all_of
@@ -101,14 +122,14 @@ rules:
           kinds:
             - MEDICATION_ORDER_PROPOSAL
     then:
-      decision: ROUTE_TO_CLINICIAN
+      decision: HARD_STOP
       reason_codes:
         - policy_violation
         - needs_human_review
-      explanation: Safe mode is enabled. Medication proposals require clinician review.
+      explanation: Safe mode is enabled. Medication proposals are blocked.
 
   - rule_id: safe_mode_high_risk
-    description: Safe mode enabled - route high-risk proposals
+    description: Safe mode enabled - block high-risk proposals
     priority: 800
     when:
       kind: all_of
@@ -119,11 +140,11 @@ rules:
             - TRIAGE_ROUTE
             - BEHAVIORAL_INTERVENTION_PROPOSAL
     then:
-      decision: ROUTE_TO_CLINICIAN
+      decision: HARD_STOP
       reason_codes:
         - policy_violation
         - needs_human_review
-      explanation: Safe mode is enabled. High-risk proposals require clinician review.
+      explanation: Safe mode is enabled. High-risk proposals are blocked.
 
   # ═══════════════════════════════════════════════════════════════════════════
   # INPUT RISK FLAGS (Priority 700-799)

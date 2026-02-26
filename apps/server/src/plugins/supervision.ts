@@ -460,6 +460,11 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
             evaluationResult,
             stalenessResult,
             perProposalDecisions,
+            safeModeState: {
+              enabled: safeModeState.enabled,
+              reason: safeModeState.reason,
+              effective_at: safeModeState.effective_at,
+            },
           });
 
           // 10. Log metrics and emit audit event

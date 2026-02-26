@@ -494,6 +494,17 @@ function validateCondition(data: unknown, path: string): RuleCondition {
         severity: condition.severity as 'minor' | 'significant' | 'critical' | undefined,
       };
 
+    case 'mode_is':
+      if (!['wellness', 'advocate_clinical'].includes(condition.mode as string)) {
+        throw new PolicyParseError(
+          `${path}.mode must be 'wellness' or 'advocate_clinical' for 'mode_is'`,
+        );
+      }
+      return {
+        kind: 'mode_is',
+        mode: condition.mode as 'wellness' | 'advocate_clinical',
+      };
+
     case 'acuity_at_least':
       if (!['low', 'moderate', 'high', 'critical'].includes(condition.level as string)) {
         throw new PolicyParseError(

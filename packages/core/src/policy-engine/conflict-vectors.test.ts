@@ -61,6 +61,7 @@ function evaluate(context: EvaluationContext): EvaluationResult {
 describe('Conflict Vectors', () => {
   test('conflict-001: Clinical domain status failed → HARD_STOP', () => {
     const request = createTestRequest({
+      mode: 'advocate_clinical',
       proposals: [createCleanMedicationProposal()],
       contributing_domains: [
         {
@@ -80,6 +81,7 @@ describe('Conflict Vectors', () => {
 
   test('conflict-002: Rule engine failed → ROUTE_TO_CLINICIAN', () => {
     const request = createTestRequest({
+      mode: 'advocate_clinical',
       proposals: [createCleanMedicationProposal()],
     });
 
@@ -92,6 +94,7 @@ describe('Conflict Vectors', () => {
 
   test('conflict-003: Conflict missing evidence → ROUTE_TO_CLINICIAN + insufficient_evidence', () => {
     const request = createTestRequest({
+      mode: 'advocate_clinical',
       proposals: [createCleanMedicationProposal()],
       cross_domain_conflicts: [
         createConflict({
@@ -109,6 +112,7 @@ describe('Conflict Vectors', () => {
 
   test('conflict-004: Conflict resolution confidence low → ROUTE_TO_CLINICIAN', () => {
     const request = createTestRequest({
+      mode: 'advocate_clinical',
       proposals: [createCleanMedicationProposal()],
       cross_domain_conflicts: [
         createConflict({
@@ -126,6 +130,7 @@ describe('Conflict Vectors', () => {
 
   test('conflict-005: Conflict escalated → ROUTE_TO_CLINICIAN', () => {
     const request = createTestRequest({
+      mode: 'advocate_clinical',
       proposals: [createCleanMedicationProposal()],
       cross_domain_conflicts: [
         createConflict({
@@ -150,6 +155,7 @@ describe('Conflict Vectors', () => {
     );
 
     const request = createTestRequest({
+      mode: 'advocate_clinical',
       proposals: [createCleanMedicationProposal()],
       cross_domain_conflicts: conflicts,
     });

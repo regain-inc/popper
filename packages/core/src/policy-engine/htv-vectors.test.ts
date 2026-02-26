@@ -47,6 +47,7 @@ function evaluate(context: EvaluationContext): EvaluationResult {
 describe('HTV Score Vectors', () => {
   test('htv-001: Medication with composite 0.35 (below 0.6 threshold) → ROUTE_TO_CLINICIAN', () => {
     const request = createTestRequest({
+      mode: 'advocate_clinical',
       proposals: [
         createMedicationProposal({
           htv_score: createHTVScore(0.35),
@@ -64,6 +65,7 @@ describe('HTV Score Vectors', () => {
 
   test('htv-002: Medication with composite 0.65 (above 0.6) → passes HTV medication rule', () => {
     const request = createTestRequest({
+      mode: 'advocate_clinical',
       proposals: [
         createMedicationProposal({
           htv_score: createHTVScore(0.65),
@@ -98,6 +100,7 @@ describe('HTV Score Vectors', () => {
 
   test('htv-004: Medication missing HTV entirely → ROUTE_TO_CLINICIAN (conservative)', () => {
     const request = createTestRequest({
+      mode: 'advocate_clinical',
       proposals: [
         createMedicationProposal({
           // No htv_score — treated as below threshold
@@ -149,6 +152,7 @@ describe('Evidence Grade Vectors', () => {
 
   test('htv-006: evidence_grade case_report, medication → caught by medication_missing_evidence or evidence rule', () => {
     const request = createTestRequest({
+      mode: 'advocate_clinical',
       proposals: [
         createMedicationProposal({
           htv_score: createHTVScore(0.8),
@@ -191,6 +195,7 @@ describe('Evidence Grade Vectors', () => {
 
   test('htv-008: evidence_grade cohort, medication → weak_evidence_grade fires (cohort < case_control)', () => {
     const request = createTestRequest({
+      mode: 'advocate_clinical',
       proposals: [
         createMedicationProposal({
           htv_score: createHTVScore(0.8),
@@ -210,6 +215,7 @@ describe('Evidence Grade Vectors', () => {
 
   test('htv-009: Missing evidence_refs, medication → ROUTE_TO_CLINICIAN + insufficient_evidence', () => {
     const request = createTestRequest({
+      mode: 'advocate_clinical',
       proposals: [
         createMedicationProposal({
           htv_score: createHTVScore(0.8),
@@ -230,6 +236,7 @@ describe('Evidence Grade Vectors', () => {
 
   test('htv-010: Special grade policy → maps to cohort (3), fires weak_evidence_grade', () => {
     const request = createTestRequest({
+      mode: 'advocate_clinical',
       proposals: [
         createMedicationProposal({
           htv_score: createHTVScore(0.8),
@@ -248,6 +255,7 @@ describe('Evidence Grade Vectors', () => {
 
   test('htv-011: Special grade patient_reported → maps to case_report (6), does NOT fire weak_evidence_grade', () => {
     const request = createTestRequest({
+      mode: 'advocate_clinical',
       proposals: [
         createMedicationProposal({
           htv_score: createHTVScore(0.8),

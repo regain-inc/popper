@@ -271,7 +271,21 @@ export const dashboardPlugin = new Elysia({
 
           const reader = getAuditReader();
           const now = new Date();
-          const since = new Date(query.since);
+
+          let since: Date;
+          if (query.since) {
+            since = new Date(query.since);
+          } else if (query.hours) {
+            const hoursNum = Number(query.hours);
+            since = new Date(now.getTime() - hoursNum * 60 * 60 * 1000);
+          } else {
+            set.status = 400;
+            return {
+              error: 'bad_request',
+              message: 'Either "since" or "hours" query parameter is required.',
+            };
+          }
+
           const until = query.until ? new Date(query.until) : now;
 
           const bucketMap: Record<string, string> = {
@@ -304,13 +318,15 @@ export const dashboardPlugin = new Elysia({
         {
           query: t.Object({
             organization_id: t.Optional(t.String()),
-            since: t.String(),
+            since: t.Optional(t.String()),
+            hours: t.Optional(t.String()),
             until: t.Optional(t.String()),
             bucket: t.Optional(t.Union([t.Literal('hour'), t.Literal('day'), t.Literal('week')])),
             group_by: t.Optional(t.Union([t.Literal('decision'), t.Literal('event_type')])),
           }),
           response: {
             200: auditTimeseriesResponseSchema,
+            400: errorResponseSchema,
             401: errorResponseSchema,
             403: errorResponseSchema,
             429: errorResponseSchema,

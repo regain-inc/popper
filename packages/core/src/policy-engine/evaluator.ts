@@ -349,6 +349,10 @@ export class PolicyEvaluator {
       case 'idk_triggered':
         return context.derivedSignals?.idk_triggered === true;
 
+      // Mode conditions
+      case 'mode_is':
+        return context.request.mode === condition.mode;
+
       // Acuity conditions (SAL-1018)
       case 'acuity_at_least':
         return this.isAcuityAtLeast(context, condition.level);

@@ -146,6 +146,14 @@ describe('E2E Supervision Vectors', () => {
 
   test('e2e-002: Medication with low HTV → ROUTE_TO_CLINICIAN', async () => {
     const request = createBaseRequest({
+      mode: 'advocate_clinical',
+      idempotency_key: `idem-e2e-002-${Date.now()}`,
+      request_timestamp: new Date().toISOString(),
+      subject: {
+        subject_id: 'patient-e2e',
+        subject_type: 'patient',
+        organization_id: '00000000-0000-0000-0000-000000000000',
+      },
       proposals: [
         {
           kind: 'MEDICATION_ORDER_PROPOSAL',

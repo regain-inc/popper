@@ -168,6 +168,9 @@ export type RuleCondition =
   | HallucinationDetectedCondition
   | IDKTriggeredCondition
 
+  // Mode conditions
+  | ModeIsCondition
+
   // Acuity conditions (SAL-1018)
   | AcuityAtLeastCondition
 
@@ -310,6 +313,12 @@ export interface IDKTriggeredCondition {
   kind: 'idk_triggered';
 }
 
+// Mode conditions
+export interface ModeIsCondition {
+  kind: 'mode_is';
+  mode: 'wellness' | 'advocate_clinical';
+}
+
 // Acuity conditions (SAL-1018)
 export interface AcuityAtLeastCondition {
   kind: 'acuity_at_least';
@@ -445,6 +454,7 @@ export const CONDITION_KINDS = [
   'evidence_grade_below',
   'hallucination_detected',
   'idk_triggered',
+  'mode_is',
   'acuity_at_least',
   'intervention_risk_at_least',
   'other',
