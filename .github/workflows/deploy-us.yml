@@ -103,9 +103,30 @@ jobs:
             regain-popperweb "${ECS_CLUSTER}"
 
       - name: Wait for stability
+        timeout-minutes: 15
         run: |
           echo "Waiting for services to stabilize..."
-          aws ecs wait services-stable \
-            --cluster "${ECS_CLUSTER}" \
-            --services regain-popperserver regain-popperworker regain-popperweb
-          echo "All services stable"
+          for attempt in $(seq 1 60); do
+            ALL_STABLE=true
+            for service in regain-popperserver regain-popperworker regain-popperweb; do
+              DEPLOYMENTS=$(aws ecs describe-services \
+                --cluster "${ECS_CLUSTER}" --services "${service}" \
+                --query 'services[0].deployments | length(@)' --output text)
+              PRIMARY_RUNNING=$(aws ecs describe-services \
+                --cluster "${ECS_CLUSTER}" --services "${service}" \
+                --query 'services[0].deployments[?status==`PRIMARY`] | [0].runningCount' --output text)
+              PRIMARY_DESIRED=$(aws ecs describe-services \
+                --cluster "${ECS_CLUSTER}" --services "${service}" \
+                --query 'services[0].deployments[?status==`PRIMARY`] | [0].desiredCount' --output text)
+              if [ "${DEPLOYMENTS}" != "1" ] || [ "${PRIMARY_RUNNING}" != "${PRIMARY_DESIRED}" ]; then
+                ALL_STABLE=false
+              fi
+            done
+            if [ "${ALL_STABLE}" = true ]; then
+              echo "All services stable"
+              exit 0
+            fi
+            echo "  Attempt ${attempt}/60 — waiting 15s..."
+            sleep 15
+          done
+          echo "::warning::Services did not fully stabilize within 15 minutes"
