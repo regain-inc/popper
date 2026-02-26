@@ -9,18 +9,8 @@ import { adminClient, inferAdditionalFields } from 'better-auth/client/plugins';
 import { createAuthClient } from 'better-auth/react';
 import type { auth } from './server';
 
-function getAuthBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_APP_URL) {
-    return process.env.NEXT_PUBLIC_APP_URL;
-  }
-  if (typeof window !== 'undefined') {
-    return window.location.origin;
-  }
-  return 'http://localhost:9001';
-}
-
 export const authClient = createAuthClient<typeof auth>({
-  baseURL: getAuthBaseUrl(),
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9001',
   plugins: [inferAdditionalFields<typeof auth>(), adminClient()],
 });
 
