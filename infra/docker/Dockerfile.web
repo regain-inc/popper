@@ -25,6 +25,13 @@ COPY packages ./packages
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# NEXT_PUBLIC_* vars are inlined at build time by Next.js (overrides .env files)
+# API calls go through the Next.js /api/proxy route (same origin)
+# Auth client uses NEXT_PUBLIC_APP_URL as base for /api/auth/* calls
+ENV NEXT_PUBLIC_API_URL=https://dashboard.regain.ai/api/proxy
+ENV NEXT_PUBLIC_APP_URL=https://dashboard.regain.ai
+ENV NEXT_PUBLIC_USE_MOCK=false
+
 # Build dependencies first
 RUN bun run --filter @popper/core build && \
     bun run --filter @popper/db build && \
