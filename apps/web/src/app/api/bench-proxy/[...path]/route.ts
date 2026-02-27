@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-const BENCH_API_URL = process.env.BENCH_API_URL || 'http://localhost:3001';
+const BENCH_API_URL = process.env.BENCH_API_URL || 'https://bench-api.regain.ai';
 
 async function proxyRequest(
   request: NextRequest,

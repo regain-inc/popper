@@ -69,12 +69,12 @@ export function Header() {
       <div className="flex items-center gap-4">
         {/* Data source indicator badges */}
         {mockMode && (
-          <div className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+          <div className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
             MOCK
           </div>
         )}
         {isBench && (
-          <div className="rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-medium text-blue-800 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200">
+          <div className="rounded-md border border-blue-300 bg-blue-50 px-2 py-1 text-xs font-medium text-blue-900 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-100">
             BENCH
           </div>
         )}
