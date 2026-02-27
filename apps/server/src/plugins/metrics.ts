@@ -5,7 +5,7 @@
  */
 
 import { formatPrometheusText, toPrometheusMetrics } from '@popper/cache';
-import { hashApiKey, isValidKeyFormat } from '@popper/core';
+import { hashApiKey, isValidKeyFormat, SYSTEM_ORG_ID } from '@popper/core';
 import { Elysia, t } from 'elysia';
 import prometheusPlugin from 'elysia-prometheus';
 import { env } from '../config/env';
@@ -24,6 +24,11 @@ async function validateMetricsApiKey(
 ): Promise<{ valid: boolean; organizationId?: string; error?: string }> {
   if (!apiKey) {
     return { valid: false, error: 'Missing API key' };
+  }
+
+  // Admin key bypass: matches POPPER_ADMIN_API_KEY env var (for dashboard proxy / bootstrap)
+  if (env.POPPER_ADMIN_API_KEY && apiKey === env.POPPER_ADMIN_API_KEY) {
+    return { valid: true, organizationId: SYSTEM_ORG_ID };
   }
 
   if (!isValidKeyFormat(apiKey)) {
@@ -92,15 +97,18 @@ export const metricsPlugin = new Elysia({ name: 'metrics' })
             return `# Unauthorized: ${authResult.error}\n# Use global metrics without auth or provide X-API-Key header\n`;
           }
 
-          // Verify the API key belongs to the requested org
-          if (authResult.organizationId !== query.org_id) {
+          // Verify the API key belongs to the requested org (SYSTEM_ORG_ID is superuser)
+          if (
+            authResult.organizationId !== query.org_id &&
+            authResult.organizationId !== SYSTEM_ORG_ID
+          ) {
             set.status = 403;
             return `# Forbidden: API key not authorized for organization ${query.org_id}\n`;
           }
         }
       }
 
-      const organizationId = query.org_id ?? 'global';
+      const organizationId = query.org_id ?? SYSTEM_ORG_ID;
       const driftCounters = getDriftCounters();
 
       try {
@@ -155,7 +163,11 @@ export const metricsPlugin = new Elysia({ name: 'metrics' })
             return { error: 'Unauthorized', message: authResult.error };
           }
 
-          if (authResult.organizationId !== query.org_id) {
+          // SYSTEM_ORG_ID is superuser — can access any org's metrics
+          if (
+            authResult.organizationId !== query.org_id &&
+            authResult.organizationId !== SYSTEM_ORG_ID
+          ) {
             set.status = 403;
             return {
               error: 'Forbidden',
@@ -165,7 +177,7 @@ export const metricsPlugin = new Elysia({ name: 'metrics' })
         }
       }
 
-      const organizationId = query.org_id ?? 'global';
+      const organizationId = query.org_id ?? SYSTEM_ORG_ID;
       const driftCounters = getDriftCounters();
 
       try {
