@@ -2,6 +2,7 @@
 
 import {
   AlertCircleIcon,
+  ArrowUpRight01Icon,
   BarChartIcon,
   DashboardSquare02Icon,
   FileSearchIcon,
@@ -211,6 +212,23 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
                 collapsed={collapsed}
               />
             ))}
+            {/* External link to full bench dashboard */}
+            <a
+              href="https://bench.regain.ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all',
+                'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                collapsed && 'justify-center px-2',
+              )}
+            >
+              <HugeiconsIcon
+                icon={ArrowUpRight01Icon}
+                className="text-muted-foreground group-hover:text-foreground size-5 shrink-0 transition-transform group-hover:scale-105"
+              />
+              {!collapsed && <span>Full Dashboard</span>}
+            </a>
           </>
         )}
       </nav>
