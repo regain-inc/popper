@@ -1,6 +1,6 @@
 'use client';
 
-import { Building02Icon, Logout02Icon, Settings01Icon } from '@hugeicons/core-free-icons';
+import { Logout02Icon, Settings01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import Link from 'next/link';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -21,12 +21,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useAuth } from '@/hooks/use-auth';
-import { useOrganization } from '@/hooks/use-organization';
+import { type DataSource, useDataSource } from '@/hooks/use-data-source';
 import { useSettings } from '@/hooks/use-settings';
 
 export function Header() {
   const { user, logout } = useAuth();
-  const { selectedOrgId, setSelectedOrgId, organizations } = useOrganization();
+  const { dataSource, setDataSource, isBench } = useDataSource();
   const { mockMode } = useSettings();
 
   // Get initials from user name
@@ -42,33 +42,40 @@ export function Header() {
   return (
     <header className="bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40 flex h-14 items-center justify-between border-b px-4 backdrop-blur">
       <div className="flex items-center gap-4">
-        {/* Organization Selector */}
+        {/* Data Source Selector */}
         <div className="flex items-center gap-2">
-          <HugeiconsIcon icon={Building02Icon} className="text-muted-foreground size-4" />
-          <Select
-            value={selectedOrgId || 'all'}
-            onValueChange={(value) => setSelectedOrgId(value === 'all' ? null : value)}
-          >
-            <SelectTrigger className="w-[200px] border-none bg-transparent shadow-none">
-              <SelectValue placeholder="All Organizations" />
+          <Select value={dataSource} onValueChange={(value) => setDataSource(value as DataSource)}>
+            <SelectTrigger className="w-[240px] border-none bg-transparent shadow-none">
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Organizations</SelectItem>
-              {organizations.map((org) => (
-                <SelectItem key={org.id} value={org.id}>
-                  {org.name}
-                </SelectItem>
-              ))}
+              <SelectItem value="production">
+                <span className="flex items-center gap-2">
+                  <span className="size-2 shrink-0 rounded-full bg-emerald-500" />
+                  Production (Mobile App)
+                </span>
+              </SelectItem>
+              <SelectItem value="bench">
+                <span className="flex items-center gap-2">
+                  <span className="size-2 shrink-0 rounded-full bg-blue-500" />
+                  Bench (Test Runs)
+                </span>
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
       <div className="flex items-center gap-4">
-        {/* Data source indicator */}
+        {/* Data source indicator badges */}
         {mockMode && (
           <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-600 dark:text-amber-400">
             MOCK
+          </div>
+        )}
+        {isBench && (
+          <div className="rounded-md border border-blue-500/30 bg-blue-500/10 px-2 py-1 text-xs font-medium text-blue-600 dark:text-blue-400">
+            BENCH
           </div>
         )}
 

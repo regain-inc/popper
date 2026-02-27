@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useAuth } from '@/hooks/use-auth';
-import { useOrganization } from '@/hooks/use-organization';
+import { useDataSource } from '@/hooks/use-data-source';
 
 type ExportScope = 'global' | 'organization';
 type TimeRange = '24h' | '7d' | '30d' | 'custom';
@@ -58,7 +58,7 @@ async function generateExportBundle(
 
 export default function ExportPage() {
   const { isAdmin } = useAuth();
-  const { selectedOrgId, organizations } = useOrganization();
+  const { organizationId, dataSourceLabel } = useDataSource();
 
   const [config, setConfig] = useState<ExportConfig>({
     scope: 'global',
@@ -91,7 +91,7 @@ export default function ExportPage() {
     try {
       const exportConfig = {
         ...config,
-        organizationId: config.scope === 'organization' ? selectedOrgId || undefined : undefined,
+        organizationId: config.scope === 'organization' ? organizationId : undefined,
       };
       const result = await generateExportBundle(exportConfig);
       setLastExport({
@@ -122,7 +122,7 @@ export default function ExportPage() {
     }
   };
 
-  const selectedOrg = organizations.find((o) => o.id === selectedOrgId);
+  const selectedOrg = organizationId ? { name: dataSourceLabel } : undefined;
 
   return (
     <div className="space-y-6">
@@ -183,9 +183,9 @@ export default function ExportPage() {
                 </Label>
                 <Label
                   htmlFor="scope-org"
-                  className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 hover:bg-accent [&:has([data-state=checked])]:border-primary ${!selectedOrgId ? 'opacity-50' : ''}`}
+                  className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 hover:bg-accent [&:has([data-state=checked])]:border-primary ${!organizationId ? 'opacity-50' : ''}`}
                 >
-                  <RadioGroupItem value="organization" id="scope-org" disabled={!selectedOrgId} />
+                  <RadioGroupItem value="organization" id="scope-org" disabled={!organizationId} />
                   <div className="space-y-1">
                     <p className="font-medium">Selected Organization</p>
                     <p className="text-muted-foreground text-sm">

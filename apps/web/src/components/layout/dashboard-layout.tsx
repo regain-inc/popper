@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
+import { DataSourceBanner } from '@/components/dashboard/data-source-banner';
 import { useAuth } from '@/hooks/use-auth';
 import { Header } from './header';
 import { Sidebar } from './sidebar';
@@ -58,7 +59,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-6">
+          <DataSourceBanner />
+          <div className="mt-4">{children}</div>
+        </main>
       </div>
     </div>
   );

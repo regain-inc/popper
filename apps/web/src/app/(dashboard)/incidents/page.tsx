@@ -40,6 +40,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
+import { useDataSource } from '@/hooks/use-data-source';
 import {
   getIncidentStatusColor,
   getTriggerLevelColor,
@@ -47,7 +48,6 @@ import {
   useIncidents,
   useResolveIncident,
 } from '@/hooks/use-incidents';
-import { useOrganization } from '@/hooks/use-organization';
 import { cn } from '@/lib/utils';
 import type { Incident } from '@/types/api';
 
@@ -66,13 +66,13 @@ function IncidentsSkeleton() {
 }
 
 export default function IncidentsPage() {
-  const { selectedOrgId } = useOrganization();
+  const { organizationId } = useDataSource();
   const [statusFilter, setStatusFilter] = useState<'all' | 'open'>('all');
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
   const [resolveDialogOpen, setResolveDialogOpen] = useState(false);
   const [resolutionNotes, setResolutionNotes] = useState('');
 
-  const { data, isLoading, error } = useIncidents(selectedOrgId || undefined, statusFilter);
+  const { data, isLoading, error } = useIncidents(organizationId, statusFilter);
   const acknowledgeMutation = useAcknowledgeIncident();
   const resolveMutation = useResolveIncident();
 

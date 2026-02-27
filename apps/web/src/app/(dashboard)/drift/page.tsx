@@ -3,7 +3,7 @@
 import { DriftSignals } from '@/components/dashboard/drift-signals';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useOrganization } from '@/hooks/use-organization';
+import { useDataSource } from '@/hooks/use-data-source';
 import { useStatus } from '@/hooks/use-status';
 import { cn, formatPercentage } from '@/lib/utils';
 
@@ -33,8 +33,8 @@ const statusBgColors = {
 };
 
 export default function DriftPage() {
-  const { selectedOrgId } = useOrganization();
-  const { data: status, isLoading, error } = useStatus(selectedOrgId || undefined, 30);
+  const { organizationId } = useDataSource();
+  const { data: status, isLoading, error } = useStatus(organizationId, 30);
 
   if (isLoading) {
     return (

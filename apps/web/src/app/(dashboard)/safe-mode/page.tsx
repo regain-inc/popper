@@ -6,7 +6,7 @@ import { SafeModeCard } from '@/components/safe-mode/safe-mode-card';
 import { SafeModeDialog } from '@/components/safe-mode/safe-mode-dialog';
 import { SafeModeHistory } from '@/components/safe-mode/safe-mode-history';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useOrganization } from '@/hooks/use-organization';
+import { useDataSource } from '@/hooks/use-data-source';
 import { useSafeMode, useSafeModeHistory, useSetSafeMode } from '@/hooks/use-safe-mode';
 
 function SafeModeSkeleton() {
@@ -28,15 +28,12 @@ type DialogState = {
 };
 
 export default function SafeModePage() {
-  const { selectedOrgId, organizations } = useOrganization();
-  const selectedOrg = organizations.find((o) => o.id === selectedOrgId);
+  const { organizationId, dataSourceLabel, isBench } = useDataSource();
 
   // Fetch global and org-specific safe mode states
   const { data: globalSafeMode, isLoading: globalLoading } = useSafeMode();
-  const { data: orgSafeMode, isLoading: orgLoading } = useSafeMode(selectedOrgId || undefined);
-  const { data: historyData, isLoading: historyLoading } = useSafeModeHistory(
-    selectedOrgId || undefined,
-  );
+  const { data: orgSafeMode, isLoading: orgLoading } = useSafeMode(organizationId);
+  const { data: historyData, isLoading: historyLoading } = useSafeModeHistory(organizationId);
 
   const setSafeMode = useSetSafeMode();
 
@@ -67,7 +64,7 @@ export default function SafeModePage() {
       await setSafeMode.mutateAsync({
         enabled,
         reason,
-        organization_id: scope === 'organization' ? selectedOrgId || undefined : undefined,
+        organization_id: scope === 'organization' ? organizationId : undefined,
         effective_until: effectiveUntil,
       });
 
@@ -120,7 +117,7 @@ export default function SafeModePage() {
         <h1 className="text-2xl font-semibold tracking-tight">Safe-Mode Controls</h1>
         <p className="text-muted-foreground text-sm">
           Manage safety override settings
-          {selectedOrg && <span> · {selectedOrg.name}</span>}
+          {isBench && <span> · {dataSourceLabel}</span>}
         </p>
       </div>
 
@@ -136,15 +133,15 @@ export default function SafeModePage() {
         />
 
         <SafeModeCard
-          title={`Organization Safe-Mode${selectedOrg ? ` (${selectedOrg.name})` : ''}`}
-          description={selectedOrgId ? 'Affects only this organization' : 'Select an organization'}
+          title={`Organization Safe-Mode${isBench ? ` (${dataSourceLabel})` : ''}`}
+          description={organizationId ? 'Affects only this organization' : 'Select an organization'}
           scope="organization"
           state={effectiveOrgSafeMode}
-          disabled={isOrgDisabled || !selectedOrgId}
+          disabled={isOrgDisabled || !organizationId}
           disabledMessage={
             isOrgDisabled
               ? 'Global safe-mode is active'
-              : !selectedOrgId
+              : !organizationId
                 ? 'Select an organization from the header'
                 : undefined
           }
@@ -166,7 +163,7 @@ export default function SafeModePage() {
         onOpenChange={(open) => setDialogState({ ...dialogState, open })}
         mode={dialogState.mode}
         scope={dialogState.scope}
-        organizationName={selectedOrg?.name}
+        organizationName={isBench ? dataSourceLabel : undefined}
         onConfirm={handleConfirm}
         isLoading={setSafeMode.isPending}
       />

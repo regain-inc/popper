@@ -2,10 +2,12 @@
 
 import {
   AlertCircleIcon,
+  BarChartIcon,
   DashboardSquare02Icon,
   FileSearchIcon,
   FileZipIcon,
   FlowIcon,
+  PlayIcon,
   SecurityCheckIcon,
   Settings01Icon,
   ShieldKeyIcon,
@@ -18,6 +20,7 @@ import { usePathname } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/hooks/use-auth';
+import { useDataSource } from '@/hooks/use-data-source';
 import { cn } from '@/lib/utils';
 
 const navigation = [
@@ -50,6 +53,21 @@ const navigation = [
     href: '/incidents',
     icon: AlertCircleIcon,
     description: 'Safety incidents',
+  },
+];
+
+const benchNavigation = [
+  {
+    name: 'Bench Runs',
+    href: '/bench/runs',
+    icon: PlayIcon,
+    description: 'Validation run history',
+  },
+  {
+    name: 'Bench Analytics',
+    href: '/bench/analytics',
+    icon: BarChartIcon,
+    description: 'Trends and readiness',
   },
 ];
 
@@ -121,6 +139,7 @@ interface SidebarProps {
 export function Sidebar({ collapsed = false }: SidebarProps) {
   const pathname = usePathname();
   const { isAdmin } = useAuth();
+  const { isBench } = useDataSource();
 
   const exportNavItem = {
     name: 'Export Bundle',
@@ -174,6 +193,26 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
             collapsed={collapsed}
           />
         ))}
+
+        {/* Bench section - shown only when bench data source is selected */}
+        {isBench && (
+          <>
+            <Separator className="my-2" />
+            {!collapsed && (
+              <p className="text-muted-foreground px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider">
+                Bench
+              </p>
+            )}
+            {benchNavigation.map((item) => (
+              <NavItem
+                key={item.href}
+                item={item}
+                isActive={pathname.startsWith(item.href)}
+                collapsed={collapsed}
+              />
+            ))}
+          </>
+        )}
       </nav>
 
       {/* Admin-only links: Export and Compliance */}

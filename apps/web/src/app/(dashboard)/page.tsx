@@ -11,7 +11,7 @@ import { DriftSignals } from '@/components/dashboard/drift-signals';
 import { SafeModeBanner } from '@/components/dashboard/safe-mode-banner';
 import { StatusCard } from '@/components/dashboard/status-card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useOrganization } from '@/hooks/use-organization';
+import { useDataSource } from '@/hooks/use-data-source';
 import { useStatus } from '@/hooks/use-status';
 import { formatDuration } from '@/lib/utils';
 
@@ -33,8 +33,8 @@ function StatusSkeleton() {
 }
 
 export default function StatusPage() {
-  const { selectedOrgId } = useOrganization();
-  const { data: status, isLoading, error } = useStatus(selectedOrgId || undefined);
+  const { organizationId } = useDataSource();
+  const { data: status, isLoading, error } = useStatus(organizationId);
 
   if (isLoading) {
     return (

@@ -6,7 +6,7 @@ import { type ReactNode, useState } from 'react';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { AuthProvider } from '@/hooks/use-auth';
-import { OrganizationProvider } from '@/hooks/use-organization';
+import { DataSourceProvider } from '@/hooks/use-data-source';
 import { SettingsProvider } from '@/hooks/use-settings';
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -27,11 +27,11 @@ export function Providers({ children }: { children: ReactNode }) {
       <TooltipProvider>
         <AuthProvider>
           <SettingsProvider>
-            <OrganizationProvider>
+            <DataSourceProvider>
               {children}
               <Toaster position="top-right" richColors closeButton />
               <ReactQueryDevtools initialIsOpen={false} />
-            </OrganizationProvider>
+            </DataSourceProvider>
           </SettingsProvider>
         </AuthProvider>
       </TooltipProvider>

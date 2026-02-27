@@ -1,6 +1,5 @@
 import { treaty } from '@elysiajs/eden';
 import type { App } from '@popper/server';
-import type { Organization } from '@/types/api';
 
 function getApiBaseUrl(): string {
   if (process.env.NEXT_PUBLIC_API_URL) {
@@ -30,12 +29,4 @@ export class ApiError extends Error {
     super(message);
     this.name = 'ApiError';
   }
-}
-
-// Organizations API (mock for now - in production this comes from auth)
-export async function getOrganizations(): Promise<Organization[]> {
-  return [
-    { id: 'org_regain', name: 'Regain Health' },
-    { id: 'org_demo', name: 'Demo Organization' },
-  ];
 }

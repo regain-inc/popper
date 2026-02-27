@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuditEvents, useAuditTimeseries } from '@/hooks/use-audit-events';
-import { useOrganization } from '@/hooks/use-organization';
+import { useDataSource } from '@/hooks/use-data-source';
 import type { AuditEventsParams } from '@/types/api';
 
 const LIMIT = 50;
@@ -33,20 +33,20 @@ function AuditSkeleton() {
 }
 
 export default function AuditPage() {
-  const { selectedOrgId } = useOrganization();
+  const { organizationId } = useDataSource();
   const [filters, setFilters] = useState<AuditEventsParams>({
     limit: LIMIT,
     offset: 0,
-    organization_id: selectedOrgId || undefined,
+    organization_id: organizationId,
   });
 
   // Update org filter when selection changes
   const effectiveFilters = useMemo(
     () => ({
       ...filters,
-      organization_id: selectedOrgId || undefined,
+      organization_id: organizationId,
     }),
-    [filters, selectedOrgId],
+    [filters, organizationId],
   );
 
   // Fetch data - hooks must be called before any code that uses their return values
@@ -66,9 +66,9 @@ export default function AuditPage() {
       since: timeseriesSince,
       bucket: 'hour' as const,
       group_by: 'decision' as const,
-      organization_id: selectedOrgId || undefined,
+      organization_id: organizationId,
     }),
-    [selectedOrgId, timeseriesSince],
+    [organizationId, timeseriesSince],
   );
 
   const {
