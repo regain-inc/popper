@@ -125,7 +125,7 @@ export function useBenchTrends(limit = 20) {
   const { isBench } = useDataSource();
   return useQuery({
     queryKey: ['bench-trends', limit],
-    queryFn: () => benchFetch<{ runs: BenchRun[] }>(`/analytics/trends?limit=${limit}`),
+    queryFn: () => benchFetch<{ runs: BenchRun[] }>(`/trends?limit=${limit}`),
     enabled: isBench,
     staleTime: 30_000,
   });
@@ -135,7 +135,7 @@ export function useBenchProductionReadiness() {
   const { isBench } = useDataSource();
   return useQuery({
     queryKey: ['bench-production-readiness'],
-    queryFn: () => benchFetch<ProductionReadiness>('/analytics/production-readiness'),
+    queryFn: () => benchFetch<ProductionReadiness>('/production-readiness'),
     enabled: isBench,
     staleTime: 60_000,
   });
@@ -145,7 +145,7 @@ export function useBenchCrossModelComparison() {
   const { isBench } = useDataSource();
   return useQuery({
     queryKey: ['bench-cross-model'],
-    queryFn: () => benchFetch<{ models: CrossModelEntry[] }>('/analytics/cross-model-comparison'),
+    queryFn: () => benchFetch<{ models: CrossModelEntry[] }>('/cross-model-comparison'),
     enabled: isBench,
     staleTime: 60_000,
   });
@@ -155,7 +155,7 @@ export function useBenchSupervisionMatrix(runId: string) {
   const { isBench } = useDataSource();
   return useQuery({
     queryKey: ['bench-supervision-matrix', runId],
-    queryFn: () => benchFetch<SupervisionMatrixData>(`/analytics/runs/${runId}/supervision-matrix`),
+    queryFn: () => benchFetch<SupervisionMatrixData>(`/runs/${runId}/supervision-matrix`),
     enabled: isBench && !!runId,
   });
 }

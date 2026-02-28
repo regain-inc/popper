@@ -1,13 +1,6 @@
-function getBenchApiBaseUrl(): string {
-  if (typeof window !== 'undefined') {
-    return `${window.location.origin}/api/bench-proxy`;
-  }
-  return 'http://localhost:3001';
-}
+const BENCH_BASE = 'https://bench-api.regain.ai';
 
-const BENCH_BASE = getBenchApiBaseUrl();
-
-/** Fetch data from the bench API through the proxy */
+/** Fetch data from the bench API directly (cross-subdomain cookies on .regain.ai) */
 export async function benchFetch<T>(path: string): Promise<T> {
   const res = await fetch(`${BENCH_BASE}/api/v1${path}`, {
     credentials: 'include',
