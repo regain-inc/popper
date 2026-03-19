@@ -1,0 +1,335 @@
+# Popper Domain Pack: Cardiometabolic — Heart Failure
+# Clinical grounding for HF medication supervision
+#
+# Sources: 2022 AHA/ACC/HFSA HF Guideline, FDA medication labels
+# @see docs/specs/00-popper-specs/01-clinical-grounding-and-supervision/02-cardiometabolic-guideline-priority-map.md
+
+policy_id: domain-cardiometabolic-hf
+policy_version: 0.1.0
+pack_type: domain
+
+metadata:
+  description: Heart failure medication supervision rules
+  owner: Clinical Governance Board
+  clinical_reviewer: "TBD — requires clinical governance sign-off before activation"
+  jurisdiction: US
+  created_at: "2026-03-19"
+  review_interval_days: 365
+  sources:
+    - kind: guideline
+      citation: "2022 AHA/ACC/HFSA Guideline for the Management of Heart Failure"
+      source_url: "https://doi.org/10.1161/CIR.0000000000001063"
+      doi: "10.1161/CIR.0000000000001063"
+    - kind: guideline
+      citation: "2024 ACC Expert Consensus Decision Pathway for Treatment of HFrEF"
+      source_url: "https://doi.org/10.1016/j.jacc.2023.12.024"
+    - kind: medication_label
+      citation: "FDA Structured Product Labels via DailyMed"
+
+depends_on:
+  - pack_id: popper-core-safety
+    version_constraint: ">=2.0.0"
+
+staleness:
+  thresholds:
+    wellness_hours: 24
+    clinical_hours: 4
+  behavior:
+    low_risk_stale: REQUEST_MORE_INFO
+    high_risk_stale: ROUTE_TO_CLINICIAN
+
+rules:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # LAYER 1: Medication Label Safety (Priority 700-799)
+  # These fire ABOVE core evidence-quality checks (600-699)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - rule_id: acei_angioedema_contraindication
+    description: ACE inhibitor contraindicated in patients with history of ACEi-related angioedema
+    priority: 780
+    provenance:
+      source_type: contraindication
+      source_layer: 1
+      citation: "Lisinopril SPL, Section 4 — Contraindications"
+      citation_subsection: "History of angioedema related to previous ACE inhibitor treatment"
+      source_url: "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=lisinopril"
+      evidence_grade: policy
+      native_grading:
+        system: FDA_LABEL
+        fda_label_section: "4"
+      jurisdiction: US
+      clinical_domain: cardiovascular
+      applicable_population: "Patients with documented ACEi-related angioedema history"
+      approved_by: "TBD"
+      effective_date: "2026-03-19"
+      review_interval_days: 90
+      review_due: "2026-06-19"
+    when:
+      kind: all_of
+      conditions:
+        - kind: medication_class_in
+          classes: ["C09AA"]  # ACE inhibitors
+        - kind: allergy_match
+          match_on: either
+    then:
+      decision: HARD_STOP
+      reason_codes:
+        - policy_violation
+        - risk_too_high
+      explanation: >
+        ACE inhibitor is contraindicated in patients with history of ACEi-related
+        angioedema per FDA labeling (Section 4 — Contraindications).
+
+  - rule_id: dual_ras_blockade_prohibition
+    description: ACEi + ARB combination (dual RAS blockade) — contraindicated
+    priority: 775
+    provenance:
+      source_type: drug_interaction
+      source_layer: 1
+      citation: "KDIGO 2024 CKD Guideline, Recommendation 3.6.8"
+      citation_subsection: "Avoid dual RAS blockade (ACEi + ARB or DRI combinations)"
+      source_url: "https://kdigo.org/wp-content/uploads/2024/03/KDIGO-2024-CKD-Guideline.pdf"
+      evidence_grade: rct
+      native_grading:
+        system: KDIGO
+        kdigo_strength: "1"
+        kdigo_quality: B
+      jurisdiction: global
+      clinical_domain: cardiovascular
+      approved_by: "TBD"
+      effective_date: "2026-03-19"
+      review_interval_days: 365
+      review_due: "2027-03-19"
+      additional_sources:
+        - source_type: medication_label
+          source_layer: 1
+          citation: "Lisinopril SPL, Section 5.6 — Dual blockade of the RAS"
+          evidence_grade: policy
+          native_grading:
+            system: FDA_LABEL
+            fda_label_section: "5.6"
+    when:
+      kind: combination_present
+      class_a: "C09AA"  # ACE inhibitors
+      class_b: "C09CA"  # ARBs
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - policy_violation
+        - risk_too_high
+        - needs_human_review
+      explanation: >
+        Dual RAS blockade (ACEi + ARB) is contraindicated per KDIGO 2024 (1B)
+        and FDA labeling. Associated with increased risk of hypotension,
+        hyperkalemia, and renal impairment.
+
+  - rule_id: mra_hyperkalemia_check
+    description: MRA with potassium >5.0 requires clinician review
+    priority: 760
+    provenance:
+      source_type: medication_label
+      source_layer: 1
+      citation: "Spironolactone SPL, Section 5.1 — Hyperkalemia"
+      source_url: "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=spironolactone"
+      evidence_grade: policy
+      native_grading:
+        system: FDA_LABEL
+        fda_label_section: "5.1"
+      jurisdiction: US
+      clinical_domain: cardiovascular
+      approved_by: "TBD"
+      effective_date: "2026-03-19"
+      review_interval_days: 90
+      review_due: "2026-06-19"
+    when:
+      kind: all_of
+      conditions:
+        - kind: medication_class_in
+          classes: ["C03DA"]  # Aldosterone antagonists (MRA)
+        - kind: snapshot_lab_above
+          lab: potassium
+          threshold: 5.0
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - risk_too_high
+        - needs_human_review
+      explanation: >
+        MRA (spironolactone/eplerenone) proposed with potassium >5.0 mEq/L.
+        Risk of hyperkalemia per FDA labeling. Clinician must verify potassium
+        level and assess risk before proceeding.
+
+  - rule_id: medication_allergy_data_required
+    description: Medication proposal without allergy data — request it
+    priority: 755  # was 750, renumbered to avoid collision with default.yaml:750
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Clinical Grounding Spec, §3.4 — Missing data safety gates"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-03-19"
+      review_interval_days: 365
+      review_due: "2027-03-19"
+    when:
+      kind: all_of
+      conditions:
+        - kind: proposal_kind_in
+          kinds:
+            - MEDICATION_ORDER_PROPOSAL
+        - kind: snapshot_field_missing
+          field: medication_allergies
+    then:
+      decision: REQUEST_MORE_INFO
+      reason_codes:
+        - data_quality_warning
+        - needs_human_review
+      explanation: >
+        Medication proposal received without allergy data (field is null/unavailable).
+        Cannot evaluate contraindications without allergy information.
+        Please provide medication allergy data before proceeding.
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # LAYER 2: Guideline-Derived Rules (Priority 100-299)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - rule_id: sglt2i_egfr_check
+    description: SGLT2i initiation — verify eGFR is available
+    priority: 255  # was 250, renumbered to avoid collision with default.yaml:250
+    provenance:
+      source_type: society_guideline
+      source_layer: 2
+      citation: "KDIGO 2024 CKD Guideline"
+      citation_subsection: "Recommendation 3.8.1 — initiate SGLT2i at eGFR >=20"
+      source_url: "https://kdigo.org/wp-content/uploads/2024/03/KDIGO-2024-CKD-Guideline.pdf"
+      evidence_grade: rct
+      native_grading:
+        system: KDIGO
+        kdigo_strength: "1"
+        kdigo_quality: A
+      jurisdiction: global
+      clinical_domain: cardiovascular
+      applicable_population: "Patients initiating SGLT2i therapy"
+      approved_by: "TBD"
+      effective_date: "2026-03-19"
+      review_interval_days: 365
+      review_due: "2027-03-19"
+      additional_sources:
+        - source_type: medication_label
+          source_layer: 1
+          citation: "Empagliflozin SPL, Section 2.2 — Renal Impairment"
+          evidence_grade: policy
+          native_grading:
+            system: FDA_LABEL
+            fda_label_section: "2.2"
+    when:
+      kind: all_of
+      conditions:
+        - kind: medication_class_in
+          classes: ["A10BK"]  # SGLT2 inhibitors
+        - kind: snapshot_lab_missing
+          lab: egfr
+    then:
+      decision: REQUEST_MORE_INFO
+      reason_codes:
+        - data_quality_warning
+      explanation: >
+        SGLT2i initiation requires verification of current eGFR per KDIGO 2024
+        (initiate at eGFR >=20) and FDA labeling. Current snapshot does not
+        contain eGFR. Please provide recent renal function data.
+
+  - rule_id: sglt2i_egfr_below_threshold
+    description: SGLT2i initiation with eGFR <20 — route to clinician
+    priority: 252  # was 245, renumbered to avoid collision with default.yaml:245
+    provenance:
+      source_type: society_guideline
+      source_layer: 2
+      citation: "KDIGO 2024 CKD Guideline"
+      citation_subsection: "Recommendation 3.8.1 — initiate SGLT2i at eGFR >=20"
+      source_url: "https://kdigo.org/wp-content/uploads/2024/03/KDIGO-2024-CKD-Guideline.pdf"
+      evidence_grade: rct
+      native_grading:
+        system: KDIGO
+        kdigo_strength: "1"
+        kdigo_quality: A
+      jurisdiction: global
+      clinical_domain: cardiovascular
+      approved_by: "TBD"
+      effective_date: "2026-03-19"
+      review_interval_days: 365
+      review_due: "2027-03-19"
+    when:
+      kind: all_of
+      conditions:
+        - kind: medication_class_in
+          classes: ["A10BK"]
+        - kind: snapshot_lab_below
+          lab: egfr
+          threshold: 20
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - needs_human_review
+        - risk_too_high
+      explanation: >
+        SGLT2i initiation with eGFR <20 mL/min/1.73m2 per KDIGO 2024
+        recommendation (1A). Clinician must evaluate whether initiation
+        is appropriate at this renal function level.
+
+  - rule_id: active_meds_data_required
+    description: Medication proposal without active medication list — request it
+    priority: 248  # was 240, renumbered to maintain ordering below sglt2i rules
+    provenance:
+      source_type: internal_policy
+      source_layer: 2
+      citation: "Popper Clinical Grounding Spec, §3.4 — Missing data safety gates"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-03-19"
+      review_interval_days: 365
+      review_due: "2027-03-19"
+    when:
+      kind: all_of
+      conditions:
+        - kind: proposal_kind_in
+          kinds:
+            - MEDICATION_ORDER_PROPOSAL
+        - kind: snapshot_field_missing
+          field: active_medications
+    then:
+      decision: REQUEST_MORE_INFO
+      reason_codes:
+        - data_quality_warning
+      explanation: >
+        Medication proposal received without active medication list
+        (field is null/unavailable). Cannot evaluate drug interactions
+        without knowing current medications.
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # FUTURE: 2024 ACC ECDP Titration Sequencing + ARNI Washout
+  #
+  # Three rules were designed here but REMOVED because they depend on
+  # DSL extensions that do not exist yet:
+  #   - snapshot_field_below (needs Hermes LVEF field)
+  #   - gdmt_pillar_count_below (needs pillar-mapping layer)
+  #   - recent_medication_class (needs medication-history timestamps)
+  #   - APPROVED_WITH_NOTE (not a valid supervision decision)
+  #
+  # The ECDP optimization nudges (ecdp_parallel_initiation_preferred,
+  # ecdp_sglt2i_early_initiation) are also better placed in Deutsch ranking
+  # logic, not Popper safety supervision. Keep Popper focused on safety.
+  #
+  # The ARNI 36h washout HARD_STOP (acei_to_arni_washout_check) is a real
+  # safety rule but requires medication discontinuation timestamps that the
+  # current snapshot does not carry. Implement after Hermes contract C3
+  # (medication exposure history) is available.
+  #
+  # Draft rules preserved in:
+  #   config/policies/drafts/ecdp-titration-rules.draft.yaml
+  #
+  # Source: Maddox TM et al. JACC 2024. DOI: 10.1016/j.jacc.2023.12.024
+  # ═══════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,45 @@
+# DRAFT — NOT LOADABLE BY CURRENT PARSER
+# These rules require DSL extensions before they can execute.
+# See cardiometabolic-hf.yaml for the placeholder comment.
+#
+# Prerequisites:
+#   C1: HF assessment contract with confirmed phenotype + LVEF
+#   C3: Medication exposure history (started_at, stopped_at)
+#   Y5: DSL extensions (snapshot_field_below, gdmt_pillar_count_below, recent_medication_class)
+#
+# Decision: ECDP optimization nudges should move to Deutsch ranking logic.
+# Only the ARNI washout HARD_STOP belongs in Popper (after C3 is implemented).
+
+rules:
+  # MOVE TO DEUTSCH: This is optimization advice, not safety supervision
+  - rule_id: ecdp_parallel_initiation_preferred
+    description: >
+      2024 ECDP: no specific drug order mandated; early low-dose initiation of
+      all four core therapies is likely more beneficial than maximizing one or
+      two first. Target: maximally tolerated doses within 3 months.
+    status: DRAFT — move to Deutsch ranking logic
+    source: "Maddox TM et al. JACC 2024. DOI: 10.1016/j.jacc.2023.12.024"
+    blocked_by: [snapshot_field_below, gdmt_pillar_count_below, APPROVED_WITH_NOTE]
+
+  # MOVE TO DEUTSCH: Same — optimization advice
+  - rule_id: ecdp_sglt2i_early_initiation
+    description: >
+      2024 ECDP: SGLT2i can be initiated at any point during GDMT optimization,
+      regardless of other GDMT class status.
+    status: DRAFT — move to Deutsch ranking logic
+    source: "Maddox TM et al. JACC 2024. DOI: 10.1016/j.jacc.2023.12.024"
+    blocked_by: [snapshot_field_below, APPROVED_WITH_NOTE]
+
+  # KEEP IN POPPER: Real safety rule — angioedema prevention
+  - rule_id: acei_to_arni_washout_check
+    description: >
+      ARNI MUST NOT be initiated within 36 hours of last ACEi dose (angioedema risk).
+      ARB-to-ARNI switch does NOT require washout.
+    status: DRAFT — blocked on medication exposure history (C3)
+    source: "Sacubitril/Valsartan SPL, Section 4 — Contraindications"
+    blocked_by: [recent_medication_class, medication_exposure_timestamps]
+    notes: >
+      When C3 is implemented, this should be a HARD_STOP with
+      medication_class_in C09AA + last_dose_within_hours: 36.
+      Current workaround: REQUEST_MORE_INFO asking clinician to confirm
+      ACEi was discontinued ≥36 hours ago.

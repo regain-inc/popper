@@ -847,4 +847,88 @@ Measurement results MAY trigger control commands:
 
 ---
 
-*Last updated: 2026-01-24*
+## 10) GDMT Optimization: Literature Context and Internal Metrics
+
+> **Disclaimer:** Deutsch currently has no published real-patient comparative performance data. All internal metrics below are aspirational until prospective pilot data exists. Literature references provide context for evaluation design, not acceptance criteria.
+
+### 10.1 Purpose
+
+This section provides two things:
+1. **Literature comparators** — published trial results that contextualize what human-driven GDMT optimization achieves
+2. **Internal operational metrics** — what Regain can actually measure from Deutsch/Popper telemetry
+
+These are NOT the same thing. Literature comparators are context. Internal metrics are measurable.
+
+### 10.2 Literature Comparators (Context Only)
+
+**EPIC-HF (Patient Activation)**
+- Allen LA et al. Circulation 2021;143(5):427-437. DOI: 10.1161/CIRCULATIONAHA.120.051863 | NCT03334188
+- Design: RCT of electronically delivered patient activation (3-min video + checklist, 7/3/1 days pre-visit)
+- Result: 49.0% vs 29.7% GDMT initiation/intensification (p=0.001)
+- Setting: Episodic (pre-visit only), HFrEF, single site
+- No AI component
+
+**PROMPT-HF (Clinician Decision Support)**
+- Ghazi L et al. JACC 2022;79(22):2203-2213. DOI: 10.1016/j.jacc.2022.03.338 | NCT04514458
+- Design: Cluster-randomized trial of EHR-embedded clinician alerts (Epic BPA)
+- Result: 26% vs 19% increase in GDMT classes (adjusted RR: 1.41, 95% CI: 1.03-1.93, p=0.03, NNT=14)
+- Setting: Episodic (in-visit alerts), HFrEF, single health system (Yale New Haven Health)
+- No AI component
+
+**I-I-CAPTAIN-HF (Combined)**
+- Thompson J et al. J Card Fail 2024 | NCT06526988
+- Design: 2x2 factorial combining EPIC-HF + PROMPT-HF at 5 sites
+- Results: Pending (enrolled March 2024)
+- No AI component — both interventions are behavioral/EHR-based, not AI
+
+**Why these are context, not acceptance criteria:** EPIC-HF and PROMPT-HF are episodic human interventions measured at 30 days in specific populations. Deutsch is a continuous AI system with different exposure, eligibility, and follow-up structure. Direct comparison is not scientifically valid as a formal benchmark — only as directional context.
+
+### 10.3 Internal Operational Metrics (What We Can Measure)
+
+These metrics require recommendation lifecycle telemetry (see `04-gdmt-impediment-mapping.md` §8, prerequisite C6).
+
+| Metric | Definition | Denominator | Data Source |
+|---|---|---|---|
+| **Eligible gap surface rate** | Fraction of HFrEF sessions where a GDMT gap was identified and surfaced to Generator | All HFrEF clinical sessions | `GDMTGapReport` |
+| **Executed GDMT change rate** | Fraction of GDMT proposals that resulted in an actual medication order change | All GDMT-related proposals surfaced | Requires medication-order confirmation event (not yet in Hermes) |
+| **Clinical delay rate** | `CLINICAL_DELAY_REASONS` deferrals / all deferred | All `action='deferred'` | `ClinicianFeedbackEvent` + deferral subtypes (C5) |
+| **Operational barrier rate** | `OPERATIONAL_BARRIER_REASONS` deferrals / all deferred | All `action='deferred'` | Same — triggers access support, NOT inertia escalation |
+| **Soft override rate** | `INERTIA_ELIGIBLE_REASONS` deferrals / total feedback | All feedback events | Same — key inertia signal |
+| **Inertia signal rate** | Fraction of HFrEF patients with high-severity InertiaSignal | All HFrEF patients with `pillars_with_opportunity > 0` | `InertiaSignal` |
+| **Days to all indicated therapies** | Median days from first GDMT gap detection to `optimized_applicable_pillar_count === applicable_pillar_count`, with clock-stop rules (see below) | All patients with initial gaps | `GDMTGapReport` longitudinal |
+| **Unsafe proposal rate** | Fraction of GDMT proposals that received HARD_STOP | All GDMT proposals | Popper audit trail |
+
+**Clock-stop rules for "Days to all indicated therapies":**
+The clock pauses (days not counted) during periods when optimization is not possible:
+- `global_opportunity.eligible === false` (patient decompensated, hospitalized, post-surgical)
+- All actionable pillars have `pillar_eligible === false` (class-specific blockers on every remaining gap)
+- Deferral with `CLINICAL_DELAY_REASONS` (awaiting labs, temporary hold, post-op)
+- Deferral with `OPERATIONAL_BARRIER_REASONS` (access barrier — clock pauses, but triggers access-support workflow)
+
+The clock does NOT pause for `INERTIA_ELIGIBLE_REASONS` deferrals — those are the delays this metric is designed to measure.
+
+**Success definition:** "On all appropriate therapies at target **or maximally tolerated** dose." A patient at `maximally_tolerated` on all applicable pillars is fully optimized, even if below guideline target doses. The "4 pillars at target dose" formulation from the prior version of this section was clinically incorrect.
+
+### 10.4 What Failure Looks Like
+
+If internal metrics indicate problems:
+
+These are **provisional pilot starting thresholds**, not validated operational targets. They should be calibrated during the first deployment cycle based on actual system behavior and clinical review. No published source supports these specific numbers — they are engineering estimates.
+
+| Signal | Provisional Threshold | Possible Cause | Remediation |
+|---|---|---|---|
+| Executed GDMT change rate | < 15% (provisional) | Proposals not clinically relevant, alert fatigue, workflow friction | Chart review of rejected proposals, Generator prompt redesign |
+| Inertia signal rate | > 30% (provisional) | System detecting gaps but clinicians not acting | Investigate: well-reasoned? Right timing? Access barriers? |
+| Unsafe proposal rate | > 2% (provisional) | Safety rules not catching bad proposals | Rule audit, policy pack review, possible safe-mode |
+| Days to optimization | > 180 (provisional) | System too slow or too conservative | Review opportunity gate thresholds, titration interval settings |
+
+### 10.5 Limitations
+
+- `Executed GDMT change rate` requires a medication-order confirmation event that does not exist in Hermes today — until it does, we can only measure `accepted` + `modified` feedback (which is not the same as executed)
+- Literature comparators are not head-to-head benchmarks — different populations, exposure, and measurement approaches
+- Between EPIC-HF (single site) and Deutsch (continuous, multi-site), there are too many confounders for any formal statistical comparison
+- All metrics are meaningful only after the prerequisite contracts (C1, C5, C6) are implemented
+
+---
+
+*Last updated: 2026-03-19*

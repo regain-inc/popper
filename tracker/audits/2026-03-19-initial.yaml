@@ -1,0 +1,118 @@
+# Proposed IAC Framework Readiness Audit — 2026-03-19 (v3)
+# Readiness is measured against Regain's proposed IAC draft, NOT adopted IAC standards.
+# IAC has not reviewed, adopted, or endorsed these standards as of this date.
+
+audit_date: "2026-03-19"
+auditor: "spec-author + external-review"
+framework_status: "Regain proposed draft — not submitted to or adopted by IAC"
+
+# Status taxonomy:
+#   IMPLEMENTED — code exists, tests pass
+#   SPEC_BACKED — architecture defined against proposed draft, not coded
+#   MAPPED_TO_DRAFT — spec exists targeting proposed requirements; depends on undefined data flows or facility systems
+#   TEMPLATE_ONLY — facility-owned deliverable, template provided
+#   GAP — no spec or implementation
+
+proposed_iac_framework_readiness:
+  category_1_pre_deployment_validation:
+    prior_status: GAP
+    current_status: SPEC_BACKED
+    spec: "02-iac-product-specs/01-pre-deployment-validation.md"
+    notes: "PHI boundary fixed (demographics stay in MISS). Equipment metadata added. PerformanceThreshold defined."
+    remaining_gaps:
+      - "Validation API endpoints not fully defined (need request/response schemas)"
+      - "MISS-side demographic computation not specified on MISS side"
+    blocking_items:
+      - "ValidationSuite data model"
+      - "MISS validation UI"
+
+  category_2_independent_supervision:
+    prior_status: IMPLEMENTED
+    current_status: IMPLEMENTED
+    spec: "01-clinical-grounding-and-supervision/"
+    notes: "Core Popper function. Independence evidence is a static description + facility-uploaded architecture doc."
+    remaining_gaps:
+      - "Independence verification is a string, not auditable structured evidence"
+      - "Facility must upload independence documentation as artifact"
+
+  category_3_clinician_override_tracking:
+    prior_status: GAP
+    current_status: SPEC_BACKED
+    spec: "02-iac-product-specs/03-override-analytics.md"
+    notes: "Hermes contract fixed (v0.2). Idempotency added. PERCENTILE_CONT removed from CAGG. Proposal-level keys added."
+    remaining_gaps:
+      - "Measurement-level aggregates require join with audit_events (not in CAGG)"
+    blocking_items:
+      - "POST /v1/feedback endpoint"
+      - "clinician_feedback hypertable"
+
+  category_4_performance_monitoring:
+    prior_status: IMPLEMENTED
+    current_status: MAPPED_TO_DRAFT
+    spec: "02-iac-product-specs/05-iac-report-exporters.md (Standard III section)"
+    notes: "Drift detection is implemented. Echo-specific monitoring pipeline (AI-physician correlation, detection rates, quality rejection) is NOT specified. This is the biggest open gap."
+    remaining_gaps:
+      - "Echo-specific post-deployment monitoring data pipeline"
+      - "Representative sampling protocol for ongoing monitoring"
+      - "Truth-data contract for computing sensitivity/specificity"
+    blocking_items:
+      - "New spec needed: echo monitoring pipeline"
+
+  category_5_bias_monitoring:
+    prior_status: GAP
+    current_status: MAPPED_TO_DRAFT
+    spec: "02-iac-product-specs/02-bias-monitoring-architecture.md"
+    notes: "Facility-side join is architecturally sound. Truth-data limitation documented (Tier 1 vs Tier 2 metrics). Return path for completed reports added. Open-source library not yet built."
+    remaining_gaps:
+      - "Tier 2 metrics require representative sampling — facility responsibility"
+      - "@regain/bias-analysis library not built"
+      - "Facility artifact return path not implemented"
+
+  category_6_multi_vendor_governance:
+    prior_status: GAP
+    current_status: MAPPED_TO_DRAFT
+    spec: "02-iac-product-specs/05-iac-report-exporters.md"
+    notes: "ai_tool_registry specified with model_number for MedWatch. Conflict resolution is facility-uploaded artifact."
+    remaining_gaps:
+      - "Conflict resolution protocol is an uploaded document, not structured data"
+      - "Governance designation is a text field"
+
+  category_7_clinician_training:
+    prior_status: GAP
+    current_status: TEMPLATE_ONLY
+    spec: "09-deliverables/02-iac/06-training/"
+    notes: "Template adequate. No artifact upload/packaging path — depends on facility artifact intake infra."
+    remaining_gaps:
+      - "Facility artifact intake for training records"
+
+  category_8_adverse_event_reporting:
+    prior_status: GAP
+    current_status: MAPPED_TO_DRAFT
+    spec: "02-iac-product-specs/04-adverse-event-detection.md"
+    notes: "Signal 1 (HARD_STOP override) BLOCKED on Hermes extension. SQL/TS reconciled. Adverse event policy is facility-uploaded artifact, not system-generated."
+    remaining_gaps:
+      - "Hermes v2.1 extension for HARD_STOP feedback events"
+      - "POST /v1/adverse-events request/response schema"
+      - "Status transition API"
+      - "PHI scrubbing for RCA free-text fields"
+
+summary:
+  categories_at_implemented: 1  # Category 2
+  categories_at_spec_backed: 2  # Categories 1, 3
+  categories_at_mapped_to_draft: 4  # Categories 4, 5, 6, 8
+  categories_at_template: 1  # Category 7
+  critical_blockers:
+    - "Proposed Standard III monitoring pipeline — no spec exists"
+    - "Hermes v2.1 extension for HARD_STOP override feedback"
+    - "Facility artifact intake infrastructure"
+    - "Proposal-vs-authority normalization — ongoing editorial discipline"
+  honest_assessment: >
+    These specs target Regain's proposed IAC framework, which IAC has not reviewed
+    or adopted. Readiness here means readiness against our own proposal, not against
+    adopted accreditation standards. The biggest technical risk is proposed Standard III —
+    the report generator defines the output shape but the underlying data pipeline
+    to compute echo-specific monitoring metrics does not exist. Override analytics
+    (Spec 03) is the foundation — it must be built first. The biggest governance risk
+    is that any of these specs could become wrong if IAC modifies the proposed requirements.
+    Architecture is designed to absorb changes (configurable thresholds, modular reports,
+    policy-pack rules), but specific evidence mappings and acceptance criteria are provisional.

@@ -1,0 +1,168 @@
+# Popper Production Readiness Tracker
+# Tracks implementation work required for each spec
+# v2 — updated after review to include dependency-aware workstreams
+
+version: "2.0.0"
+last_updated: "2026-03-19"
+
+items:
+  # ── Core Supervision (existing specs) ──────────────────────────
+
+  - id: core-policy-engine
+    spec: "01-popper-system-spec.md"
+    status: implemented
+    priority: P0
+
+  - id: core-contracts
+    spec: "02-popper-contracts-and-interfaces.md"
+    status: implemented
+    priority: P0
+
+  - id: core-safety-dsl
+    spec: "03-popper-safety-dsl.md"
+    status: implemented
+    priority: P0
+
+  - id: core-regulatory-export
+    spec: "04-popper-regulatory-export-and-triage.md"
+    status: implemented
+    priority: P0
+
+  - id: core-measurement-protocols
+    spec: "05-popper-measurement-protocols.md"
+    status: partial
+    priority: P1
+    notes: "Accuracy ascertainment defined; not fully implemented"
+
+  # ── Cross-Cutting Infrastructure (must be built first) ─────────
+
+  - id: infra-facility-artifact-intake
+    spec: "02-iac-product-specs/00-iac-product-specs-context.md §Facility Artifact Intake"
+    status: not-started
+    priority: P0
+    notes: "Blocking: Standards II, IV, VI, VII, VIII all need facility artifact upload"
+    work_items:
+      - "POST /v1/organizations/{org_id}/artifacts endpoint"
+      - "Opaque blob storage with standard/type metadata"
+      - "Artifact retrieval for evidence package assembly"
+
+  - id: infra-hermes-hard-stop-override
+    spec: "02-iac-product-specs/04-adverse-event-detection.md §Signal 1"
+    status: not-started
+    priority: P1
+    notes: "Blocking: Spec 04 Signal 1 depends on HARD_STOP override events. Current Hermes ClinicianFeedbackEvent only covers ROUTE_TO_CLINICIAN. Requires Hermes v2.1+ extension."
+    work_items:
+      - "Extend Hermes to emit feedback events for HARD_STOP overrides"
+      - "Or define separate HardStopOverrideEvent type"
+
+  # ── IAC Product Specs ────────────────────────────────────────────
+
+  - id: iac-override-analytics
+    spec: "02-iac-product-specs/03-override-analytics.md"
+    status: specified
+    priority: P0
+    notes: "BUILD FIRST — feeds Standards V, VI, VIII downstream"
+    depends_on: []
+    work_items:
+      - "POST /v1/feedback endpoint with Hermes validation"
+      - "clinician_feedback hypertable + Drizzle schema (v0.2 contract-faithful)"
+      - "Idempotent ingestion (dedupe on trace.trace_id)"
+      - "Orphan handling for late/archived original_trace_id"
+      - "feedback_with_measurements view (join with audit_events)"
+      - "override_rates_daily continuous aggregate (no PERCENTILE_CONT)"
+      - "override_rates_by_clinician_daily continuous aggregate"
+      - "Threshold evaluation job (hourly, idempotent alerts)"
+      - "OverrideThresholds configuration per org"
+      - "OverrideReviewReport generation"
+      - "Clinician identity mapping documentation (facility owns real→pseudo mapping)"
+
+  - id: iac-pre-deployment-validation
+    spec: "02-iac-product-specs/01-pre-deployment-validation.md"
+    status: specified
+    priority: P1
+    depends_on: []
+    work_items:
+      - "ValidationSuite + ValidationStudy data model"
+      - "PerformanceThreshold type definition"
+      - "ValidationSiteContext (equipment/site metadata)"
+      - "Echo validation profile defaults"
+      - "Accuracy metrics computation (ICC, Bland-Altman, kappa)"
+      - "MISS-side demographic computation + aggregate summaries to Popper"
+      - "ValidationReport generation endpoint"
+      - "Re-validation linking"
+      - "Validation API: suite creation, study upload, report generation"
+
+  - id: iac-bias-monitoring
+    spec: "02-iac-product-specs/02-bias-monitoring-architecture.md"
+    status: specified
+    priority: P1
+    depends_on: ["iac-override-analytics", "infra-facility-artifact-intake"]
+    work_items:
+      - "Bias monitoring export endpoint (GET /v1/.../exports/bias-monitoring)"
+      - "Open-source @regain/bias-analysis library (Tier 1 + Tier 2 metrics)"
+      - "Disparity detection (chi-square/Fisher for categorical, Bland-Altman descriptive for continuous)"
+      - "BiasMonitoringReport template generation"
+      - "Facility artifact return path (upload completed report back to Popper)"
+      - "MitigationPlan template"
+      - "subject_id mapping guide documentation"
+      - "Truth-data sampling protocol documentation (facility responsibility)"
+
+  - id: iac-adverse-event-detection
+    spec: "02-iac-product-specs/04-adverse-event-detection.md"
+    status: specified
+    priority: P2
+    depends_on: ["iac-override-analytics", "infra-hermes-hard-stop-override", "infra-facility-artifact-intake"]
+    work_items:
+      - "adverse_events table + Drizzle schema (reconciled with TS interface)"
+      - "HARD_STOP→override signal detection (BLOCKED on Hermes extension)"
+      - "Sustained drift breach classification (>24h)"
+      - "Systematic override pattern detection (>2x baseline)"
+      - "POST /v1/adverse-events endpoint with request/response schema"
+      - "Status transition API (detected→investigating→...→closed)"
+      - "RootCauseAnalysis template with PHI scrubbing requirement"
+      - "CorrectiveAction lifecycle tracking"
+      - "MedWatch 3500A export (maps to ai_tool_registry.model_number)"
+      - "Quarterly review reminder job"
+
+  - id: iac-report-exporters
+    spec: "02-iac-product-specs/05-iac-report-exporters.md"
+    status: specified
+    priority: P2
+    depends_on: ["iac-override-analytics", "iac-pre-deployment-validation", "infra-facility-artifact-intake"]
+    work_items:
+      - "Report generators: Standards I, II, V (Popper-owned data)"
+      - "Standard III report: BLOCKED — monitoring data pipeline undefined"
+      - "Standard VI: package Popper export + facility-uploaded completed report"
+      - "ai_tool_registry table + CRUD (with model_number for MedWatch)"
+      - "Case study auto-selection on proposal_id keys"
+      - "ReadinessAssessment gap matrix (no numeric score)"
+      - "Unified ZIP export endpoint (Popper reports + facility artifacts)"
+      - "Report archive table for two-period storage"
+      - "PDF/DOCX output formats for committee review packets"
+      - "Standard IV training template packaging"
+
+  # ── Document Governance ─────────────────────────────────────────
+
+  - id: docs-proposal-authority-normalization
+    spec: "02-iac-product-specs/00-iac-product-specs-context.md §Authority and Draft Status"
+    status: in-progress
+    priority: P0
+    notes: "All specs must distinguish authoritative external sources from Regain's proposed IAC draft. v0.3 pass completed 2026-03-19. Ongoing: enforce on all future edits."
+    work_items:
+      - "Verify all references to draft use 'proposed Standard X' pattern"
+      - "Verify no external claims treat proposed draft as adopted IAC policy"
+      - "Verify tracker/audit use proposal-aligned terminology"
+      - "Add authority check to spec review checklist"
+
+  # ── Undefined (not yet specified) ──────────────────────────────
+
+  - id: iac-standard-iii-monitoring-pipeline
+    spec: "NOT YET WRITTEN"
+    status: gap
+    priority: P1
+    notes: "Standard III echo-specific monitoring requires: representative sampling protocol, AI-physician correlation computation, detection rate (sensitivity/specificity) pipeline, image quality rejection tracking. None of these are specified or implemented."
+    work_items:
+      - "Write spec: echo post-deployment monitoring data pipeline"
+      - "Define representative sampling protocol for ongoing monitoring"
+      - "Define truth-data contract (how are AI measurements validated post-deployment?)"
+      - "Integration with existing drift detection system"

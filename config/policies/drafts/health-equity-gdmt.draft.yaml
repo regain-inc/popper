@@ -1,0 +1,168 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# DRAFT — NOT LOADABLE BY CURRENT PARSER
+#
+# This file is quarantined from runtime. It uses unsupported:
+#   - pack_type: overlay (valid types: core | domain | site | modality)
+#   - APPROVED_WITH_NOTE, GOVERNANCE_REVIEW (valid decisions: APPROVED | HARD_STOP | ROUTE_TO_CLINICIAN | REQUEST_MORE_INFO)
+#   - equity_flag, cost_consideration (not in REASON_CODES)
+#   - expert_commentary, scientific_statement (not valid source kinds)
+#   - snapshot_field_equals, snapshot_field_in, snapshot_field_present, aggregate_threshold (not in DSL)
+#   - Missing review_due on provenance blocks
+#
+# The aggregate_threshold rule is architecturally wrong for request-time
+# supervision. Move to batch analytics.
+#
+# The SDoH rule should trigger ACCESS SUPPORT (prior auth, copay assistance),
+# not THERAPY DOWNGRADE. Current wording risks encoding a lower standard of
+# care for disadvantaged patients — the opposite of Yancy's thesis.
+#
+# Redesign approach:
+#   1. Hydralazine/ISDN: Keep as clinician-facing adjunct, but require
+#      confirmed optimal-GDMT state + explicit self-identification + NYHA III-IV
+#   2. SDoH: Trigger access-support workflow, NOT generic ACEi fallback
+#   3. Demographic monitoring: Move to batch analytics over ClinicianFeedbackEvent
+#
+# Prerequisites: Hermes structured SDoH fields, batch analytics substrate
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Popper Policy Overlay: Health Equity — GDMT
+# Equity-aware supervision rules for GDMT optimization
+#
+# Sources:
+# - Yancy CW health equity publications (Vice Dean, Health Equity, Northwestern)
+# - Parwani P, Yancy CW. JACC: Heart Failure 2023 (SDoH and GDMT disparities)
+# - 2022 AHA/ACC/HFSA HF Guideline §7.4 (Hydralazine/ISDN for AA patients)
+# - HFSA Scientific Statement on Health Care Disparities (2022, PMID: 35595161)
+
+policy_id: overlay-health-equity-gdmt
+policy_version: 0.1.0
+pack_type: overlay
+
+metadata:
+  description: Health equity overlay for GDMT supervision — ensures equitable AI behavior across demographics
+  owner: Clinical Governance Board
+  clinical_reviewer: "TBD"
+  jurisdiction: US
+  created_at: "2026-03-19"
+  review_interval_days: 180
+  sources:
+    - kind: guideline
+      citation: "2022 AHA/ACC/HFSA Guideline for the Management of Heart Failure, §7.4"
+      doi: "10.1161/CIR.0000000000001063"
+    - kind: expert_commentary
+      citation: "Parwani P, Yancy CW. Sociodemographic Disparities in GDMT. JACC:HF 2023"
+    - kind: scientific_statement
+      citation: "HFSA Scientific Statement on Health Care Disparities. J Card Fail 2022"
+      pmid: "35595161"
+
+depends_on:
+  - pack_id: domain-cardiometabolic-hf
+    version_constraint: ">=0.1.0"
+
+rules:
+  # Hydralazine/ISDN pathway awareness
+  # Per 2022 AHA §7.4: "combination of hydralazine and isosorbide dinitrate is recommended
+  # to reduce morbidity and mortality for patients self-identified as African American with
+  # NYHA class III-IV HFrEF receiving optimal GDMT" (Class I, LOE A)
+  - rule_id: hyd_isdn_pathway_awareness
+    description: Flag when GDMT optimization for self-identified African American patient with HFrEF NYHA III-IV does not include hydralazine/ISDN consideration
+    priority: 200
+    provenance:
+      source_type: society_guideline
+      source_layer: 2
+      citation: "2022 AHA/ACC/HFSA Guideline §7.4 — Hydralazine and Isosorbide Dinitrate"
+      evidence_grade: rct
+      native_grading:
+        system: ACC_AHA
+        class: "I"
+        loe: "A"
+      clinical_domain: cardiovascular
+      applicable_population: "Self-identified African American patients with NYHA III-IV HFrEF on optimal GDMT"
+      approved_by: "TBD"
+      effective_date: "2026-03-19"
+      review_interval_days: 365
+    when:
+      kind: all_of
+      conditions:
+        - kind: proposal_kind_in
+          kinds: [MEDICATION_ORDER_PROPOSAL]
+        - kind: snapshot_field_equals
+          field: self_identified_race
+          value: "african_american"
+        - kind: snapshot_field_in
+          field: nyha_class
+          values: ["III", "IV"]
+        - kind: snapshot_field_missing
+          field: hydralazine_isdn_considered
+    then:
+      decision: APPROVED_WITH_NOTE
+      reason_codes:
+        - equity_flag
+      explanation: >
+        Per 2022 AHA/ACC/HFSA Guideline §7.4 (Class I, LOE A): combination of
+        hydralazine and isosorbide dinitrate is recommended for self-identified
+        African American patients with NYHA III-IV HFrEF on optimal GDMT.
+        Ensure this pathway has been considered in the GDMT optimization plan.
+
+  # SDoH-aware monitoring: flag when adverse social determinants may impact GDMT adherence
+  - rule_id: sdoh_gdmt_adherence_flag
+    description: When SDoH risk factors present, note potential adherence barriers for GDMT
+    priority: 150
+    provenance:
+      source_type: expert_commentary
+      source_layer: 4
+      citation: "Parwani P, Yancy CW. Sociodemographic Disparities in GDMT. JACC:HF 2023"
+      evidence_grade: expert_opinion
+      clinical_domain: cardiovascular
+      approved_by: "TBD"
+      effective_date: "2026-03-19"
+      review_interval_days: 365
+    when:
+      kind: all_of
+      conditions:
+        - kind: proposal_kind_in
+          kinds: [MEDICATION_ORDER_PROPOSAL]
+        - kind: snapshot_field_present
+          field: sdoh_risk_factors
+        - kind: medication_class_in
+          classes: ["C09DX04"]  # ARNI (sacubitril/valsartan — high cost)
+    then:
+      decision: APPROVED_WITH_NOTE
+      reason_codes:
+        - equity_flag
+        - cost_consideration
+      explanation: >
+        Patient has identified social determinant risk factors. ARNI
+        (sacubitril/valsartan) may present cost/access barriers. Consider
+        verifying insurance coverage, copay assistance programs, or alternative
+        RAASi (generic ACEi/ARB) if ARNI is not accessible. Per Parwani & Yancy
+        (JACC:HF 2023): GDMT disparities are driven by access, not biology.
+
+  # Demographic override rate monitoring flag
+  - rule_id: demographic_override_monitoring
+    description: Flag for governance review when override patterns show demographic disparity
+    priority: 100
+    provenance:
+      source_type: internal_policy
+      source_layer: 4
+      citation: "Regain Health Equity Policy — demographic-stratified override monitoring"
+      evidence_grade: policy
+      clinical_domain: cardiovascular
+      approved_by: "TBD"
+      effective_date: "2026-03-19"
+      review_interval_days: 180
+    when:
+      kind: aggregate_threshold
+      metric: override_rate_by_demographic
+      threshold: 0.10  # >10% relative difference between groups
+      comparison: relative_difference
+    then:
+      decision: GOVERNANCE_REVIEW
+      reason_codes:
+        - equity_flag
+        - needs_human_review
+      explanation: >
+        Override rate disparity detected across demographic groups exceeding
+        10% relative difference threshold. Per health equity monitoring policy,
+        this requires governance committee review to determine if AI system
+        behavior contributes to disparate outcomes.
