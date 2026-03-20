@@ -8,6 +8,7 @@
  * @module plugins/supervision
  */
 
+import { resolve } from 'node:path';
 import type { ApiKeyContext } from '@popper/core';
 import {
   buildAuditTags,
@@ -26,7 +27,8 @@ import {
   getDefaultEmitter,
   type InterventionRiskLevel,
   type InterventionRiskScore,
-  policyRegistry,
+  loadAndComposePacks,
+  type PolicyPack,
   type ReasonCode,
   type SupervisionDecision,
   type SupervisionRequest,
@@ -52,8 +54,36 @@ import { createRateLimitGuard } from './rate-limit';
 /** Clock skew tolerance in milliseconds (±5 minutes per spec) */
 const CLOCK_SKEW_TOLERANCE_MS = 5 * 60 * 1000;
 
-/** Default policy pack ID to use */
-const DEFAULT_POLICY_PACK = 'popper-default';
+/** Path to the policies directory (config/policies/ at repo root) */
+const POLICIES_DIR = resolve(import.meta.dir, '../../../../config/policies');
+
+/**
+ * Cached composed policy pack, loaded once at startup.
+ * Contains merged core + domain + site rules with priority validation.
+ */
+let composedPolicyPack: PolicyPack | null = null;
+let composedPolicyPackError: string | null = null;
+
+/**
+ * Initialize the composed policy pack from the standard directory layout.
+ * Called once at module load time. Loads core pack (or legacy default.yaml)
+ * plus all domain packs from config/policies/domains/.
+ */
+async function initComposedPolicyPack(): Promise<void> {
+  try {
+    composedPolicyPack = await loadAndComposePacks(POLICIES_DIR);
+    console.log(
+      `[supervision] Composed policy pack loaded: ${composedPolicyPack.policy_id} ` +
+        `(${composedPolicyPack.rules.length} rules, version: ${composedPolicyPack.policy_version})`,
+    );
+  } catch (error) {
+    composedPolicyPackError = error instanceof Error ? error.message : String(error);
+    console.error(`[supervision] Failed to load composed policy pack: ${composedPolicyPackError}`);
+  }
+}
+
+// Kick off pack loading at module init (top-level await)
+await initComposedPolicyPack();
 
 // =============================================================================
 // Validators and Builders
@@ -210,7 +240,7 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
                 organizationId: request.subject?.organization_id ?? SYSTEM_ORG_ID,
                 errorMessage,
                 errorCode: 'SCHEMA_INVALID',
-                policyPackVersion: DEFAULT_POLICY_PACK,
+                policyPackVersion: composedPolicyPack?.policy_version ?? 'unknown',
                 tags: ['schema_invalid'],
               }),
             );
@@ -231,7 +261,7 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
                   organizationId: request.subject.organization_id ?? SYSTEM_ORG_ID,
                   errorMessage,
                   errorCode: 'MISSING_IDEMPOTENCY_KEY',
-                  policyPackVersion: DEFAULT_POLICY_PACK,
+                  policyPackVersion: composedPolicyPack?.policy_version ?? 'unknown',
                   tags: ['schema_invalid'],
                 }),
               );
@@ -251,7 +281,7 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
                   organizationId: request.subject.organization_id ?? SYSTEM_ORG_ID,
                   errorMessage: clockSkewError,
                   errorCode: 'CLOCK_SKEW',
-                  policyPackVersion: DEFAULT_POLICY_PACK,
+                  policyPackVersion: composedPolicyPack?.policy_version ?? 'unknown',
                   tags: ['clock_skew_rejected'],
                 }),
               );
@@ -271,7 +301,7 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
                   organizationId: SYSTEM_ORG_ID,
                   errorMessage,
                   errorCode: 'MISSING_ORGANIZATION_ID',
-                  policyPackVersion: DEFAULT_POLICY_PACK,
+                  policyPackVersion: composedPolicyPack?.policy_version ?? 'unknown',
                   tags: ['schema_invalid'],
                 }),
               );
@@ -298,7 +328,7 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
                   organizationId,
                   errorMessage,
                   errorCode: 'UNAUTHORIZED_ORG',
-                  policyPackVersion: DEFAULT_POLICY_PACK,
+                  policyPackVersion: composedPolicyPack?.policy_version ?? 'unknown',
                   tags: ['unauthorized_org'],
                 }),
               );
@@ -354,7 +384,7 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
                     organizationId,
                     errorMessage,
                     errorCode: 'ORG_VALIDATION_FAILED',
-                    policyPackVersion: DEFAULT_POLICY_PACK,
+                    policyPackVersion: composedPolicyPack?.policy_version ?? 'unknown',
                     tags: [auditTag],
                   }),
                 );
@@ -395,7 +425,7 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
                   organizationId,
                   errorMessage,
                   errorCode: 'REPLAY_SUSPECTED',
-                  policyPackVersion: DEFAULT_POLICY_PACK,
+                  policyPackVersion: composedPolicyPack?.policy_version ?? 'unknown',
                   tags: ['replay_suspected'],
                 }),
               );
@@ -413,15 +443,15 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
           // 4. Build derived signals (includes acuity scoring — SAL-1018)
           const derivedSignals = buildDerivedSignals(request, true, stalenessResult);
 
-          // 5. Get policy pack
-          const policyPack = policyRegistry.get(DEFAULT_POLICY_PACK);
-          if (!policyPack) {
-            logger.error`Policy pack "${DEFAULT_POLICY_PACK}" not found`;
+          // 5. Get composed policy pack (loaded at startup)
+          if (!composedPolicyPack) {
+            logger.error`Composed policy pack not available: ${composedPolicyPackError ?? 'unknown error'}`;
             set.status = 500;
             return buildErrorResponse(request, 'Internal error: policy pack not loaded', [
               'schema_invalid',
             ]);
           }
+          const policyPack = composedPolicyPack;
 
           // 6. Snapshot safe-mode state from Redis (<5ms)
           const safeModeState = await getSafeModeManager().snapshot(organizationId);
