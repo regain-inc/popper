@@ -41,14 +41,94 @@ export interface PolicyPackMetadata {
   owner?: string;
   created_at?: string;
   sources?: PolicySource[];
+  pack_type?: 'core' | 'domain' | 'site' | 'modality';
+  depends_on?: Array<{
+    pack_id: string;
+    version_constraint: string;
+  }>;
+  clinical_reviewer?: string;
+  approved_at?: string;
+  review_interval_days?: number;
+  jurisdiction?: string;
 }
 
 /**
  * Source reference for policy rules.
  */
 export interface PolicySource {
-  kind: 'policy' | 'guideline' | 'other';
+  kind: 'policy' | 'guideline' | 'medication_label' | 'governance' | 'other';
   citation: string;
+}
+
+/**
+ * Structured provenance for a policy rule.
+ * Every clinically grounded rule MUST have a provenance record.
+ * Core safety rules MAY have provenance with source_type: 'internal_policy'.
+ *
+ * @see 01-clinical-grounding-and-supervision/05-rule-provenance-and-evidence-model.md
+ */
+export interface RuleProvenance {
+  source_type:
+    | 'medication_label'
+    | 'black_box_warning'
+    | 'contraindication'
+    | 'drug_interaction'
+    | 'rems_requirement'
+    | 'society_guideline'
+    | 'expert_consensus'
+    | 'site_protocol'
+    | 'formulary_rule'
+    | 'governance_requirement'
+    | 'emerging_evidence'
+    | 'internal_policy';
+
+  source_layer: 1 | 2 | 3 | 4 | 5;
+
+  citation: string;
+  citation_subsection?: string;
+  source_url?: string;
+  doi?: string;
+
+  evidence_grade: EvidenceGrade;
+
+  /** Source-native grading. Import NativeGrading from @regain/hermes when available. */
+  native_grading?: {
+    system: 'AHA_ACC' | 'ADA' | 'KDIGO' | 'GRADE' | 'FDA_LABEL' | 'other';
+    aha_acc_cor?: 'I' | 'IIa' | 'IIb' | 'III_no_benefit' | 'III_harm';
+    aha_acc_loe?: 'A' | 'B_R' | 'B_NR' | 'C_LD' | 'C_EO';
+    ada_grade?: 'A' | 'B' | 'C' | 'E';
+    kdigo_strength?: '1' | '2';
+    kdigo_quality?: 'A' | 'B' | 'C' | 'D';
+    kdigo_practice_point?: boolean;
+    fda_label_section?: string;
+    other_grade?: string;
+  };
+
+  jurisdiction: string;
+  clinical_domain: string;
+  applicable_population?: string;
+  local_protocol_dependency?: string;
+
+  approved_by: string;
+  effective_date: string;
+  review_interval_days: number;
+  review_due: string;
+  superseded_by?: string;
+
+  emergency?: boolean;
+  ratification_due?: string;
+
+  additional_sources?: Array<{
+    source_type: RuleProvenance['source_type'];
+    source_layer: RuleProvenance['source_layer'];
+    citation: string;
+    citation_subsection?: string;
+    source_url?: string;
+    doi?: string;
+    evidence_grade: EvidenceGrade;
+    native_grading?: RuleProvenance['native_grading'];
+    jurisdiction?: string;
+  }>;
 }
 
 // =============================================================================
@@ -105,6 +185,9 @@ export interface PolicyRule {
 
   /** If true, requires manual clinician review even if APPROVED */
   requires_human_review?: boolean;
+
+  /** Structured provenance for clinically grounded rules */
+  provenance?: RuleProvenance;
 
   /** Condition that triggers this rule */
   when: RuleCondition;
@@ -176,6 +259,21 @@ export type RuleCondition =
 
   // Intervention risk conditions (SAL-1020)
   | InterventionRiskAtLeastCondition
+
+  // Clinical grounding conditions (v2.1)
+  | MedicationClassInCondition
+  | MedicationNameInCondition
+  | SnapshotLabBelowCondition
+  | SnapshotLabAboveCondition
+  | SnapshotLabMissingCondition
+  | SnapshotConditionPresentCondition
+  | SnapshotFieldMissingCondition
+  | CombinationPresentCondition
+  | AllergyMatchCondition
+  | DoseExceedsMaxCondition
+
+  // Medication history conditions (v2.2)
+  | RecentMedicationClassCondition
 
   // Escape hatch
   | OtherCondition;
@@ -331,6 +429,71 @@ export interface InterventionRiskAtLeastCondition {
   level: 'low' | 'moderate' | 'high' | 'critical';
 }
 
+// Clinical grounding conditions (v2.1)
+
+export interface MedicationClassInCondition {
+  kind: 'medication_class_in';
+  classes: string[];  // ATC 4th-level codes
+}
+
+export interface MedicationNameInCondition {
+  kind: 'medication_name_in';
+  names: string[];  // normalized generic names
+}
+
+export interface SnapshotLabBelowCondition {
+  kind: 'snapshot_lab_below';
+  lab: string;  // lab_id or LOINC
+  threshold: number;
+}
+
+export interface SnapshotLabAboveCondition {
+  kind: 'snapshot_lab_above';
+  lab: string;
+  threshold: number;
+}
+
+export interface SnapshotLabMissingCondition {
+  kind: 'snapshot_lab_missing';
+  lab: string;
+}
+
+export interface SnapshotConditionPresentCondition {
+  kind: 'snapshot_condition_present';
+  condition: string;  // condition_id or SNOMED
+}
+
+export interface SnapshotFieldMissingCondition {
+  kind: 'snapshot_field_missing';
+  field: string;  // e.g., "active_medications", "medication_allergies"
+}
+
+export interface CombinationPresentCondition {
+  kind: 'combination_present';
+  class_a: string;  // ATC code
+  class_b: string;  // ATC code
+}
+
+export interface AllergyMatchCondition {
+  kind: 'allergy_match';
+  match_on: 'atc_class' | 'substance' | 'either';
+}
+
+export interface DoseExceedsMaxCondition {
+  kind: 'dose_exceeds_max';
+  medication: string;  // name or ATC
+  max_value: number;
+  max_unit: string;
+}
+
+// Medication history conditions (v2.2)
+
+export interface RecentMedicationClassCondition {
+  kind: 'recent_medication_class';
+  classes: string[];  // ATC 4th-level codes
+  within_hours: number;  // time window in hours
+}
+
 // Escape hatch
 export interface OtherCondition {
   kind: 'other';
@@ -457,5 +620,16 @@ export const CONDITION_KINDS = [
   'mode_is',
   'acuity_at_least',
   'intervention_risk_at_least',
+  'medication_class_in',
+  'medication_name_in',
+  'snapshot_lab_below',
+  'snapshot_lab_above',
+  'snapshot_lab_missing',
+  'snapshot_condition_present',
+  'snapshot_field_missing',
+  'combination_present',
+  'allergy_match',
+  'dose_exceeds_max',
+  'recent_medication_class',
   'other',
 ] as const;

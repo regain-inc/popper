@@ -30,16 +30,9 @@ rules:
     source: "Maddox TM et al. JACC 2024. DOI: 10.1016/j.jacc.2023.12.024"
     blocked_by: [snapshot_field_below, APPROVED_WITH_NOTE]
 
-  # KEEP IN POPPER: Real safety rule — angioedema prevention
-  - rule_id: acei_to_arni_washout_check
-    description: >
-      ARNI MUST NOT be initiated within 36 hours of last ACEi dose (angioedema risk).
-      ARB-to-ARNI switch does NOT require washout.
-    status: DRAFT — blocked on medication exposure history (C3)
-    source: "Sacubitril/Valsartan SPL, Section 4 — Contraindications"
-    blocked_by: [recent_medication_class, medication_exposure_timestamps]
-    notes: >
-      When C3 is implemented, this should be a HARD_STOP with
-      medication_class_in C09AA + last_dose_within_hours: 36.
-      Current workaround: REQUEST_MORE_INFO asking clinician to confirm
-      ACEi was discontinued ≥36 hours ago.
+  # RESTORED TO ACTIVE — 2026-03-20
+  # Moved to config/policies/domains/cardiometabolic-hf.yaml as
+  # acei_to_arni_washout_check (priority 770, HARD_STOP).
+  # DSL condition recent_medication_class + Hermes C3 are now implemented.
+  # - rule_id: acei_to_arni_washout_check
+  #   status: ACTIVE — see cardiometabolic-hf.yaml

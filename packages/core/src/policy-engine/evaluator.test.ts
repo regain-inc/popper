@@ -1140,4 +1140,228 @@ describe('PolicyEvaluator', () => {
       }
     });
   });
+
+  // ===========================================================================
+  // recent_medication_class condition
+  // ===========================================================================
+
+  describe('recent_medication_class condition', () => {
+    const NOW = '2026-03-20T12:00:00Z';
+
+    const makeRequest = (activeMedications: any[] | null | undefined) =>
+      createMinimalRequest({
+        trace: {
+          request_id: 'test-washout',
+          created_at: NOW,
+          producer: { system_id: 'test', system_version: '1.0.0' },
+        },
+        ...(activeMedications !== undefined
+          ? { snapshot_payload: { active_medications: activeMedications } }
+          : {}),
+      } as any);
+
+    const recentMedClassCondition = {
+      kind: 'recent_medication_class' as const,
+      classes: ['C09AA'],
+      within_hours: 36,
+    };
+
+    test('matches when ACEi stopped <36h ago', () => {
+      // Stopped 10 hours ago
+      const stoppedAt = new Date(new Date(NOW).getTime() - 10 * 60 * 60 * 1000).toISOString();
+      const request = makeRequest([
+        { name: 'lisinopril', atc_class: 'C09AA01', status: 'discontinued', stopped_at: stoppedAt },
+      ]);
+      const pack = createPolicyPack([
+        createRule('washout-rule', 100, recentMedClassCondition, { decision: 'HARD_STOP' }),
+      ]);
+      const evaluator = createEvaluator(pack);
+
+      const result = evaluator.evaluate(createContext(request));
+
+      expect(result.decision).toBe('HARD_STOP');
+      expect(result.matched_rules).toHaveLength(1);
+    });
+
+    test('does NOT match when ACEi stopped >36h ago', () => {
+      // Stopped 48 hours ago
+      const stoppedAt = new Date(new Date(NOW).getTime() - 48 * 60 * 60 * 1000).toISOString();
+      const request = makeRequest([
+        { name: 'lisinopril', atc_class: 'C09AA01', status: 'discontinued', stopped_at: stoppedAt },
+      ]);
+      const pack = createPolicyPack([
+        createRule('washout-rule', 100, recentMedClassCondition, { decision: 'HARD_STOP' }),
+      ]);
+      const evaluator = createEvaluator(pack);
+
+      const result = evaluator.evaluate(createContext(request));
+
+      // Rule should not match — default fallback
+      expect(result.matched_rules).toHaveLength(0);
+      expect(result.decision).toBe('ROUTE_TO_CLINICIAN');
+    });
+
+    test('matches (fail-safe) when ACEi has no stopped_at or last_dose_at', () => {
+      const request = makeRequest([
+        { name: 'lisinopril', atc_class: 'C09AA01', status: 'discontinued' },
+      ]);
+      const pack = createPolicyPack([
+        createRule('washout-rule', 100, recentMedClassCondition, { decision: 'HARD_STOP' }),
+      ]);
+      const evaluator = createEvaluator(pack);
+
+      const result = evaluator.evaluate(createContext(request));
+
+      expect(result.decision).toBe('HARD_STOP');
+      expect(result.matched_rules).toHaveLength(1);
+    });
+
+    test('does NOT match when no ACEi in medications at all', () => {
+      const request = makeRequest([
+        { name: 'metoprolol', atc_class: 'C07AB02', status: 'active' },
+      ]);
+      const pack = createPolicyPack([
+        createRule('washout-rule', 100, recentMedClassCondition, { decision: 'HARD_STOP' }),
+      ]);
+      const evaluator = createEvaluator(pack);
+
+      const result = evaluator.evaluate(createContext(request));
+
+      expect(result.matched_rules).toHaveLength(0);
+    });
+
+    test('matches (fail-safe) when medications is null', () => {
+      const request = makeRequest(null);
+      const pack = createPolicyPack([
+        createRule('washout-rule', 100, recentMedClassCondition, { decision: 'HARD_STOP' }),
+      ]);
+      const evaluator = createEvaluator(pack);
+
+      const result = evaluator.evaluate(createContext(request));
+
+      expect(result.decision).toBe('HARD_STOP');
+    });
+
+    test('uses last_dose_at when stopped_at is absent', () => {
+      // last_dose_at 10 hours ago
+      const lastDoseAt = new Date(new Date(NOW).getTime() - 10 * 60 * 60 * 1000).toISOString();
+      const request = makeRequest([
+        { name: 'enalapril', atc_class: 'C09AA02', status: 'on_hold', last_dose_at: lastDoseAt },
+      ]);
+      const pack = createPolicyPack([
+        createRule('washout-rule', 100, recentMedClassCondition, { decision: 'HARD_STOP' }),
+      ]);
+      const evaluator = createEvaluator(pack);
+
+      const result = evaluator.evaluate(createContext(request));
+
+      expect(result.decision).toBe('HARD_STOP');
+    });
+
+    test('ignores active medications (only checks discontinued/on_hold)', () => {
+      const request = makeRequest([
+        { name: 'lisinopril', atc_class: 'C09AA01', status: 'active' },
+      ]);
+      const pack = createPolicyPack([
+        createRule('washout-rule', 100, recentMedClassCondition, { decision: 'HARD_STOP' }),
+      ]);
+      const evaluator = createEvaluator(pack);
+
+      const result = evaluator.evaluate(createContext(request));
+
+      expect(result.matched_rules).toHaveLength(0);
+    });
+  });
+
+  // ===========================================================================
+  // ARNI washout full rule composition
+  // ===========================================================================
+
+  describe('ARNI washout full rule composition', () => {
+    const NOW = '2026-03-20T12:00:00Z';
+
+    const arniWashoutRule = createRule(
+      'acei_to_arni_washout_check',
+      770,
+      {
+        kind: 'all_of',
+        conditions: [
+          { kind: 'medication_class_in', classes: ['C09DX'] },
+          { kind: 'recent_medication_class', classes: ['C09AA'], within_hours: 36 },
+        ],
+      },
+      {
+        decision: 'HARD_STOP',
+        reason_codes: ['risk_too_high', 'policy_violation'],
+        explanation: 'ARNI washout required',
+      },
+    );
+
+    test('ARNI proposal + recent ACEi → HARD_STOP', () => {
+      const stoppedAt = new Date(new Date(NOW).getTime() - 12 * 60 * 60 * 1000).toISOString();
+      const request = createMinimalRequest({
+        trace: {
+          request_id: 'test-arni',
+          created_at: NOW,
+          producer: { system_id: 'test', system_version: '1.0.0' },
+        },
+        proposals: [
+          {
+            proposal_id: 'p1',
+            kind: 'MEDICATION_ORDER_PROPOSAL',
+            source_domain: 'cardiometabolic',
+            medication: { name: 'sacubitril/valsartan', atc_class: 'C09DX04' },
+          },
+        ],
+        snapshot_payload: {
+          active_medications: [
+            { name: 'lisinopril', atc_class: 'C09AA01', status: 'discontinued', stopped_at: stoppedAt },
+          ],
+        },
+      } as any);
+
+      const pack = createPolicyPack([arniWashoutRule]);
+      const evaluator = createEvaluator(pack);
+      const result = evaluator.evaluate(createContext(request));
+
+      expect(result.decision).toBe('HARD_STOP');
+      expect(result.matched_rules).toHaveLength(1);
+      expect(result.matched_rules[0].rule_id).toBe('acei_to_arni_washout_check');
+      expect(result.reason_codes).toContain('risk_too_high');
+      expect(result.reason_codes).toContain('policy_violation');
+    });
+
+    test('ARNI proposal + no recent ACEi → rule does not fire', () => {
+      // ACEi stopped 48 hours ago — outside 36h window
+      const stoppedAt = new Date(new Date(NOW).getTime() - 48 * 60 * 60 * 1000).toISOString();
+      const request = createMinimalRequest({
+        trace: {
+          request_id: 'test-arni-clear',
+          created_at: NOW,
+          producer: { system_id: 'test', system_version: '1.0.0' },
+        },
+        proposals: [
+          {
+            proposal_id: 'p2',
+            kind: 'MEDICATION_ORDER_PROPOSAL',
+            source_domain: 'cardiometabolic',
+            medication: { name: 'sacubitril/valsartan', atc_class: 'C09DX04' },
+          },
+        ],
+        snapshot_payload: {
+          active_medications: [
+            { name: 'lisinopril', atc_class: 'C09AA01', status: 'discontinued', stopped_at: stoppedAt },
+          ],
+        },
+      } as any);
+
+      const pack = createPolicyPack([arniWashoutRule]);
+      const evaluator = createEvaluator(pack);
+      const result = evaluator.evaluate(createContext(request));
+
+      // Rule should NOT fire — fallback to default
+      expect(result.matched_rules).toHaveLength(0);
+      expect(result.decision).toBe('ROUTE_TO_CLINICIAN'); // default
+    });
+  });
 });

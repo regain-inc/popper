@@ -123,6 +123,44 @@ rules:
         and FDA labeling. Associated with increased risk of hypotension,
         hyperkalemia, and renal impairment.
 
+  - rule_id: acei_to_arni_washout_check
+    description: ARNI initiation requires 36h ACEi washout — angioedema risk
+    priority: 770
+    provenance:
+      source_type: medication_label
+      source_layer: 1
+      citation: "Sacubitril/Valsartan SPL, Section 4 — Contraindications"
+      citation_subsection: "Do not administer within 36 hours of ACEi"
+      evidence_grade: policy
+      native_grading:
+        system: FDA_LABEL
+        fda_label_section: "4"
+      jurisdiction: US
+      clinical_domain: cardiovascular
+      applicable_population: "Patients initiating ARNI with recent ACEi exposure"
+      approved_by: "TBD"
+      effective_date: "2026-03-20"
+      review_interval_days: 90
+      review_due: "2026-06-20"
+    when:
+      kind: all_of
+      conditions:
+        - kind: medication_class_in
+          classes: ["C09DX"]  # ARNI (4th-level ATC)
+        - kind: recent_medication_class
+          classes: ["C09AA"]  # ACE inhibitors
+          within_hours: 36
+    then:
+      decision: HARD_STOP
+      reason_codes:
+        - risk_too_high
+        - policy_violation
+      explanation: >
+        ARNI (sacubitril/valsartan) MUST NOT be initiated within 36 hours of
+        last ACEi dose due to risk of angioedema per FDA labeling (Section 4).
+        Verify ACEi was discontinued >=36 hours ago before ARNI initiation.
+        Note: ARB-to-ARNI switch does NOT require this washout period.
+
   - rule_id: mra_hyperkalemia_check
     description: MRA with potassium >5.0 requires clinician review
     priority: 760
@@ -310,25 +348,24 @@ rules:
         without knowing current medications.
 
   # ═══════════════════════════════════════════════════════════════════════════
-  # FUTURE: 2024 ACC ECDP Titration Sequencing + ARNI Washout
+  # FUTURE: 2024 ACC ECDP Titration Sequencing
   #
-  # Three rules were designed here but REMOVED because they depend on
+  # Two rules were designed here but REMOVED because they depend on
   # DSL extensions that do not exist yet:
   #   - snapshot_field_below (needs Hermes LVEF field)
   #   - gdmt_pillar_count_below (needs pillar-mapping layer)
-  #   - recent_medication_class (needs medication-history timestamps)
   #   - APPROVED_WITH_NOTE (not a valid supervision decision)
   #
   # The ECDP optimization nudges (ecdp_parallel_initiation_preferred,
   # ecdp_sglt2i_early_initiation) are also better placed in Deutsch ranking
   # logic, not Popper safety supervision. Keep Popper focused on safety.
   #
-  # The ARNI 36h washout HARD_STOP (acei_to_arni_washout_check) is a real
-  # safety rule but requires medication discontinuation timestamps that the
-  # current snapshot does not carry. Implement after Hermes contract C3
-  # (medication exposure history) is available.
+  # The ARNI 36h washout HARD_STOP (acei_to_arni_washout_check) has been
+  # RESTORED to active rules above (priority 770) as of 2026-03-20,
+  # following implementation of the recent_medication_class DSL condition
+  # and Hermes contract C3 (medication exposure history).
   #
-  # Draft rules preserved in:
+  # Remaining draft rules preserved in:
   #   config/policies/drafts/ecdp-titration-rules.draft.yaml
   #
   # Source: Maddox TM et al. JACC 2024. DOI: 10.1016/j.jacc.2023.12.024

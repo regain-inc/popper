@@ -22,6 +22,26 @@ import type {
 } from './types';
 
 // =============================================================================
+// Clinical Condition Helpers
+// =============================================================================
+
+/** Extract MEDICATION_ORDER_PROPOSAL proposals from a request */
+function getMedicationProposals(request: SupervisionRequest): any[] {
+  return (request.proposals ?? []).filter((p: any) => p.kind === 'MEDICATION_ORDER_PROPOSAL');
+}
+
+/** Get snapshot_payload with null-safety */
+function getSnapshotPayload(request: SupervisionRequest): any | null {
+  return (request as any).snapshot_payload ?? null;
+}
+
+/** ATC prefix match: does atcClass start with any of the given codes? */
+function matchAtcClass(atcClass: string | undefined, codes: string[]): boolean {
+  if (!atcClass) return false;
+  return codes.some(code => atcClass.toUpperCase().startsWith(code.toUpperCase()));
+}
+
+// =============================================================================
 // Types
 // =============================================================================
 
@@ -361,6 +381,49 @@ export class PolicyEvaluator {
       case 'intervention_risk_at_least':
         return this.isInterventionRiskAtLeast(context, condition.level);
 
+      // Clinical grounding conditions (v2.1)
+      case 'medication_class_in':
+        return this.isMedicationClassIn(context.request, condition.classes);
+
+      case 'medication_name_in':
+        return this.isMedicationNameIn(context.request, condition.names);
+
+      case 'snapshot_lab_below':
+        return this.isSnapshotLabBelow(context.request, condition.lab, condition.threshold);
+
+      case 'snapshot_lab_above':
+        return this.isSnapshotLabAbove(context.request, condition.lab, condition.threshold);
+
+      case 'snapshot_lab_missing':
+        return this.isSnapshotLabMissing(context.request, condition.lab);
+
+      case 'snapshot_condition_present':
+        return this.isSnapshotConditionPresent(context.request, condition.condition);
+
+      case 'snapshot_field_missing':
+        return this.isSnapshotFieldMissing(context.request, condition.field);
+
+      case 'combination_present':
+        return this.isCombinationPresent(context.request, condition.class_a, condition.class_b);
+
+      case 'allergy_match':
+        return this.isAllergyMatch(context.request, condition.match_on);
+
+      case 'recent_medication_class':
+        return this.isRecentMedicationClass(
+          context.request,
+          condition.classes,
+          condition.within_hours,
+        );
+
+      case 'dose_exceeds_max':
+        return this.isDoseExceedsMax(
+          context.request,
+          condition.medication,
+          condition.max_value,
+          condition.max_unit,
+        );
+
       // Escape hatch (not implemented in v1)
       case 'other':
         // 'other' conditions with expr are escape hatches
@@ -623,6 +686,305 @@ export class PolicyEvaluator {
     if (!risks || risks.length === 0) return false;
     const threshold = RISK_LEVEL_PRECEDENCE[level as InterventionRiskLevel];
     return risks.some((r) => RISK_LEVEL_PRECEDENCE[r.level] >= threshold);
+  }
+
+  // ===========================================================================
+  // Clinical Condition Matchers (v2.1)
+  // ===========================================================================
+
+  /**
+   * Check if any MEDICATION_ORDER_PROPOSAL has medication.atc_class matching
+   * any ATC prefix in `classes`. Falls back to name-based matching if atc_class
+   * is absent.
+   */
+  private isMedicationClassIn(request: SupervisionRequest, classes: string[]): boolean {
+    const medProposals = getMedicationProposals(request);
+    if (medProposals.length === 0) return false;
+
+    return medProposals.some((p) => {
+      const medication = p.medication;
+      if (!medication) return false;
+
+      // Primary: ATC prefix match
+      if (medication.atc_class) {
+        return matchAtcClass(medication.atc_class, classes);
+      }
+
+      // Fallback: name-based matching (check if medication name contains any class code)
+      if (medication.name) {
+        const nameUpper = medication.name.toUpperCase();
+        return classes.some((cls) => nameUpper.includes(cls.toUpperCase()));
+      }
+
+      return false;
+    });
+  }
+
+  /**
+   * Check if any MEDICATION_ORDER_PROPOSAL has medication.name matching
+   * any value in `names` (case-insensitive).
+   */
+  private isMedicationNameIn(request: SupervisionRequest, names: string[]): boolean {
+    const medProposals = getMedicationProposals(request);
+    if (medProposals.length === 0) return false;
+
+    const lowerNames = names.map((n) => n.toLowerCase());
+    return medProposals.some((p) => {
+      const medName = p.medication?.name;
+      if (!medName) return false;
+      return lowerNames.includes(medName.toLowerCase());
+    });
+  }
+
+  /**
+   * Check if snapshot_payload.recent_labs contains a lab with value < threshold.
+   * Returns false if recent_labs is null or undefined.
+   */
+  private isSnapshotLabBelow(
+    request: SupervisionRequest,
+    lab: string,
+    threshold: number,
+  ): boolean {
+    const snapshot = getSnapshotPayload(request);
+    if (!snapshot) return false;
+
+    const recentLabs = snapshot.recent_labs;
+    if (!Array.isArray(recentLabs)) return false;
+
+    return recentLabs.some(
+      (l: any) => l.lab_id === lab && typeof l.value === 'number' && l.value < threshold,
+    );
+  }
+
+  /**
+   * Check if snapshot_payload.recent_labs contains a lab with value > threshold.
+   * Returns false if recent_labs is null or undefined.
+   */
+  private isSnapshotLabAbove(
+    request: SupervisionRequest,
+    lab: string,
+    threshold: number,
+  ): boolean {
+    const snapshot = getSnapshotPayload(request);
+    if (!snapshot) return false;
+
+    const recentLabs = snapshot.recent_labs;
+    if (!Array.isArray(recentLabs)) return false;
+
+    return recentLabs.some(
+      (l: any) => l.lab_id === lab && typeof l.value === 'number' && l.value > threshold,
+    );
+  }
+
+  /**
+   * Check if snapshot_payload.recent_labs is an array but does NOT contain
+   * the specified lab. Returns false if recent_labs is null (use snapshot_field_missing).
+   */
+  private isSnapshotLabMissing(request: SupervisionRequest, lab: string): boolean {
+    const snapshot = getSnapshotPayload(request);
+    if (!snapshot) return false;
+
+    const recentLabs = snapshot.recent_labs;
+    // Only match when recent_labs is a real array (not null)
+    if (!Array.isArray(recentLabs)) return false;
+
+    return !recentLabs.some((l: any) => l.lab_id === lab);
+  }
+
+  /**
+   * Check if snapshot_payload.active_conditions contains a condition with
+   * matching condition_id (case-insensitive) and status === 'active'.
+   */
+  private isSnapshotConditionPresent(
+    request: SupervisionRequest,
+    conditionId: string,
+  ): boolean {
+    const snapshot = getSnapshotPayload(request);
+    if (!snapshot) return false;
+
+    const conditions = snapshot.active_conditions;
+    if (!Array.isArray(conditions)) return false;
+
+    const targetLower = conditionId.toLowerCase();
+    return conditions.some(
+      (c: any) =>
+        c.condition_id?.toLowerCase() === targetLower && c.status === 'active',
+    );
+  }
+
+  /**
+   * Check if snapshot_payload is present but snapshot_payload[field] is exactly null.
+   * This is the null-vs-empty safety gate: null means data was unavailable,
+   * [] means confirmed empty, undefined means field not present.
+   */
+  private isSnapshotFieldMissing(request: SupervisionRequest, field: string): boolean {
+    const snapshot = getSnapshotPayload(request);
+    if (!snapshot) return false;
+
+    return snapshot[field] === null;
+  }
+
+  /**
+   * Check if a proposed medication matches class_a AND an active medication
+   * matches class_b (or vice versa).
+   */
+  private isCombinationPresent(
+    request: SupervisionRequest,
+    classA: string,
+    classB: string,
+  ): boolean {
+    const medProposals = getMedicationProposals(request);
+    if (medProposals.length === 0) return false;
+
+    const snapshot = getSnapshotPayload(request);
+    const activeMeds: any[] = Array.isArray(snapshot?.active_medications)
+      ? snapshot.active_medications
+      : [];
+
+    // Check both directions:
+    // Direction 1: proposed matches class_a, active matches class_b
+    // Direction 2: proposed matches class_b, active matches class_a
+    const proposedMatchesA = medProposals.some((p) =>
+      matchAtcClass(p.medication?.atc_class, [classA]),
+    );
+    const proposedMatchesB = medProposals.some((p) =>
+      matchAtcClass(p.medication?.atc_class, [classB]),
+    );
+    const activeMatchesA = activeMeds.some((m: any) =>
+      matchAtcClass(m.atc_class, [classA]),
+    );
+    const activeMatchesB = activeMeds.some((m: any) =>
+      matchAtcClass(m.atc_class, [classB]),
+    );
+
+    return (proposedMatchesA && activeMatchesB) || (proposedMatchesB && activeMatchesA);
+  }
+
+  /**
+   * Check if any MEDICATION_ORDER_PROPOSAL's medication matches an entry in
+   * snapshot_payload.medication_allergies.
+   */
+  private isAllergyMatch(
+    request: SupervisionRequest,
+    matchOn: 'atc_class' | 'substance' | 'either',
+  ): boolean {
+    const medProposals = getMedicationProposals(request);
+    if (medProposals.length === 0) return false;
+
+    const snapshot = getSnapshotPayload(request);
+    if (!snapshot) return false;
+
+    const allergies = snapshot.medication_allergies;
+    if (!Array.isArray(allergies) || allergies.length === 0) return false;
+
+    return medProposals.some((p) => {
+      const medication = p.medication;
+      if (!medication) return false;
+
+      return allergies.some((allergy: any) => {
+        const atcMatch =
+          medication.atc_class &&
+          allergy.atc_class &&
+          medication.atc_class.toUpperCase().startsWith(allergy.atc_class.toUpperCase());
+
+        const substanceMatch =
+          medication.name &&
+          allergy.substance &&
+          medication.name.toLowerCase() === allergy.substance.toLowerCase();
+
+        switch (matchOn) {
+          case 'atc_class':
+            return atcMatch;
+          case 'substance':
+            return substanceMatch;
+          case 'either':
+            return atcMatch || substanceMatch;
+          default:
+            return false;
+        }
+      });
+    });
+  }
+
+  /**
+   * Check if any MEDICATION_ORDER_PROPOSAL has structured_dose exceeding
+   * the specified maximum for the given medication.
+   */
+  private isDoseExceedsMax(
+    request: SupervisionRequest,
+    medication: string,
+    maxValue: number,
+    maxUnit: string,
+  ): boolean {
+    const medProposals = getMedicationProposals(request);
+    if (medProposals.length === 0) return false;
+
+    return medProposals.some((p) => {
+      const med = p.medication;
+      if (!med) return false;
+
+      // Check if this proposal is for the specified medication (by name or ATC prefix)
+      const nameMatch = med.name?.toLowerCase() === medication.toLowerCase();
+      const atcMatch = matchAtcClass(med.atc_class, [medication]);
+      if (!nameMatch && !atcMatch) return false;
+
+      // Check structured_dose.to
+      const dose = p.structured_dose;
+      if (!dose?.to) return false;
+
+      return (
+        typeof dose.to.value === 'number' &&
+        dose.to.value > maxValue &&
+        dose.to.unit === maxUnit
+      );
+    });
+  }
+
+  /**
+   * Check if snapshot_payload.active_medications contains a recently
+   * discontinued/on_hold medication matching any ATC class in `classes`,
+   * where "recently" means within `withinHours` of the request timestamp.
+   *
+   * Fail-safe behavior:
+   *   - No medications array (null/undefined) → true (can't verify washout)
+   *   - Matching medication with no stopped_at/last_dose_at → true (can't verify timing)
+   */
+  private isRecentMedicationClass(
+    request: SupervisionRequest,
+    classes: string[],
+    withinHours: number,
+  ): boolean {
+    const snapshot = getSnapshotPayload(request);
+
+    // Fail-safe: no snapshot or null medications means we can't verify washout
+    if (!snapshot) return true;
+    const activeMeds = snapshot.active_medications;
+    if (!Array.isArray(activeMeds)) return true;
+
+    // Use request's trace.created_at as "now" (deterministic, not system clock)
+    const now = new Date(request.trace.created_at);
+    const windowMs = withinHours * 60 * 60 * 1000;
+
+    // Find any medication matching the ATC classes that is discontinued/on_hold
+    return activeMeds.some((med: any) => {
+      // Must match ATC class
+      if (!matchAtcClass(med.atc_class, classes)) return false;
+
+      // Must be discontinued or on_hold
+      if (med.status !== 'discontinued' && med.status !== 'on_hold') return false;
+
+      // Get the relevant timestamp (prefer stopped_at, fall back to last_dose_at)
+      const timestamp = med.stopped_at ?? med.last_dose_at;
+
+      // Fail-safe: no timestamp means we can't verify the washout period
+      if (!timestamp) return true;
+
+      const stoppedTime = new Date(timestamp);
+      const elapsedMs = now.getTime() - stoppedTime.getTime();
+
+      // Within the washout window?
+      return elapsedMs >= 0 && elapsedMs < windowMs;
+    });
   }
 
   // ===========================================================================

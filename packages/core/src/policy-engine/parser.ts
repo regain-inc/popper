@@ -123,6 +123,15 @@ function validatePolicyPack(data: unknown): PolicyPack {
     rules,
   };
 
+  // Optional pack_type (v2.1: core | domain | site | modality)
+  if (pack.pack_type !== undefined) {
+    const validPackTypes = ['core', 'domain', 'site', 'modality'];
+    if (!validPackTypes.includes(pack.pack_type as string)) {
+      throw new PolicyParseError(`pack_type must be one of: ${validPackTypes.join(', ')}`);
+    }
+    (policyPack as Record<string, unknown>).pack_type = pack.pack_type;
+  }
+
   // Optional metadata
   if (pack.metadata !== undefined) {
     policyPack.metadata = validateMetadata(pack.metadata);
@@ -131,6 +140,26 @@ function validatePolicyPack(data: unknown): PolicyPack {
   // Optional staleness config
   if (pack.staleness !== undefined) {
     policyPack.staleness = validateStalenessConfig(pack.staleness);
+  }
+
+  // Optional depends_on (v2.1)
+  if (pack.depends_on !== undefined) {
+    if (!Array.isArray(pack.depends_on)) {
+      throw new PolicyParseError('depends_on must be an array');
+    }
+    (policyPack as Record<string, unknown>).depends_on = pack.depends_on.map((dep: unknown, i: number) => {
+      if (!dep || typeof dep !== 'object') {
+        throw new PolicyParseError(`depends_on[${i}] must be an object`);
+      }
+      const d = dep as Record<string, unknown>;
+      if (typeof d.pack_id !== 'string') {
+        throw new PolicyParseError(`depends_on[${i}].pack_id must be a string`);
+      }
+      if (typeof d.version_constraint !== 'string') {
+        throw new PolicyParseError(`depends_on[${i}].version_constraint must be a string`);
+      }
+      return { pack_id: d.pack_id, version_constraint: d.version_constraint };
+    });
   }
 
   return policyPack;
@@ -177,15 +206,20 @@ function validateMetadata(data: unknown): PolicyPack['metadata'] {
         throw new PolicyParseError(`metadata.sources[${index}] must be an object`);
       }
       const s = source as Record<string, unknown>;
-      if (!['policy', 'guideline', 'other'].includes(s.kind as string)) {
+      const validSourceKinds = ['policy', 'guideline', 'medication_label', 'governance', 'other'];
+      if (!validSourceKinds.includes(s.kind as string)) {
         throw new PolicyParseError(
-          `metadata.sources[${index}].kind must be 'policy', 'guideline', or 'other'`,
+          `metadata.sources[${index}].kind must be one of: ${validSourceKinds.join(', ')}`,
         );
       }
       if (typeof s.citation !== 'string') {
         throw new PolicyParseError(`metadata.sources[${index}].citation must be a string`);
       }
-      return { kind: s.kind as 'policy' | 'guideline' | 'other', citation: s.citation };
+      const source: Record<string, unknown> = { kind: s.kind, citation: s.citation };
+      if (s.source_url !== undefined) source.source_url = s.source_url;
+      if (s.doi !== undefined) source.doi = s.doi;
+      if (s.version_date !== undefined) source.version_date = s.version_date;
+      return source as any;
     });
   }
 
@@ -300,6 +334,11 @@ function validatePolicyRule(data: unknown, path: string): PolicyRule {
       throw new PolicyParseError(`${path}.requires_human_review must be a boolean`);
     }
     policyRule.requires_human_review = rule.requires_human_review;
+  }
+
+  // Optional provenance (v2.1: clinically grounded rules)
+  if (rule.provenance !== undefined) {
+    policyRule.provenance = validateProvenance(rule.provenance, `${path}.provenance`);
   }
 
   return policyRule;
@@ -527,6 +566,103 @@ function validateCondition(data: unknown, path: string): RuleCondition {
         level: condition.level as 'low' | 'moderate' | 'high' | 'critical',
       };
 
+    // ── Clinical grounding conditions (v2.1) ──
+
+    case 'medication_class_in':
+      if (!Array.isArray(condition.classes)) {
+        throw new PolicyParseError(`${path}.classes is required for 'medication_class_in'`);
+      }
+      return { kind: 'medication_class_in', classes: condition.classes as string[] };
+
+    case 'medication_name_in':
+      if (!Array.isArray(condition.names)) {
+        throw new PolicyParseError(`${path}.names is required for 'medication_name_in'`);
+      }
+      return { kind: 'medication_name_in', names: condition.names as string[] };
+
+    case 'snapshot_lab_below':
+      if (typeof condition.lab !== 'string') {
+        throw new PolicyParseError(`${path}.lab is required for 'snapshot_lab_below'`);
+      }
+      if (typeof condition.threshold !== 'number') {
+        throw new PolicyParseError(`${path}.threshold is required for 'snapshot_lab_below'`);
+      }
+      return { kind: 'snapshot_lab_below', lab: condition.lab, threshold: condition.threshold };
+
+    case 'snapshot_lab_above':
+      if (typeof condition.lab !== 'string') {
+        throw new PolicyParseError(`${path}.lab is required for 'snapshot_lab_above'`);
+      }
+      if (typeof condition.threshold !== 'number') {
+        throw new PolicyParseError(`${path}.threshold is required for 'snapshot_lab_above'`);
+      }
+      return { kind: 'snapshot_lab_above', lab: condition.lab, threshold: condition.threshold };
+
+    case 'snapshot_lab_missing':
+      if (typeof condition.lab !== 'string') {
+        throw new PolicyParseError(`${path}.lab is required for 'snapshot_lab_missing'`);
+      }
+      return { kind: 'snapshot_lab_missing', lab: condition.lab };
+
+    case 'snapshot_condition_present':
+      if (typeof condition.condition !== 'string') {
+        throw new PolicyParseError(`${path}.condition is required for 'snapshot_condition_present'`);
+      }
+      return { kind: 'snapshot_condition_present', condition: condition.condition };
+
+    case 'snapshot_field_missing':
+      if (typeof condition.field !== 'string') {
+        throw new PolicyParseError(`${path}.field is required for 'snapshot_field_missing'`);
+      }
+      return { kind: 'snapshot_field_missing', field: condition.field };
+
+    case 'combination_present':
+      if (typeof condition.class_a !== 'string') {
+        throw new PolicyParseError(`${path}.class_a is required for 'combination_present'`);
+      }
+      if (typeof condition.class_b !== 'string') {
+        throw new PolicyParseError(`${path}.class_b is required for 'combination_present'`);
+      }
+      return { kind: 'combination_present', class_a: condition.class_a, class_b: condition.class_b };
+
+    case 'allergy_match':
+      if (!['atc_class', 'substance', 'either'].includes(condition.match_on as string)) {
+        throw new PolicyParseError(`${path}.match_on must be 'atc_class', 'substance', or 'either'`);
+      }
+      return { kind: 'allergy_match', match_on: condition.match_on as 'atc_class' | 'substance' | 'either' };
+
+    case 'recent_medication_class':
+      if (!Array.isArray(condition.classes)) {
+        throw new PolicyParseError(`${path}.classes is required for 'recent_medication_class'`);
+      }
+      if (typeof condition.within_hours !== 'number' || condition.within_hours <= 0) {
+        throw new PolicyParseError(
+          `${path}.within_hours must be a positive number for 'recent_medication_class'`,
+        );
+      }
+      return {
+        kind: 'recent_medication_class',
+        classes: condition.classes as string[],
+        within_hours: condition.within_hours,
+      };
+
+    case 'dose_exceeds_max':
+      if (typeof condition.medication !== 'string') {
+        throw new PolicyParseError(`${path}.medication is required for 'dose_exceeds_max'`);
+      }
+      if (typeof condition.max_value !== 'number') {
+        throw new PolicyParseError(`${path}.max_value is required for 'dose_exceeds_max'`);
+      }
+      if (typeof condition.max_unit !== 'string') {
+        throw new PolicyParseError(`${path}.max_unit is required for 'dose_exceeds_max'`);
+      }
+      return {
+        kind: 'dose_exceeds_max',
+        medication: condition.medication,
+        max_value: condition.max_value,
+        max_unit: condition.max_unit,
+      };
+
     case 'other':
       if (typeof condition.expr !== 'string') {
         throw new PolicyParseError(`${path}.expr is required for 'other'`);
@@ -617,6 +753,63 @@ function validateAction(data: unknown, path: string): RuleAction {
   }
 
   return ruleAction;
+}
+
+// =============================================================================
+// Provenance Validation (v2.1)
+// =============================================================================
+
+const VALID_SOURCE_TYPES = [
+  'medication_label', 'black_box_warning', 'contraindication', 'drug_interaction',
+  'rems_requirement', 'society_guideline', 'expert_consensus', 'site_protocol',
+  'formulary_rule', 'governance_requirement', 'emerging_evidence', 'internal_policy',
+];
+
+const VALID_SOURCE_LAYERS = [1, 2, 3, 4, 5];
+
+/**
+ * Validate rule provenance block.
+ */
+function validateProvenance(data: unknown, path: string): import('./types').RuleProvenance {
+  if (!data || typeof data !== 'object') {
+    throw new PolicyParseError(`${path} must be an object`);
+  }
+
+  const p = data as Record<string, unknown>;
+
+  // Required fields
+  if (!VALID_SOURCE_TYPES.includes(p.source_type as string)) {
+    throw new PolicyParseError(`${path}.source_type must be one of: ${VALID_SOURCE_TYPES.join(', ')}`);
+  }
+  if (!VALID_SOURCE_LAYERS.includes(p.source_layer as number)) {
+    throw new PolicyParseError(`${path}.source_layer must be 1, 2, 3, 4, or 5`);
+  }
+  if (typeof p.citation !== 'string' || p.citation.trim() === '') {
+    throw new PolicyParseError(`${path}.citation is required and must be a non-empty string`);
+  }
+  if (!EVIDENCE_GRADES.includes(p.evidence_grade as (typeof EVIDENCE_GRADES)[number])) {
+    throw new PolicyParseError(`${path}.evidence_grade must be a valid EvidenceGrade`);
+  }
+  if (typeof p.jurisdiction !== 'string') {
+    throw new PolicyParseError(`${path}.jurisdiction is required`);
+  }
+  if (typeof p.clinical_domain !== 'string') {
+    throw new PolicyParseError(`${path}.clinical_domain is required`);
+  }
+  if (typeof p.approved_by !== 'string') {
+    throw new PolicyParseError(`${path}.approved_by is required`);
+  }
+  if (typeof p.effective_date !== 'string') {
+    throw new PolicyParseError(`${path}.effective_date is required`);
+  }
+  if (typeof p.review_interval_days !== 'number' || p.review_interval_days <= 0) {
+    throw new PolicyParseError(`${path}.review_interval_days must be a positive number`);
+  }
+  if (typeof p.review_due !== 'string') {
+    throw new PolicyParseError(`${path}.review_due is required`);
+  }
+
+  return p as unknown as import('./types').RuleProvenance;
 }
 
 // =============================================================================
