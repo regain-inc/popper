@@ -9,6 +9,16 @@
 import type { EvidenceGrade, ReasonCode, SupervisionDecision } from '../hermes';
 
 // =============================================================================
+// Governance Approval (from @regain/hermes v2.3.0)
+// =============================================================================
+
+import type { ApprovalMethod, ApprovalStatus, GovernanceApproval } from '@regain/hermes';
+import { APPROVAL_METHODS, APPROVAL_STATUSES } from '@regain/hermes';
+
+export type { ApprovalStatus, ApprovalMethod, GovernanceApproval };
+export { APPROVAL_STATUSES, APPROVAL_METHODS };
+
+// =============================================================================
 // Policy Pack
 // =============================================================================
 
@@ -58,77 +68,6 @@ export interface PolicyPackMetadata {
 export interface PolicySource {
   kind: 'policy' | 'guideline' | 'medication_label' | 'governance' | 'other';
   citation: string;
-}
-
-// =============================================================================
-// Governance Approval (v2.2)
-// =============================================================================
-
-/**
- * Lifecycle status of a rule's clinical governance approval.
- */
-export type ApprovalStatus =
-  | 'draft' // Rule written, not yet reviewed
-  | 'evidence_reviewed' // Evidence basis validated (literature review)
-  | 'clinical_review_pending' // Awaiting clinical board/reviewer sign-off
-  | 'conditionally_approved' // Approved with conditions (e.g., time-limited, site-specific)
-  | 'approved' // Fully approved by clinical governance
-  | 'suspended' // Temporarily suspended pending re-review
-  | 'retired'; // No longer active
-
-export const APPROVAL_STATUSES: readonly ApprovalStatus[] = [
-  'draft',
-  'evidence_reviewed',
-  'clinical_review_pending',
-  'conditionally_approved',
-  'approved',
-  'suspended',
-  'retired',
-] as const;
-
-/**
- * Method used to validate or approve a rule threshold.
- */
-export type ApprovalMethod =
-  | 'literature_review' // PubMed/guideline-based evidence review
-  | 'clinical_board_vote' // Formal clinical governance board decision
-  | 'individual_sign_off' // Single clinician sign-off (e.g., medical director)
-  | 'regulatory_mandate' // FDA label, accreditor requirement — no discretion
-  | 'statistical_derivation' // Threshold derived from statistical methodology
-  | 'operational_default'; // Pragmatic default, no external evidence
-
-export const APPROVAL_METHODS: readonly ApprovalMethod[] = [
-  'literature_review',
-  'clinical_board_vote',
-  'individual_sign_off',
-  'regulatory_mandate',
-  'statistical_derivation',
-  'operational_default',
-] as const;
-
-/**
- * Structured governance approval record.
- * Replaces the free-text `approved_by` string with auditable fields.
- *
- * @since v2.2
- */
-export interface GovernanceApproval {
-  /** Current lifecycle status */
-  status: ApprovalStatus;
-  /** How the threshold/rule was validated */
-  method: ApprovalMethod;
-  /** Who approved (person or body name) */
-  approver?: string;
-  /** Approver's role/credentials (e.g., "Cardiologist, FASE") */
-  approver_role?: string;
-  /** Date of approval decision */
-  approved_at?: string;
-  /** Conditions attached to a conditional approval */
-  conditions?: string;
-  /** When the approval expires and must be re-reviewed */
-  expires_at?: string;
-  /** Free-text notes (e.g., "Board voted 5-0 to approve") */
-  notes?: string;
 }
 
 /**
@@ -637,7 +576,11 @@ export interface ApprovedConstraints {
 }
 
 /**
- * Control command to modify system state.
+ * Simplified ControlCommand for rule action definitions.
+ * Intentional subset of Hermes ControlCommand — rules define WHAT command to issue.
+ * The supervision plugin adds envelope fields (command_id, created_at, audit_redaction)
+ * when constructing the SupervisionResponse.
+ * @see @regain/hermes ControlCommand for the full wire-format type
  */
 export interface ControlCommand {
   kind: 'SET_SAFE_MODE' | 'SET_OPERATIONAL_SETTING';

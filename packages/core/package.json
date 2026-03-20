@@ -27,7 +27,7 @@
   "dependencies": {
     "@popper/cache": "workspace:*",
     "@popper/db": "workspace:*",
-    "@regain/hermes": "^2.0.0",
+    "@regain/hermes": "^2.3.0",
     "drizzle-orm": "^0.38.4",
     "ajv-formats": "^3.0.1",
     "ioredis": "^5.4.1",
