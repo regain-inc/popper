@@ -1,0 +1,164 @@
+# Popper Source Registry
+# Canonical catalog of all authoritative sources referenced by policy rules.
+#
+# Each entry provides traceability from rule provenance → source document.
+# Used for impact analysis (guideline update → affected rules), review tracking,
+# and regulatory documentation.
+#
+# @see docs/specs/00-popper-specs/01-clinical-grounding-and-supervision/05-rule-provenance-and-evidence-model.md
+
+sources:
+  # ─── Internal Policy ───────────────────────────────────────────────
+  - source_id: popper-safety-dsl-v1
+    title: "Popper Safety DSL v1 — Deterministic Policy Engine"
+    type: internal_policy
+    issuing_body: "Popper Dev Team"
+    publication_date: "2026-01-25"
+    url: "docs/specs/00-popper-specs/03-popper-safety-dsl.md"
+    review_status: active
+    last_reviewed: "2026-03-19"
+    next_review_due: "2027-03-19"
+
+  # ─── Society Guidelines (Layer 2) ──────────────────────────────────
+  - source_id: aha-acc-hfsa-hf-2022
+    title: "2022 AHA/ACC/HFSA Guideline for the Management of Heart Failure"
+    type: society_guideline
+    issuing_body: "AHA/ACC/HFSA"
+    publication_date: "2022-04-01"
+    doi: "10.1161/CIR.0000000000001063"
+    url: "https://www.ahajournals.org/doi/10.1161/CIR.0000000000001063"
+    grading_system: AHA_ACC
+    supersedes: null
+    superseded_by: null
+    review_status: active
+    last_reviewed: "2026-03-19"
+    next_review_due: "2027-03-19"
+
+  - source_id: acc-ecdp-hfref-2024
+    title: "2024 ACC Expert Consensus Decision Pathway for Treatment of HFrEF"
+    type: expert_consensus
+    issuing_body: "ACC"
+    publication_date: "2024-01-01"
+    doi: "10.1016/j.jacc.2023.12.024"
+    url: "https://www.jacc.org/doi/10.1016/j.jacc.2023.12.024"
+    grading_system: AHA_ACC
+    review_status: active
+    last_reviewed: "2026-03-19"
+    next_review_due: "2027-03-19"
+
+  - source_id: aha-acc-htn-2025
+    title: "2025 AHA/ACC Guideline for High Blood Pressure in Adults"
+    type: society_guideline
+    issuing_body: "AHA/ACC"
+    publication_date: "2025-01-01"
+    doi: "10.1161/CIR.0000000000001356"
+    url: "https://www.ahajournals.org/doi/10.1161/CIR.0000000000001356"
+    grading_system: AHA_ACC
+    supersedes: acc-aha-htn-2017
+    review_status: active
+    last_reviewed: "2026-03-19"
+    next_review_due: "2027-03-19"
+
+  - source_id: acc-aha-dyslipidemia-2026
+    title: "2026 ACC/AHA Guideline on the Management of Dyslipidemia"
+    type: society_guideline
+    issuing_body: "ACC/AHA"
+    publication_date: "2026-03-13"
+    doi: "10.1016/j.jacc.2025.11.016"
+    url: "https://www.jacc.org/doi/10.1016/j.jacc.2025.11.016"
+    grading_system: AHA_ACC
+    supersedes: aha-acc-cholesterol-2018
+    review_status: active
+    last_reviewed: "2026-03-19"
+    next_review_due: "2027-03-19"
+
+  - source_id: ada-soc-2026
+    title: "ADA 2026 Standards of Care in Diabetes, Sections 9-11"
+    type: society_guideline
+    issuing_body: "ADA"
+    publication_date: "2026-01-01"
+    url: "https://diabetesjournals.org/care/article/49/Supplement_1/S216/163933"
+    grading_system: ADA
+    review_status: active
+    last_reviewed: "2026-03-19"
+    next_review_due: "2027-01-01"
+
+  - source_id: kdigo-ckd-2024
+    title: "KDIGO 2024 Clinical Practice Guideline for CKD"
+    type: society_guideline
+    issuing_body: "KDIGO"
+    publication_date: "2024-03-01"
+    url: "https://kdigo.org/wp-content/uploads/2024/03/KDIGO-2024-CKD-Guideline.pdf"
+    grading_system: KDIGO
+    review_status: active
+    last_reviewed: "2026-03-19"
+    next_review_due: "2027-03-19"
+
+  - source_id: acc-aha-afib-2023
+    title: "2023 ACC/AHA/ACCP/HRS Guideline for AF"
+    type: society_guideline
+    issuing_body: "ACC/AHA/HRS"
+    publication_date: "2023-11-30"
+    doi: "10.1161/CIR.0000000000001193"
+    url: "https://www.ahajournals.org/doi/10.1161/CIR.0000000000001193"
+    grading_system: AHA_ACC
+    review_status: active
+    last_reviewed: "2026-03-19"
+    next_review_due: "2027-03-19"
+
+  # ─── Medication Labels (Layer 1) ───────────────────────────────────
+  - source_id: dailymed-lisinopril
+    title: "Lisinopril Structured Product Labeling"
+    type: medication_label
+    issuing_body: "FDA/NLM"
+    url: "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=lisinopril"
+    review_status: active
+    last_reviewed: "2026-03-19"
+    next_review_due: "2026-06-19"
+
+  - source_id: dailymed-empagliflozin
+    title: "Empagliflozin (Jardiance) Structured Product Labeling"
+    type: medication_label
+    issuing_body: "FDA/NLM"
+    url: "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=empagliflozin"
+    review_status: active
+    last_reviewed: "2026-03-19"
+    next_review_due: "2026-06-19"
+
+  - source_id: dailymed-carvedilol
+    title: "Carvedilol Structured Product Labeling"
+    type: medication_label
+    issuing_body: "FDA/NLM"
+    url: "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=carvedilol"
+    review_status: active
+    last_reviewed: "2026-03-19"
+    next_review_due: "2026-06-19"
+
+  - source_id: dailymed-spironolactone
+    title: "Spironolactone Structured Product Labeling"
+    type: medication_label
+    issuing_body: "FDA/NLM"
+    url: "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=spironolactone"
+    review_status: active
+    last_reviewed: "2026-03-19"
+    next_review_due: "2026-06-19"
+
+  # ─── Superseded (retained for audit) ───────────────────────────────
+  - source_id: acc-aha-htn-2017
+    title: "2017 ACC/AHA Hypertension Guideline"
+    type: society_guideline
+    issuing_body: "ACC/AHA"
+    publication_date: "2017-11-13"
+    doi: "10.1161/HYP.0000000000000065"
+    superseded_by: aha-acc-htn-2025
+    review_status: superseded
+    last_reviewed: "2026-03-19"
+
+  - source_id: aha-acc-cholesterol-2018
+    title: "2018 AHA/ACC Cholesterol Guideline"
+    type: society_guideline
+    issuing_body: "AHA/ACC"
+    publication_date: "2018-11-10"
+    superseded_by: acc-aha-dyslipidemia-2026
+    review_status: superseded
+    last_reviewed: "2026-03-19"

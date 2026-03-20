@@ -225,6 +225,8 @@ export function createSupervisionDecisionEvent(params: {
   proposalCount?: number;
   payload?: AuditEventPayload;
   tags?: AuditEventTag[];
+  /** v2.1: Rule provenance for clinically grounded decision traceability */
+  ruleProvenance?: AuditEventInput['ruleProvenance'];
 }): AuditEventInput {
   return {
     eventType: 'SUPERVISION_DECISION',
@@ -239,6 +241,7 @@ export function createSupervisionDecisionEvent(params: {
     proposalCount: params.proposalCount,
     payload: params.payload,
     tags: params.tags,
+    ruleProvenance: params.ruleProvenance,
   };
 }
 

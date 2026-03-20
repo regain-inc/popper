@@ -139,6 +139,18 @@ export interface AuditEventInput {
 
   /** Tags for categorization */
   tags?: AuditEventTag[];
+
+  /**
+   * Rule provenance for clinically grounded decisions (v2.1).
+   * Enables tracing: decision → rule → citation → source registry.
+   * MUST NOT contain PHI.
+   */
+  ruleProvenance?: {
+    rule_id: string;
+    source_type: string;
+    citation: string;
+    source_layer?: number;
+  };
 }
 
 /**

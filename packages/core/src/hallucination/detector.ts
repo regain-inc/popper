@@ -198,25 +198,53 @@ function checkSnapshotHash(request: SupervisionRequest, signals: HallucinationSi
 }
 
 /**
- * Extract upstream hallucination flags from Deutsch.
+ * Extract upstream output validation signals from Deutsch.
  *
- * Deutsch may include a hallucination_detection field in the request
- * (duck-typed for forward compatibility, pending Hermes contract update).
- * This allows Deutsch-side detection to flow through to Popper policy evaluation.
+ * Hermes v2.1: Deutsch sends output_validation (replaces duck-typed hallucination_detection).
+ * Falls back to legacy hallucination_detection for backward compatibility during migration.
+ *
+ * @see hermes/docs/00-hermes-specs/06-hermes-clinical-supervision-contract.md §5.5
  */
 function checkUpstreamFlag(request: SupervisionRequest, signals: HallucinationSignal[]): void {
-  const upstreamFlag = (request as Record<string, unknown>).hallucination_detection as
-    | { detected?: boolean; severity?: HallucinationSeverity; description?: string }
+  // v2.1: Read from formal output_validation field
+  const outputValidation = (request as Record<string, unknown>).output_validation as
+    | {
+        valid?: boolean;
+        severity?: HallucinationSeverity;
+        signals?: Array<{
+          type: string;
+          severity: HallucinationSeverity;
+          description: string;
+          proposal_id?: string;
+        }>;
+      }
     | undefined;
 
-  if (!upstreamFlag?.detected) {
+  if (outputValidation && !outputValidation.valid && outputValidation.signals) {
+    for (const signal of outputValidation.signals) {
+      signals.push({
+        type: `upstream_${signal.type}`,
+        severity: signal.severity ?? 'significant',
+        description: signal.description,
+        ...(signal.proposal_id && { proposal_id: signal.proposal_id }),
+      });
+    }
     return;
   }
 
-  const severity = upstreamFlag.severity ?? 'significant';
+  // Legacy fallback: read duck-typed hallucination_detection (pre-v2.1 Deutsch instances)
+  const legacyFlag = (request as Record<string, unknown>).hallucination_detection as
+    | { detected?: boolean; severity?: HallucinationSeverity; description?: string }
+    | undefined;
+
+  if (!legacyFlag?.detected) {
+    return;
+  }
+
+  const severity = legacyFlag.severity ?? 'significant';
   signals.push({
     type: 'upstream_flag',
     severity,
-    description: upstreamFlag.description ?? 'Deutsch flagged potential hallucination',
+    description: legacyFlag.description ?? 'Deutsch flagged potential hallucination',
   });
 }

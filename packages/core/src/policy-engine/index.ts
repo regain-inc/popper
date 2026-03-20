@@ -24,10 +24,13 @@ export type {
   MatchedRule,
 } from './evaluator';
 export { createEvaluator, mergeReconfigureEffects, PolicyEvaluator } from './evaluator';
-// Loader
+// Loader + Multi-Pack Composition (v2.1)
 export {
+  composePacks,
+  loadAndComposePacks,
   loadPolicyPack,
   loadPolicyPacksFromDir,
+  PackCompositionError,
   PolicyPackRegistry,
   policyRegistry,
 } from './loader';
@@ -55,10 +58,13 @@ export {
 } from './staleness';
 // Types
 export type {
+  AcuityAtLeastCondition,
+  AllergyMatchCondition,
   AllOfCondition,
   AlwaysCondition,
   AnyOfCondition,
   ApprovedConstraints,
+  CombinationPresentCondition,
   ConditionKind,
   ConflictCountExceedsCondition,
   ConflictEscalatedCondition,
@@ -67,11 +73,15 @@ export type {
   ConflictTypeInCondition,
   ControlCommand,
   DomainStatusInCondition,
+  DoseExceedsMaxCondition,
   EvidenceGradeBelowCondition,
   HallucinationDetectedCondition,
   HTVScoreBelowCondition,
   IDKTriggeredCondition,
   InputRiskFlagInCondition,
+  InterventionRiskAtLeastCondition,
+  MedicationClassInCondition,
+  MedicationNameInCondition,
   MissingFieldCondition,
   ModeIsCondition,
   NotCondition,
@@ -87,8 +97,15 @@ export type {
   RuleAction,
   RuleCondition,
   RuleEngineFailedCondition,
+  // v2.1 clinical grounding types
+  RuleProvenance,
   SafeModeEnabledCondition,
   SchemaInvalidCondition,
+  SnapshotConditionPresentCondition,
+  SnapshotFieldMissingCondition,
+  SnapshotLabAboveCondition,
+  SnapshotLabBelowCondition,
+  SnapshotLabMissingCondition,
   SnapshotMissingCondition,
   SnapshotSourceMissingCondition,
   SnapshotStaleByCondition,

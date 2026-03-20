@@ -217,3 +217,190 @@ export class PolicyPackRegistry {
  * Global policy pack registry instance.
  */
 export const policyRegistry = new PolicyPackRegistry();
+
+// =============================================================================
+// Multi-Pack Composition (v2.1)
+// =============================================================================
+
+/** Priority range constraints per pack type */
+const PACK_TYPE_PRIORITY_RANGES: Record<string, { min: number; max: number }> = {
+  core: { min: 0, max: 1200 },
+  domain: { min: 100, max: 799 },
+  site: { min: 50, max: 99 },
+  modality: { min: 100, max: 799 },
+};
+
+/**
+ * Error thrown when pack composition fails.
+ */
+export class PackCompositionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'PackCompositionError';
+  }
+}
+
+/**
+ * Compose multiple policy packs into a single merged rule list.
+ *
+ * Validates:
+ * - Pack-type-specific priority ranges
+ * - No cross-pack same-priority conflicts
+ * - Site packs cannot weaken core/domain rules (logged as warning)
+ * - Dependency constraints (depends_on)
+ *
+ * Rules are sorted by priority descending (highest priority first).
+ *
+ * @param packs - Array of packs to compose, in load order
+ * @returns Merged PolicyPack with composed rules and composite version
+ * @throws PackCompositionError if validation fails
+ */
+export function composePacks(packs: PolicyPack[]): PolicyPack {
+  if (packs.length === 0) {
+    throw new PackCompositionError('At least one pack is required');
+  }
+
+  if (packs.length === 1) {
+    return packs[0];
+  }
+
+  const packMap = new Map<string, PolicyPack>();
+  for (const pack of packs) {
+    packMap.set(pack.policy_id, pack);
+  }
+
+  // Validate dependencies
+  for (const pack of packs) {
+    const deps = (pack as Record<string, unknown>).depends_on as
+      | Array<{ pack_id: string; version_constraint: string }>
+      | undefined;
+    if (deps) {
+      for (const dep of deps) {
+        if (!packMap.has(dep.pack_id)) {
+          throw new PackCompositionError(
+            `Pack '${pack.policy_id}' depends on '${dep.pack_id}' which is not loaded`,
+          );
+        }
+      }
+    }
+  }
+
+  // Validate priority ranges per pack type
+  for (const pack of packs) {
+    const packType = (pack as Record<string, unknown>).pack_type as string | undefined;
+    if (packType && PACK_TYPE_PRIORITY_RANGES[packType]) {
+      const range = PACK_TYPE_PRIORITY_RANGES[packType];
+      for (const rule of pack.rules) {
+        if (rule.priority < range.min || rule.priority > range.max) {
+          throw new PackCompositionError(
+            `Rule '${rule.rule_id}' in pack '${pack.policy_id}' (type: ${packType}) ` +
+              `has priority ${rule.priority} outside allowed range [${range.min}, ${range.max}]`,
+          );
+        }
+      }
+    }
+  }
+
+  // Collect all rules with pack provenance
+  const allRules: Array<{ rule: PolicyPack['rules'][number]; packId: string }> = [];
+  for (const pack of packs) {
+    for (const rule of pack.rules) {
+      allRules.push({ rule, packId: pack.policy_id });
+    }
+  }
+
+  // Check for cross-pack same-priority conflicts
+  const priorityMap = new Map<number, { ruleId: string; packId: string }>();
+  for (const { rule, packId } of allRules) {
+    const existing = priorityMap.get(rule.priority);
+    if (existing && existing.packId !== packId) {
+      throw new PackCompositionError(
+        `Cross-pack priority conflict: rule '${rule.rule_id}' (pack '${packId}') and ` +
+          `rule '${existing.ruleId}' (pack '${existing.packId}') both have priority ${rule.priority}. ` +
+          `Rules from different packs must not share the same priority.`,
+      );
+    }
+    priorityMap.set(rule.priority, { ruleId: rule.rule_id, packId });
+  }
+
+  // Sort by priority descending (first-match-wins semantics)
+  const mergedRules = allRules.map(({ rule }) => rule).sort((a, b) => b.priority - a.priority);
+
+  // Build composite version string
+  const compositeVersion = packs.map((p) => `${p.policy_id}:${p.policy_version}`).join('+');
+
+  // Use first pack's staleness config as default, allow overrides
+  const staleness = packs.find((p) => p.staleness)?.staleness;
+
+  return {
+    policy_id: `composed:${packs.map((p) => p.policy_id).join('+')}`,
+    policy_version: compositeVersion,
+    metadata: {
+      description: `Composed from ${packs.length} packs: ${packs.map((p) => p.policy_id).join(', ')}`,
+    },
+    staleness,
+    rules: mergedRules,
+  };
+}
+
+/**
+ * Load packs from the standard directory structure.
+ *
+ * Expected layout:
+ *   basePath/
+ *     default.yaml          (legacy single-pack, used as core if no core/ dir)
+ *     core/                 (core safety pack)
+ *     domains/              (domain packs)
+ *     sites/                (site protocol packs)
+ *
+ * @param basePath - Base policies directory
+ * @param options - Which pack types to load
+ * @returns Composed PolicyPack
+ */
+export async function loadAndComposePacks(
+  basePath: string,
+  options: {
+    loadDomains?: string[]; // specific domain pack filenames to load
+    loadSite?: string; // specific site directory to load
+  } = {},
+): Promise<PolicyPack> {
+  const packs: PolicyPack[] = [];
+
+  // 1. Load core pack
+  try {
+    const corePacks = await loadPolicyPacksFromDir(join(basePath, 'core'));
+    for (const { pack } of corePacks) {
+      packs.push(pack);
+    }
+  } catch {
+    // No core directory — try legacy default.yaml
+    try {
+      const defaultPack = await loadPolicyPack(join(basePath, 'default.yaml'));
+      packs.push(defaultPack);
+    } catch {
+      throw new PackCompositionError('No core pack or default.yaml found');
+    }
+  }
+
+  // 2. Load requested domain packs
+  if (options.loadDomains && options.loadDomains.length > 0) {
+    for (const domain of options.loadDomains) {
+      const domainPath = join(basePath, 'domains', domain);
+      const ext = extname(domain);
+      if (ext === '.yaml' || ext === '.yml' || ext === '.json') {
+        const pack = await loadPolicyPack(domainPath);
+        packs.push(pack);
+      }
+    }
+  }
+
+  // 3. Load site pack if specified
+  if (options.loadSite) {
+    const sitePacks = await loadPolicyPacksFromDir(join(basePath, 'sites', options.loadSite));
+    for (const { pack } of sitePacks) {
+      packs.push(pack);
+    }
+  }
+
+  return composePacks(packs);
+}

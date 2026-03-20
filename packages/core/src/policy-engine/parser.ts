@@ -147,19 +147,21 @@ function validatePolicyPack(data: unknown): PolicyPack {
     if (!Array.isArray(pack.depends_on)) {
       throw new PolicyParseError('depends_on must be an array');
     }
-    (policyPack as Record<string, unknown>).depends_on = pack.depends_on.map((dep: unknown, i: number) => {
-      if (!dep || typeof dep !== 'object') {
-        throw new PolicyParseError(`depends_on[${i}] must be an object`);
-      }
-      const d = dep as Record<string, unknown>;
-      if (typeof d.pack_id !== 'string') {
-        throw new PolicyParseError(`depends_on[${i}].pack_id must be a string`);
-      }
-      if (typeof d.version_constraint !== 'string') {
-        throw new PolicyParseError(`depends_on[${i}].version_constraint must be a string`);
-      }
-      return { pack_id: d.pack_id, version_constraint: d.version_constraint };
-    });
+    (policyPack as Record<string, unknown>).depends_on = pack.depends_on.map(
+      (dep: unknown, i: number) => {
+        if (!dep || typeof dep !== 'object') {
+          throw new PolicyParseError(`depends_on[${i}] must be an object`);
+        }
+        const d = dep as Record<string, unknown>;
+        if (typeof d.pack_id !== 'string') {
+          throw new PolicyParseError(`depends_on[${i}].pack_id must be a string`);
+        }
+        if (typeof d.version_constraint !== 'string') {
+          throw new PolicyParseError(`depends_on[${i}].version_constraint must be a string`);
+        }
+        return { pack_id: d.pack_id, version_constraint: d.version_constraint };
+      },
+    );
   }
 
   return policyPack;
@@ -201,11 +203,11 @@ function validateMetadata(data: unknown): PolicyPack['metadata'] {
     if (!Array.isArray(meta.sources)) {
       throw new PolicyParseError('metadata.sources must be an array');
     }
-    result.sources = meta.sources.map((source, index) => {
-      if (!source || typeof source !== 'object') {
+    result.sources = meta.sources.map((rawSource: unknown, index: number) => {
+      if (!rawSource || typeof rawSource !== 'object') {
         throw new PolicyParseError(`metadata.sources[${index}] must be an object`);
       }
-      const s = source as Record<string, unknown>;
+      const s = rawSource as Record<string, unknown>;
       const validSourceKinds = ['policy', 'guideline', 'medication_label', 'governance', 'other'];
       if (!validSourceKinds.includes(s.kind as string)) {
         throw new PolicyParseError(
@@ -215,11 +217,11 @@ function validateMetadata(data: unknown): PolicyPack['metadata'] {
       if (typeof s.citation !== 'string') {
         throw new PolicyParseError(`metadata.sources[${index}].citation must be a string`);
       }
-      const source: Record<string, unknown> = { kind: s.kind, citation: s.citation };
-      if (s.source_url !== undefined) source.source_url = s.source_url;
-      if (s.doi !== undefined) source.doi = s.doi;
-      if (s.version_date !== undefined) source.version_date = s.version_date;
-      return source as any;
+      const parsed: Record<string, unknown> = { kind: s.kind, citation: s.citation };
+      if (s.source_url !== undefined) parsed.source_url = s.source_url;
+      if (s.doi !== undefined) parsed.doi = s.doi;
+      if (s.version_date !== undefined) parsed.version_date = s.version_date;
+      return parsed;
     });
   }
 
@@ -606,7 +608,9 @@ function validateCondition(data: unknown, path: string): RuleCondition {
 
     case 'snapshot_condition_present':
       if (typeof condition.condition !== 'string') {
-        throw new PolicyParseError(`${path}.condition is required for 'snapshot_condition_present'`);
+        throw new PolicyParseError(
+          `${path}.condition is required for 'snapshot_condition_present'`,
+        );
       }
       return { kind: 'snapshot_condition_present', condition: condition.condition };
 
@@ -623,13 +627,22 @@ function validateCondition(data: unknown, path: string): RuleCondition {
       if (typeof condition.class_b !== 'string') {
         throw new PolicyParseError(`${path}.class_b is required for 'combination_present'`);
       }
-      return { kind: 'combination_present', class_a: condition.class_a, class_b: condition.class_b };
+      return {
+        kind: 'combination_present',
+        class_a: condition.class_a,
+        class_b: condition.class_b,
+      };
 
     case 'allergy_match':
       if (!['atc_class', 'substance', 'either'].includes(condition.match_on as string)) {
-        throw new PolicyParseError(`${path}.match_on must be 'atc_class', 'substance', or 'either'`);
+        throw new PolicyParseError(
+          `${path}.match_on must be 'atc_class', 'substance', or 'either'`,
+        );
       }
-      return { kind: 'allergy_match', match_on: condition.match_on as 'atc_class' | 'substance' | 'either' };
+      return {
+        kind: 'allergy_match',
+        match_on: condition.match_on as 'atc_class' | 'substance' | 'either',
+      };
 
     case 'recent_medication_class':
       if (!Array.isArray(condition.classes)) {
@@ -760,9 +773,18 @@ function validateAction(data: unknown, path: string): RuleAction {
 // =============================================================================
 
 const VALID_SOURCE_TYPES = [
-  'medication_label', 'black_box_warning', 'contraindication', 'drug_interaction',
-  'rems_requirement', 'society_guideline', 'expert_consensus', 'site_protocol',
-  'formulary_rule', 'governance_requirement', 'emerging_evidence', 'internal_policy',
+  'medication_label',
+  'black_box_warning',
+  'contraindication',
+  'drug_interaction',
+  'rems_requirement',
+  'society_guideline',
+  'expert_consensus',
+  'site_protocol',
+  'formulary_rule',
+  'governance_requirement',
+  'emerging_evidence',
+  'internal_policy',
 ];
 
 const VALID_SOURCE_LAYERS = [1, 2, 3, 4, 5];
@@ -779,7 +801,9 @@ function validateProvenance(data: unknown, path: string): import('./types').Rule
 
   // Required fields
   if (!VALID_SOURCE_TYPES.includes(p.source_type as string)) {
-    throw new PolicyParseError(`${path}.source_type must be one of: ${VALID_SOURCE_TYPES.join(', ')}`);
+    throw new PolicyParseError(
+      `${path}.source_type must be one of: ${VALID_SOURCE_TYPES.join(', ')}`,
+    );
   }
   if (!VALID_SOURCE_LAYERS.includes(p.source_layer as number)) {
     throw new PolicyParseError(`${path}.source_layer must be 1, 2, 3, 4, or 5`);

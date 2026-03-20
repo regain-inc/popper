@@ -1148,7 +1148,7 @@ describe('PolicyEvaluator', () => {
   describe('recent_medication_class condition', () => {
     const NOW = '2026-03-20T12:00:00Z';
 
-    const makeRequest = (activeMedications: any[] | null | undefined) =>
+    const makeRequest = (activeMedications: Record<string, unknown>[] | null | undefined) =>
       createMinimalRequest({
         trace: {
           request_id: 'test-washout',
@@ -1158,7 +1158,7 @@ describe('PolicyEvaluator', () => {
         ...(activeMedications !== undefined
           ? { snapshot_payload: { active_medications: activeMedications } }
           : {}),
-      } as any);
+      } as unknown as SupervisionRequest);
 
     const recentMedClassCondition = {
       kind: 'recent_medication_class' as const,
@@ -1217,9 +1217,7 @@ describe('PolicyEvaluator', () => {
     });
 
     test('does NOT match when no ACEi in medications at all', () => {
-      const request = makeRequest([
-        { name: 'metoprolol', atc_class: 'C07AB02', status: 'active' },
-      ]);
+      const request = makeRequest([{ name: 'metoprolol', atc_class: 'C07AB02', status: 'active' }]);
       const pack = createPolicyPack([
         createRule('washout-rule', 100, recentMedClassCondition, { decision: 'HARD_STOP' }),
       ]);
@@ -1259,9 +1257,7 @@ describe('PolicyEvaluator', () => {
     });
 
     test('ignores active medications (only checks discontinued/on_hold)', () => {
-      const request = makeRequest([
-        { name: 'lisinopril', atc_class: 'C09AA01', status: 'active' },
-      ]);
+      const request = makeRequest([{ name: 'lisinopril', atc_class: 'C09AA01', status: 'active' }]);
       const pack = createPolicyPack([
         createRule('washout-rule', 100, recentMedClassCondition, { decision: 'HARD_STOP' }),
       ]);
@@ -1315,10 +1311,15 @@ describe('PolicyEvaluator', () => {
         ],
         snapshot_payload: {
           active_medications: [
-            { name: 'lisinopril', atc_class: 'C09AA01', status: 'discontinued', stopped_at: stoppedAt },
+            {
+              name: 'lisinopril',
+              atc_class: 'C09AA01',
+              status: 'discontinued',
+              stopped_at: stoppedAt,
+            },
           ],
         },
-      } as any);
+      } as unknown as SupervisionRequest);
 
       const pack = createPolicyPack([arniWashoutRule]);
       const evaluator = createEvaluator(pack);
@@ -1350,10 +1351,15 @@ describe('PolicyEvaluator', () => {
         ],
         snapshot_payload: {
           active_medications: [
-            { name: 'lisinopril', atc_class: 'C09AA01', status: 'discontinued', stopped_at: stoppedAt },
+            {
+              name: 'lisinopril',
+              atc_class: 'C09AA01',
+              status: 'discontinued',
+              stopped_at: stoppedAt,
+            },
           ],
         },
-      } as any);
+      } as unknown as SupervisionRequest);
 
       const pack = createPolicyPack([arniWashoutRule]);
       const evaluator = createEvaluator(pack);

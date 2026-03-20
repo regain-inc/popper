@@ -1,16 +1,21 @@
-# Popper Default Policy Pack
+# Popper Core Safety Pack
 # Safety DSL v1 - Deterministic Policy Engine
 #
-# This is the default policy pack for Popper supervision.
+# This is the core safety pack for Popper supervision.
 # It implements minimum required rules per 03-popper-safety-dsl.md §5.
+# All rules carry provenance for audit traceability (v2.1).
 
-policy_id: popper-default
-policy_version: 1.1.0
+policy_id: popper-core-safety
+policy_version: 2.0.0
+pack_type: core
 
 metadata:
-  description: Default Popper safety policy pack
+  description: Core safety rules — schema, staleness, safe-mode, evidence quality, uncertainty, hallucination, conflicts, acuity, defaults
   owner: Popper Dev Team
+  jurisdiction: global
   created_at: "2026-01-26"
+  approved_at: "2026-03-19"
+  review_interval_days: 365
   sources:
     - kind: policy
       citation: "03-popper-safety-dsl.md §5 - Minimum required rules"
@@ -32,6 +37,17 @@ rules:
   - rule_id: schema_invalid
     description: Invalid schema - cannot process safely
     priority: 1200
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: schema_invalid
     then:
@@ -43,6 +59,17 @@ rules:
   - rule_id: snapshot_missing
     description: No snapshot provided - cannot proceed safely
     priority: 1100
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: snapshot_missing
     then:
@@ -81,6 +108,17 @@ rules:
   - rule_id: data_quality_warning_high_risk
     description: Stale snapshot for high-risk proposals
     priority: 950
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: all_of
       conditions:
@@ -99,6 +137,17 @@ rules:
   - rule_id: data_quality_warning_default
     description: Stale snapshot - request fresh data
     priority: 900
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: snapshot_stale
     then:
@@ -114,6 +163,17 @@ rules:
   - rule_id: safe_mode_medication
     description: Safe mode enabled - block medication proposals
     priority: 850
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: all_of
       conditions:
@@ -131,6 +191,17 @@ rules:
   - rule_id: safe_mode_high_risk
     description: Safe mode enabled - block high-risk proposals
     priority: 800
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: all_of
       conditions:
@@ -153,6 +224,17 @@ rules:
   - rule_id: prompt_injection_suspected
     description: Possible prompt injection detected
     priority: 750
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: input_risk_flag_in
       flags:
@@ -168,6 +250,17 @@ rules:
   - rule_id: input_risk_flags
     description: Input risk flags present
     priority: 700
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: input_risk_flag_in
       flags:
@@ -186,6 +279,17 @@ rules:
   - rule_id: medication_missing_evidence
     description: Medication proposal missing evidence references
     priority: 650
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: proposal_missing_field
       proposal_kinds:
@@ -200,6 +304,17 @@ rules:
   - rule_id: medication_missing_protocol
     description: Medication proposal missing clinician protocol reference
     priority: 640
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: proposal_missing_field
       proposal_kinds:
@@ -215,6 +330,17 @@ rules:
   - rule_id: low_htv_score_medication
     description: Low HTV score for medication proposals
     priority: 620
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: htv_score_below
       threshold: 0.6
@@ -230,6 +356,17 @@ rules:
   - rule_id: low_htv_score_default
     description: Low HTV score for any proposal
     priority: 600
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: htv_score_below
       threshold: 0.4
@@ -242,6 +379,17 @@ rules:
   - rule_id: weak_evidence_grade
     description: Weak evidence grade for clinical proposals
     priority: 610
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: evidence_grade_below
       threshold: case_control
@@ -262,6 +410,17 @@ rules:
   - rule_id: high_uncertainty_medication
     description: High uncertainty for medication proposals
     priority: 550
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: all_of
       conditions:
@@ -280,6 +439,17 @@ rules:
   - rule_id: high_uncertainty_default
     description: High uncertainty for any proposal
     priority: 500
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: uncertainty_at_least
       level: high
@@ -296,6 +466,17 @@ rules:
   - rule_id: hallucination_critical
     description: Critical hallucination detected
     priority: 450
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: hallucination_detected
       severity: critical
@@ -309,6 +490,17 @@ rules:
   - rule_id: hallucination_significant
     description: Significant hallucination detected
     priority: 420
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: hallucination_detected
       severity: significant
@@ -322,6 +514,17 @@ rules:
   - rule_id: idk_triggered
     description: IDK (I Don't Know) triggered by Brain
     priority: 400
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: idk_triggered
     then:
@@ -338,6 +541,17 @@ rules:
   - rule_id: conflict_count_too_high
     description: Too many cross-domain conflicts
     priority: 360
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: conflict_count_exceeds
       threshold: 5
@@ -351,6 +565,17 @@ rules:
   - rule_id: conflict_escalated
     description: Cross-domain conflict escalated
     priority: 350
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: conflict_escalated
     then:
@@ -363,6 +588,17 @@ rules:
   - rule_id: conflict_missing_evidence
     description: Cross-domain conflict missing evidence
     priority: 340
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: conflict_missing_evidence
     then:
@@ -374,6 +610,17 @@ rules:
   - rule_id: conflict_low_confidence
     description: Conflict resolution confidence is low
     priority: 335
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: conflict_resolution_confidence
       level: low
@@ -387,6 +634,17 @@ rules:
   - rule_id: domain_failed
     description: Clinical domain processing failed
     priority: 330
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: domain_status_in
       statuses:
@@ -401,6 +659,17 @@ rules:
   - rule_id: rule_engine_failed
     description: Rule engine processing failed
     priority: 320
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: rule_engine_failed
     then:
@@ -419,6 +688,17 @@ rules:
   - rule_id: critical_acuity_medication
     description: Critical patient acuity with medication proposal - hard stop
     priority: 290
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: all_of
       conditions:
@@ -437,6 +717,17 @@ rules:
   - rule_id: critical_acuity_any
     description: Critical patient acuity - route all proposals to clinician
     priority: 285
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: acuity_at_least
       level: critical
@@ -450,6 +741,17 @@ rules:
   - rule_id: critical_intervention_risk
     description: Critical intervention risk on any proposal - hard stop
     priority: 280
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: intervention_risk_at_least
       level: critical
@@ -463,6 +765,17 @@ rules:
   - rule_id: high_acuity_any
     description: High patient acuity - route to clinician
     priority: 270
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: acuity_at_least
       level: high
@@ -476,6 +789,17 @@ rules:
   - rule_id: high_intervention_risk
     description: High intervention risk on any proposal - route to clinician
     priority: 265
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: intervention_risk_at_least
       level: high
@@ -489,6 +813,17 @@ rules:
   - rule_id: moderate_acuity_clinical_mode
     description: Moderate acuity in clinical mode - route to clinician
     priority: 250
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: all_of
       conditions:
@@ -507,6 +842,17 @@ rules:
   - rule_id: moderate_intervention_risk_medication
     description: Moderate intervention risk for medication proposals - route to clinician
     priority: 245
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: all_of
       conditions:
@@ -529,6 +875,17 @@ rules:
   - rule_id: default_approve_wellness
     description: Default approval for wellness proposals
     priority: 10
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: proposal_kind_in
       kinds:
@@ -545,6 +902,17 @@ rules:
   - rule_id: default_route
     description: Default fallback - route to clinician
     priority: 0
+    provenance:
+      source_type: internal_policy
+      source_layer: 1
+      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      evidence_grade: policy
+      jurisdiction: global
+      clinical_domain: general
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-26"
+      review_interval_days: 365
+      review_due: "2027-01-26"
     when:
       kind: always
     then:

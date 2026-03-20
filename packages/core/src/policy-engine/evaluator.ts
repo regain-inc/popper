@@ -26,19 +26,19 @@ import type {
 // =============================================================================
 
 /** Extract MEDICATION_ORDER_PROPOSAL proposals from a request */
-function getMedicationProposals(request: SupervisionRequest): any[] {
-  return (request.proposals ?? []).filter((p: any) => p.kind === 'MEDICATION_ORDER_PROPOSAL');
+function getMedicationProposals(request: SupervisionRequest) {
+  return (request.proposals ?? []).filter((p) => p.kind === 'MEDICATION_ORDER_PROPOSAL');
 }
 
 /** Get snapshot_payload with null-safety */
-function getSnapshotPayload(request: SupervisionRequest): any | null {
-  return (request as any).snapshot_payload ?? null;
+function getSnapshotPayload(request: SupervisionRequest): Record<string, unknown> | null {
+  return (request as Record<string, unknown>).snapshot_payload as Record<string, unknown> | null;
 }
 
 /** ATC prefix match: does atcClass start with any of the given codes? */
 function matchAtcClass(atcClass: string | undefined, codes: string[]): boolean {
   if (!atcClass) return false;
-  return codes.some(code => atcClass.toUpperCase().startsWith(code.toUpperCase()));
+  return codes.some((code) => atcClass.toUpperCase().startsWith(code.toUpperCase()));
 }
 
 // =============================================================================
@@ -740,11 +740,7 @@ export class PolicyEvaluator {
    * Check if snapshot_payload.recent_labs contains a lab with value < threshold.
    * Returns false if recent_labs is null or undefined.
    */
-  private isSnapshotLabBelow(
-    request: SupervisionRequest,
-    lab: string,
-    threshold: number,
-  ): boolean {
+  private isSnapshotLabBelow(request: SupervisionRequest, lab: string, threshold: number): boolean {
     const snapshot = getSnapshotPayload(request);
     if (!snapshot) return false;
 
@@ -752,7 +748,8 @@ export class PolicyEvaluator {
     if (!Array.isArray(recentLabs)) return false;
 
     return recentLabs.some(
-      (l: any) => l.lab_id === lab && typeof l.value === 'number' && l.value < threshold,
+      (l: Record<string, unknown>) =>
+        l.lab_id === lab && typeof l.value === 'number' && l.value < threshold,
     );
   }
 
@@ -760,11 +757,7 @@ export class PolicyEvaluator {
    * Check if snapshot_payload.recent_labs contains a lab with value > threshold.
    * Returns false if recent_labs is null or undefined.
    */
-  private isSnapshotLabAbove(
-    request: SupervisionRequest,
-    lab: string,
-    threshold: number,
-  ): boolean {
+  private isSnapshotLabAbove(request: SupervisionRequest, lab: string, threshold: number): boolean {
     const snapshot = getSnapshotPayload(request);
     if (!snapshot) return false;
 
@@ -772,7 +765,8 @@ export class PolicyEvaluator {
     if (!Array.isArray(recentLabs)) return false;
 
     return recentLabs.some(
-      (l: any) => l.lab_id === lab && typeof l.value === 'number' && l.value > threshold,
+      (l: Record<string, unknown>) =>
+        l.lab_id === lab && typeof l.value === 'number' && l.value > threshold,
     );
   }
 
@@ -788,17 +782,14 @@ export class PolicyEvaluator {
     // Only match when recent_labs is a real array (not null)
     if (!Array.isArray(recentLabs)) return false;
 
-    return !recentLabs.some((l: any) => l.lab_id === lab);
+    return !recentLabs.some((l: Record<string, unknown>) => l.lab_id === lab);
   }
 
   /**
    * Check if snapshot_payload.active_conditions contains a condition with
    * matching condition_id (case-insensitive) and status === 'active'.
    */
-  private isSnapshotConditionPresent(
-    request: SupervisionRequest,
-    conditionId: string,
-  ): boolean {
+  private isSnapshotConditionPresent(request: SupervisionRequest, conditionId: string): boolean {
     const snapshot = getSnapshotPayload(request);
     if (!snapshot) return false;
 
@@ -807,8 +798,8 @@ export class PolicyEvaluator {
 
     const targetLower = conditionId.toLowerCase();
     return conditions.some(
-      (c: any) =>
-        c.condition_id?.toLowerCase() === targetLower && c.status === 'active',
+      (c: Record<string, unknown>) =>
+        (c.condition_id as string)?.toLowerCase() === targetLower && c.status === 'active',
     );
   }
 
@@ -837,7 +828,7 @@ export class PolicyEvaluator {
     if (medProposals.length === 0) return false;
 
     const snapshot = getSnapshotPayload(request);
-    const activeMeds: any[] = Array.isArray(snapshot?.active_medications)
+    const activeMeds: Record<string, unknown>[] = Array.isArray(snapshot?.active_medications)
       ? snapshot.active_medications
       : [];
 
@@ -850,12 +841,8 @@ export class PolicyEvaluator {
     const proposedMatchesB = medProposals.some((p) =>
       matchAtcClass(p.medication?.atc_class, [classB]),
     );
-    const activeMatchesA = activeMeds.some((m: any) =>
-      matchAtcClass(m.atc_class, [classA]),
-    );
-    const activeMatchesB = activeMeds.some((m: any) =>
-      matchAtcClass(m.atc_class, [classB]),
-    );
+    const activeMatchesA = activeMeds.some((m) => matchAtcClass(m.atc_class as string, [classA]));
+    const activeMatchesB = activeMeds.some((m) => matchAtcClass(m.atc_class as string, [classB]));
 
     return (proposedMatchesA && activeMatchesB) || (proposedMatchesB && activeMatchesA);
   }
@@ -881,16 +868,18 @@ export class PolicyEvaluator {
       const medication = p.medication;
       if (!medication) return false;
 
-      return allergies.some((allergy: any) => {
+      return allergies.some((allergy: Record<string, unknown>) => {
+        const allergyAtc = allergy.atc_class as string | undefined;
+        const allergySubstance = allergy.substance as string | undefined;
         const atcMatch =
           medication.atc_class &&
-          allergy.atc_class &&
-          medication.atc_class.toUpperCase().startsWith(allergy.atc_class.toUpperCase());
+          allergyAtc &&
+          medication.atc_class.toUpperCase().startsWith(allergyAtc.toUpperCase());
 
         const substanceMatch =
           medication.name &&
-          allergy.substance &&
-          medication.name.toLowerCase() === allergy.substance.toLowerCase();
+          allergySubstance &&
+          medication.name.toLowerCase() === allergySubstance.toLowerCase();
 
         switch (matchOn) {
           case 'atc_class':
@@ -933,9 +922,7 @@ export class PolicyEvaluator {
       if (!dose?.to) return false;
 
       return (
-        typeof dose.to.value === 'number' &&
-        dose.to.value > maxValue &&
-        dose.to.unit === maxUnit
+        typeof dose.to.value === 'number' && dose.to.value > maxValue && dose.to.unit === maxUnit
       );
     });
   }
@@ -966,15 +953,15 @@ export class PolicyEvaluator {
     const windowMs = withinHours * 60 * 60 * 1000;
 
     // Find any medication matching the ATC classes that is discontinued/on_hold
-    return activeMeds.some((med: any) => {
+    return activeMeds.some((med: Record<string, unknown>) => {
       // Must match ATC class
-      if (!matchAtcClass(med.atc_class, classes)) return false;
+      if (!matchAtcClass(med.atc_class as string, classes)) return false;
 
       // Must be discontinued or on_hold
       if (med.status !== 'discontinued' && med.status !== 'on_hold') return false;
 
       // Get the relevant timestamp (prefer stopped_at, fall back to last_dose_at)
-      const timestamp = med.stopped_at ?? med.last_dose_at;
+      const timestamp = (med.stopped_at ?? med.last_dose_at) as string | undefined;
 
       // Fail-safe: no timestamp means we can't verify the washout period
       if (!timestamp) return true;

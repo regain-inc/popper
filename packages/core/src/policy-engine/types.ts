@@ -433,17 +433,17 @@ export interface InterventionRiskAtLeastCondition {
 
 export interface MedicationClassInCondition {
   kind: 'medication_class_in';
-  classes: string[];  // ATC 4th-level codes
+  classes: string[]; // ATC 4th-level codes
 }
 
 export interface MedicationNameInCondition {
   kind: 'medication_name_in';
-  names: string[];  // normalized generic names
+  names: string[]; // normalized generic names
 }
 
 export interface SnapshotLabBelowCondition {
   kind: 'snapshot_lab_below';
-  lab: string;  // lab_id or LOINC
+  lab: string; // lab_id or LOINC
   threshold: number;
 }
 
@@ -460,18 +460,18 @@ export interface SnapshotLabMissingCondition {
 
 export interface SnapshotConditionPresentCondition {
   kind: 'snapshot_condition_present';
-  condition: string;  // condition_id or SNOMED
+  condition: string; // condition_id or SNOMED
 }
 
 export interface SnapshotFieldMissingCondition {
   kind: 'snapshot_field_missing';
-  field: string;  // e.g., "active_medications", "medication_allergies"
+  field: string; // e.g., "active_medications", "medication_allergies"
 }
 
 export interface CombinationPresentCondition {
   kind: 'combination_present';
-  class_a: string;  // ATC code
-  class_b: string;  // ATC code
+  class_a: string; // ATC code
+  class_b: string; // ATC code
 }
 
 export interface AllergyMatchCondition {
@@ -481,7 +481,7 @@ export interface AllergyMatchCondition {
 
 export interface DoseExceedsMaxCondition {
   kind: 'dose_exceeds_max';
-  medication: string;  // name or ATC
+  medication: string; // name or ATC
   max_value: number;
   max_unit: string;
 }
@@ -490,8 +490,8 @@ export interface DoseExceedsMaxCondition {
 
 export interface RecentMedicationClassCondition {
   kind: 'recent_medication_class';
-  classes: string[];  // ATC 4th-level codes
-  within_hours: number;  // time window in hours
+  classes: string[]; // ATC 4th-level codes
+  within_hours: number; // time window in hours
 }
 
 // Escape hatch
