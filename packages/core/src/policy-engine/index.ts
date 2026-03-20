@@ -88,13 +88,16 @@ export {
   HIGH_RISK_PROPOSAL_KINDS,
   StalenessValidator,
 } from './staleness';
-// Types
+// Types — Governance
+// Types — Conditions & Rules
 export type {
   AcuityAtLeastCondition,
   AllergyMatchCondition,
   AllOfCondition,
   AlwaysCondition,
   AnyOfCondition,
+  ApprovalMethod,
+  ApprovalStatus,
   ApprovedConstraints,
   CombinationPresentCondition,
   ConditionKind,
@@ -107,6 +110,7 @@ export type {
   DomainStatusInCondition,
   DoseExceedsMaxCondition,
   EvidenceGradeBelowCondition,
+  GovernanceApproval,
   HallucinationDetectedCondition,
   HTVScoreBelowCondition,
   IDKTriggeredCondition,
@@ -150,4 +154,4 @@ export type {
   VendorMissingCondition,
   VendorRiskTierAtLeastCondition,
 } from './types';
-export { CONDITION_KINDS } from './types';
+export { APPROVAL_METHODS, APPROVAL_STATUSES, CONDITION_KINDS } from './types';
