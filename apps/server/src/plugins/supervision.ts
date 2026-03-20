@@ -510,6 +510,17 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
             stalenessResult.is_missing,
           );
 
+          // Extract provenance from the first matched rule (highest priority)
+          const primaryMatchedRule = evaluationResult.matched_rules[0];
+          const ruleProvenance = primaryMatchedRule?.provenance
+            ? {
+                rule_id: primaryMatchedRule.rule_id,
+                source_type: primaryMatchedRule.provenance.source_type,
+                citation: primaryMatchedRule.provenance.citation,
+                source_layer: primaryMatchedRule.provenance.source_layer,
+              }
+            : undefined;
+
           auditEmitter.emit(
             createSupervisionDecisionEvent({
               traceId: request.trace.trace_id,
@@ -521,6 +532,7 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
               safeModeActive: safeModeState.enabled,
               latencyMs,
               proposalCount: request.proposals?.length ?? 0,
+              ruleProvenance,
               payload: {
                 ...requestMetadata,
                 staleness: {

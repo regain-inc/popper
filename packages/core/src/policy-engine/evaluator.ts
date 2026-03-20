@@ -19,6 +19,7 @@ import type {
   PolicyRule,
   ReconfigureEffect,
   RuleCondition,
+  RuleProvenance,
 } from './types';
 
 // =============================================================================
@@ -125,6 +126,8 @@ export interface MatchedRule {
   reason_codes: ReasonCode[];
   /** Whether this rule had continue=true */
   continued: boolean;
+  /** Rule provenance for compliance traceability (v2.1) */
+  provenance?: RuleProvenance;
 }
 
 /**
@@ -199,6 +202,7 @@ export class PolicyEvaluator {
           decision: rule.then.decision,
           reason_codes: rule.then.reason_codes,
           continued: rule.then.continue ?? false,
+          provenance: rule.provenance,
         };
         matchedRules.push(matched);
 
