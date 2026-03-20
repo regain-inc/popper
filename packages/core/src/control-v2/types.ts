@@ -1,9 +1,9 @@
 /**
  * ControlCommandV2 Types
  *
- * Local v2 control command types. These mirror what will be in
- * @regain/hermes v2.0.0 but are defined locally since the installed
- * hermes version (v1.x) does not include them yet.
+ * Local v2 control command types. These mirror what is in
+ * @regain/hermes v2.3.0 but are defined locally to avoid a direct
+ * runtime dependency on the hermes package in this module.
  *
  * @module control-v2/types
  */

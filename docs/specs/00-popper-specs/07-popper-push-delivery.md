@@ -5,7 +5,7 @@ status: implemented
 owner: Popper Dev Team
 tags: [advocate, popper, push, delivery, transport, ta2, reliability]
 depends-on:
-  - "@regain/hermes (v2.0.0) — ControlCommandV2, ControlCommandResponse types"
+  - "@regain/hermes (v2.3.0) — ControlCommandV2, ControlCommandResponse types"
   - 02-popper-contracts-and-interfaces.md
 implementation:
   packages:
@@ -91,7 +91,7 @@ POST /v1/deutsch/control
 
 ```
 Content-Type: application/json
-X-Hermes-Version: 2.0.0
+X-Hermes-Version: 2.3.0
 X-Command-Priority: URGENT          // Allows receivers to prioritize before parsing body
 X-Idempotency-Key: 01JQXK3M7N...   // Duplicate of body field for fast dedup
 ```

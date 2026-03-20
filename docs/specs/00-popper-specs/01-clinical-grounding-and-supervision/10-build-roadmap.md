@@ -20,7 +20,7 @@ This roadmap translates the spec set into a phased implementation plan. Each pha
 | Policy engine (parser, evaluator, decision builder) | **Implemented, tested** | 25KB evaluator + 34KB tests, 21KB parser + 15KB tests |
 | Default policy pack (32 rules, 10 priority tiers) | **Implemented** | `config/policies/default.yaml` |
 | Safety DSL v1 with 28 condition kinds | **Implemented** | `packages/core/src/policy-engine/types.ts` |
-| Hermes v2.1.0 schema with evidence types + clinical supervision contract | **Implemented** | `@regain/hermes` npm package |
+| Hermes v2.3.0 schema with evidence types, clinical supervision, GDMT alignment, governance module | **Implemented** | `@regain/hermes` npm package |
 | Deutsch → Popper supervision integration | **Implemented** | `04-deutsch/apps/api/src/helpers/supervision.ts` |
 | Audit events with PHI redaction | **Implemented** | `packages/core/src/audit/` |
 | Drift detection | **Implemented** | `packages/core/src/drift/` |
@@ -268,7 +268,7 @@ Build the tooling that supports the clinical governance review workflow, so it i
 | **Bias monitoring architecture** | Demographic-stratified analysis without breaking PHI-blind design | When facility-level join infrastructure exists |
 | **Adverse event flagging** | Structured incident detection and reporting workflow | When post-market reporting requirements are defined |
 | **Multi-vendor supervision** | Supervise AI systems beyond Deutsch | When third-party Brain integrations are planned |
-| **Hermes schema additions** | `rule_citations` in SupervisionResponse, structured `rule_provenance` in AuditEvent | When governance maturity justifies Hermes version bump |
+| **Hermes schema additions** | `rule_citations` in SupervisionResponse, structured `rule_provenance` in AuditEvent | ~~When governance maturity justifies Hermes version bump~~ Governance types shipped in Hermes v2.3.0; remaining items tracked for v2.4+ |
 | **PCCP document** | Formal Predetermined Change Control Plan for FDA | When regulatory submission timeline is defined |
 
 ---

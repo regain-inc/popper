@@ -410,5 +410,5 @@ This spec targets the following proposed §4 evidence requirements for Standard 
 
 1. **Proposed IAC Echo Standards, Standard V** (Regain draft, not yet submitted/adopted) — Override and Rejection Tracking, §4 evidence requirements
 2. **He et al. 2023, Nature** (n=3,495 blinded RCT) — AI LVEF override rate 16.8%, cited in proposed Standard V.4
-3. **Hermes Protocol v2.0.0** — `ClinicianFeedbackEvent`, `RationaleCategory`, `DemographicContext` type definitions
+3. **Hermes Protocol v2.3.0** — `ClinicianFeedbackEvent`, `RationaleCategory`, `DemographicContext` type definitions
 4. **09-clinical-governance-review-workflow.md** — Governance committee roles and override review process

@@ -10,7 +10,7 @@ tags: [advocate, ta2, popper, api, contracts, tefca, uscdi]
 
 This file defines:
 - Popper’s **public API** (HTTP + optional MCP)
-- how Popper consumes the **Hermes v1 contract** for supervision, auditability, and interoperability
+- how Popper consumes the **Hermes v2.3 contract** for supervision, auditability, and interoperability
 - the **control plane** interface (safe-mode + settings)
 
 ## 1) Popper public API (HTTP)
@@ -100,7 +100,7 @@ Popper SHOULD expose an MCP server with methods equivalent to HTTP:
 
 ## 3) Hermes contract dependency (Deutsch ↔ Popper)
 
-Popper MUST validate and produce Hermes v1 messages as defined by the canonical contract:
+Popper MUST validate and produce Hermes v2.3 messages as defined by the canonical contract:
 - **Canonical contract**: [`../03-hermes-specs/02-hermes-contracts.md`](../03-hermes-specs/02-hermes-contracts.md)
 
 Popper MUST use Hermes types/schemas for:

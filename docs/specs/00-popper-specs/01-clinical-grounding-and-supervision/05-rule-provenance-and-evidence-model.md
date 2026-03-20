@@ -71,7 +71,7 @@ And a clinically grounded rule becomes even more precise:
 **Dependency:** This type uses `NativeGrading` from Hermes (`06-hermes-clinical-supervision-contract.md` §4.2). Popper MUST import or re-export the exact Hermes definition — not maintain a local copy.
 
 ```typescript
-import type { EvidenceGrade, NativeGrading } from '@regain/hermes';
+import type { EvidenceGrade, NativeGrading, GovernanceApproval } from '@regain/hermes';
 
 /**
  * Structured provenance for a policy rule.
@@ -152,9 +152,22 @@ interface RuleProvenance {
   /** Whether this rule depends on a local site protocol for full context */
   local_protocol_dependency?: string;
 
+  // ─── Governance ─────────────────────────────────────────────
+
+  /**
+   * Structured governance approval from Hermes governance module.
+   * Preferred over the free-text `approved_by` field.
+   * See `07-hermes-governance-types.md` for the GovernanceApproval type.
+   */
+  approval?: GovernanceApproval;
+
   // ─── Lifecycle ───────────────────────────────────────────────
 
-  /** Who approved this rule for activation */
+  /**
+   * Who approved this rule for activation.
+   * @deprecated Use `approval` (GovernanceApproval) instead. Retained for
+   * backwards compatibility with existing policy packs.
+   */
   approved_by: string;
 
   /** Date the rule became effective */

@@ -67,7 +67,7 @@ This spec set addresses all of these.
 
 ### Upstream contract state (spec-defined but not yet in runtime)
 - **Hermes prose spec** (`02-hermes-contracts.md` §3.3) already defines a typed `MedicationOrderProposal` with `medication.name`, `medication.rxnorm_code`, `change.change_type`, `change.from_dose/to_dose`, and `clinician_protocol_ref`.
-- **Hermes v2.1 extension** (`06-hermes-clinical-supervision-contract.md`) adds `medication.atc_class`, `structured_dose`, `ClinicalSnapshotPayload` (active medications, labs, conditions, vitals, allergies), and `NativeGrading` for source-native evidence systems.
+- **Hermes v2.3 extension** (`06-hermes-clinical-supervision-contract.md`) adds `medication.atc_class`, `structured_dose`, `ClinicalSnapshotPayload` (active medications, labs, conditions, vitals, allergies), and `NativeGrading` for source-native evidence systems.
 - **Hermes JSON schema** (`hermes-message.schema.json`) now types `proposals` as `Array<ProposedIntervention>` and `snapshot_payload` as `ClinicalSnapshotPayload`.
 - **Deutsch CVD cartridge spec** (`03-deutsch-cvd-cartridge-spec.md` §5.2, §9, §10) already requires `MEDICATION_ORDER_PROPOSAL` with protocol refs and evidence refs; defines a protocol registry and guideline source registry.
 - **Deutsch projection spec** (`11-deutsch-to-popper-clinical-projection-spec.md`) defines the migration from current `OTHER`-heavy runtime to typed proposals.

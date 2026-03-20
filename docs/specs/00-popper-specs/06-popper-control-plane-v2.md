@@ -5,7 +5,7 @@ status: implemented
 owner: Popper Dev Team
 tags: [advocate, popper, control-plane, dsl, reconfigure, ta2, iso-compliance]
 depends-on:
-  - "@regain/hermes (v2.0.0) — ControlCommandV2, ControlCommandResponse types"
+  - "@regain/hermes (v2.3.0) — ControlCommandV2, ControlCommandResponse types"
   - 01-popper-system-spec.md
   - 03-popper-safety-dsl.md
 implementation:
