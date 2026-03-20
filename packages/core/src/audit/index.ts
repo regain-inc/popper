@@ -5,5 +5,6 @@
  */
 
 export * from './emitter';
+export * from './hermes-bridge';
 export * from './redaction';
 export * from './types';
