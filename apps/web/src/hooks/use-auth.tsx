@@ -46,7 +46,7 @@ const DEMO_MODE = false;
 
 const DEMO_USER: AuthUser = {
   id: 'demo-admin-001',
-  email: 'admin@regain.health',
+  email: 'admin@regain.local',
   name: 'Dr. Sarah Chen',
   role: 'admin',
   image: null,

@@ -119,7 +119,7 @@ cmd_urgent() {
 }
 
 cmd_cycle_status() {
-    local team="${1:-Salomatic}"
+    local team="${1:-MISS}"
 
     # Get team ID first
     local team_id=$(graphql "{
@@ -215,7 +215,7 @@ cmd_project_member() {
 }
 
 cmd_summary() {
-    local team="${1:-Salomatic}"
+    local team="${1:-MISS}"
 
     echo "{"
     echo "  \"status_breakdown\":"
@@ -290,9 +290,9 @@ cmd_create() {
         exit 1
     fi
 
-    # Get default project ID (Unified Health App)
+    # Get default project ID (Regain Health)
     local project_id=$(graphql "{
-        \"query\": \"query { projects(first: 50, filter: { name: { containsIgnoreCase: \\\"Unified Health App\\\" } }) { nodes { id name } } }\"
+        \"query\": \"query { projects(first: 50, filter: { name: { containsIgnoreCase: \\\"Regain Health\\\" } }) { nodes { id name } } }\"
     }" | jq -r '.data.projects.nodes[0].id')
 
     local project_input=""
@@ -548,7 +548,7 @@ COMMANDS:
     workload                      Who's working on what (grouped by assignee)
     blocked                       List blocked issues
     urgent                        List urgent/high priority issues
-    cycle-status [team]           Current sprint progress (default: Salomatic)
+    cycle-status [team]           Current sprint progress (default: MISS)
     recent [hours]                Recently updated issues (default: 24 hours)
     unassigned                    Issues without assignee
     member <name>                 Issues for team member (Davr, Rato, Ania, Harsh)
@@ -579,7 +579,7 @@ COMMANDS:
 
   PROJECT & PHASE SYNC:
     sync-all                      Sync all tickets: assign to project + apply phase labels
-    sync-project [name]           Assign all tickets to project (default: Unified Health App)
+    sync-project [name]           Assign all tickets to project (default: Regain Health)
     sync-phases                   Apply phase labels from roadmap mapping
 
   STANDUP:
@@ -599,10 +599,10 @@ EXAMPLES:
     linear.sh comment PROJ-123 "Fixed in commit abc123"
 
   Sprint Management:
-    linear.sh cycle-create "Salomatic" "Sprint 1: Foundation" "2025-01-06" "2025-01-19"
+    linear.sh cycle-create "MISS" "Sprint 1: Foundation" "2025-01-06" "2025-01-19"
     linear.sh cycle-update abc123 name "Sprint 1 - Extended"
     linear.sh cycle-add SAL-123 abc123
-    linear.sh cycle-setup-roadmap "Salomatic" "2025-01-06"
+    linear.sh cycle-setup-roadmap "MISS" "2025-01-06"
 
   Standup:
     linear.sh standup-data "2025-12-27"                # All issues since Dec 27
@@ -892,7 +892,7 @@ cmd_label_create() {
     fi
 
     # Get team ID (labels are team-scoped in Linear)
-    local team_id=$(get_team_id "Salomatic")
+    local team_id=$(get_team_id "MISS")
 
     graphql "{
         \"query\": \"mutation { issueLabelCreate(input: { name: \\\"$name\\\", color: \\\"$color\\\", teamId: \\\"$team_id\\\" }) { success issueLabel { id name color } } }\"
@@ -1462,7 +1462,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DATA_DIR="$SCRIPT_DIR/../data"
 
 cmd_sync_project() {
-    local project_name="${1:-Unified Health App}"
+    local project_name="${1:-Regain Health}"
 
     echo "Syncing all tickets to project: $project_name"
 
@@ -1563,7 +1563,7 @@ cmd_sync_all() {
     echo ""
 
     echo "Step 1/2: Assigning tickets to project..."
-    cmd_sync_project "Unified Health App"
+    cmd_sync_project "Regain Health"
     echo ""
 
     echo "Step 2/2: Applying phase labels..."

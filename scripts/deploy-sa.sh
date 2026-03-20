@@ -80,5 +80,5 @@ fi
 echo "=========================================="
 echo "✅ Deployment completed successfully!"
 echo "=========================================="
-echo "Server: https://api.popper.ksa.salomatic.com"
-echo "Web: https://popper.ksa.salomatic.com"
+echo "Server: https://popper.regain.ai"
+echo "Web: https://popper.regain.ai"

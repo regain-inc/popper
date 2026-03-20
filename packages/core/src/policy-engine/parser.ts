@@ -676,6 +676,28 @@ function validateCondition(data: unknown, path: string): RuleCondition {
         max_unit: condition.max_unit,
       };
 
+    // ── Multi-vendor conditions (v2.2) ──
+
+    case 'vendor_id_in':
+      if (!Array.isArray(condition.vendor_ids)) {
+        throw new PolicyParseError(`${path}.vendor_ids is required for 'vendor_id_in'`);
+      }
+      return { kind: 'vendor_id_in', vendor_ids: condition.vendor_ids as string[] };
+
+    case 'vendor_risk_tier_at_least':
+      if (!['low', 'moderate', 'high', 'unclassified'].includes(condition.level as string)) {
+        throw new PolicyParseError(
+          `${path}.level must be 'low', 'moderate', 'high', or 'unclassified' for 'vendor_risk_tier_at_least'`,
+        );
+      }
+      return {
+        kind: 'vendor_risk_tier_at_least',
+        level: condition.level as 'low' | 'moderate' | 'high' | 'unclassified',
+      };
+
+    case 'vendor_missing':
+      return { kind: 'vendor_missing' } as RuleCondition;
+
     case 'other':
       if (typeof condition.expr !== 'string') {
         throw new PolicyParseError(`${path}.expr is required for 'other'`);

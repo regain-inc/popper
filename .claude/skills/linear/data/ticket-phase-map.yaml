@@ -7,7 +7,7 @@
 # - Roadmap phase documents for advanced features
 
 # Default project for all tickets
-default_project: "Unified Health App"
+default_project: "Regain Health"
 
 # Phase mappings
 phases:

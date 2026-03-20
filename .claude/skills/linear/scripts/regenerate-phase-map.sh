@@ -24,7 +24,7 @@ cat > "$OUTPUT" << 'EOF'
 # DO NOT EDIT MANUALLY - Run regenerate-phase-map.sh to update
 
 # Default project for all tickets
-default_project: "Unified Health App"
+default_project: "Regain Health"
 
 # Phase mappings
 phases:

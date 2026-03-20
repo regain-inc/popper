@@ -5,6 +5,22 @@
  * @module policy-engine
  */
 
+// Bundle Integrity
+export type {
+  BundleManifest,
+  IntegrityCheckResult,
+  PackDigest,
+} from './bundle-integrity';
+export {
+  computeCompositeHash,
+  computeFileHash,
+  computePackHash,
+  createBundleManifest,
+  createPackDigest,
+  verifyBundleIntegrity,
+  verifyFileIntegrity,
+  verifyPackIntegrity,
+} from './bundle-integrity';
 // Decision Builder
 export type { DecisionBuilderInput, SafeModeStateUsed } from './decision-builder';
 export {
@@ -41,6 +57,22 @@ export {
   parsePolicyPackJson,
   parsePolicyPackYaml,
 } from './parser';
+// Source Registry
+export type {
+  ProvenanceValidationResult,
+  RegistryValidationReport,
+  ReviewAlert,
+  ReviewStatus,
+  SourceEntry,
+  SourceType,
+} from './source-registry';
+export {
+  checkReviewAlerts,
+  generateValidationReport,
+  loadSourceRegistry,
+  SourceRegistryError,
+  validateProvenance,
+} from './source-registry';
 // Staleness Validator
 export type {
   ProposalRiskLevel,
@@ -114,5 +146,8 @@ export type {
   StalenessConfig,
   StalenessThresholds,
   UncertaintyAtLeastCondition,
+  VendorIdInCondition,
+  VendorMissingCondition,
+  VendorRiskTierAtLeastCondition,
 } from './types';
 export { CONDITION_KINDS } from './types';

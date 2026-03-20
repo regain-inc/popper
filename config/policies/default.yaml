@@ -99,6 +99,17 @@ rules:
       reason_codes:
         - policy_violation
       explanation: Medication proposals are not permitted in wellness mode.
+    provenance:
+      source_type: governance_requirement
+      source_layer: 5
+      citation: popper-safety-dsl-v1
+      evidence_grade: policy
+      jurisdiction: US
+      clinical_domain: safety
+      approved_by: "Popper Dev Team"
+      effective_date: "2026-01-25"
+      review_interval_days: 365
+      review_due: "2027-01-25"
 
   # ═══════════════════════════════════════════════════════════════════════════
   # STALENESS RULES (Priority 900-999)

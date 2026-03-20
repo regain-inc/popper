@@ -275,6 +275,11 @@ export type RuleCondition =
   // Medication history conditions (v2.2)
   | RecentMedicationClassCondition
 
+  // Multi-vendor conditions (v2.2)
+  | VendorIdInCondition
+  | VendorRiskTierAtLeastCondition
+  | VendorMissingCondition
+
   // Escape hatch
   | OtherCondition;
 
@@ -494,6 +499,22 @@ export interface RecentMedicationClassCondition {
   within_hours: number; // time window in hours
 }
 
+// Multi-vendor conditions (v2.2)
+
+export interface VendorIdInCondition {
+  kind: 'vendor_id_in';
+  vendor_ids: string[]; // match if request.vendor.vendor_id is in this list
+}
+
+export interface VendorRiskTierAtLeastCondition {
+  kind: 'vendor_risk_tier_at_least';
+  level: 'low' | 'moderate' | 'high' | 'unclassified';
+}
+
+export interface VendorMissingCondition {
+  kind: 'vendor_missing'; // fires when no vendor info is present
+}
+
 // Escape hatch
 export interface OtherCondition {
   kind: 'other';
@@ -631,5 +652,8 @@ export const CONDITION_KINDS = [
   'allergy_match',
   'dose_exceeds_max',
   'recent_medication_class',
+  'vendor_id_in',
+  'vendor_risk_tier_at_least',
+  'vendor_missing',
   'other',
 ] as const;

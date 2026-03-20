@@ -82,7 +82,7 @@
       "reason": "Drift detected: hard_stop_rate elevated to 8%",
       "effective_at": "2026-01-25T10:00:00.000Z",
       "effective_until": "2026-01-25T18:00:00.000Z",
-      "enabled_by": "ops@regain.health"
+      "enabled_by": "ops@regain.ai"
     },
     "policy": {
       "active_pack": "default",
@@ -196,7 +196,7 @@
         },
         "summary": "Safe-mode enabled by ops: Drift detected in hard_stop_rate",
         "tags": {
-          "enabled_by": "ops@regain.health",
+          "enabled_by": "ops@regain.ai",
           "reason": "Drift detected: hard_stop_rate elevated"
         }
       },
@@ -254,7 +254,7 @@
         },
         "summary": "Safe-mode disabled: metrics returned to normal",
         "tags": {
-          "disabled_by": "ops@regain.health",
+          "disabled_by": "ops@regain.ai",
           "reason": "Investigation complete, metrics normalized"
         }
       },
@@ -295,7 +295,7 @@
         "reason": "Drift detected: hard_stop_rate elevated to 8%",
         "effective_at": "2026-01-25T10:00:00.000Z",
         "effective_until": "2026-01-25T18:00:00.000Z",
-        "created_by": "ops@regain.health",
+        "created_by": "ops@regain.ai",
         "created_at": "2026-01-25T10:00:00.000Z"
       },
       {
@@ -304,7 +304,7 @@
         "reason": "Investigation complete, metrics normalized",
         "effective_at": "2026-01-24T18:00:00.000Z",
         "effective_until": null,
-        "created_by": "ops@regain.health",
+        "created_by": "ops@regain.ai",
         "created_at": "2026-01-24T18:00:00.000Z"
       },
       {

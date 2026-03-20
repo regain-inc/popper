@@ -156,7 +156,7 @@ integrations:
     - api-client
   keywords:
     - phi-service
-    - pii_salomatic
+    - pii_miss
     - anon-service
     - Keycloak
     - S2S

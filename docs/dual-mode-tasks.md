@@ -25,7 +25,7 @@ All changes are limited to **Helm chart infrastructure** -- switching External S
 | File | Purpose |
 |------|---------|
 | `infra/helm/popper/values.yaml` | Default values, Vault config (`externalSecrets.vault.*`) |
-| `infra/helm/popper/values-prod.yaml` | Production: `vault.server: vault.internal.regain.com`, `role: popper-prod` |
+| `infra/helm/popper/values-prod.yaml` | Production: `vault.server: vault.internal.regain.ai`, `role: popper-prod` |
 | `infra/helm/popper/values-staging.yaml` | Staging: ESO enabled, `environment: staging` |
 | `infra/helm/popper/values-dev.yaml` | Dev: ESO disabled |
 | `infra/helm/popper/templates/secret-store.yaml` | SecretStore CRD -- hardcoded Vault provider |
@@ -336,7 +336,7 @@ Also create the IAM policy for the ESO service account:
 
 | # | Task | Status | Evidence |
 |---|------|--------|----------|
-| 1 | `values-prod-us.yaml` | PASS | File exists with `provider: "aws"`, IRSA annotation, SecretsManager config, correct ingress `popper-api.us.regain.com` |
+| 1 | `values-prod-us.yaml` | PASS | File exists with `provider: "aws"`, IRSA annotation, SecretsManager config, correct ingress `popper.regain.ai` |
 | 2 | `secret-store.yaml` conditional | PASS | Conditional `{{- if eq (.Values.externalSecrets.provider \| default "vault") "aws" }}` correctly branches between AWS (JWT/IRSA) and Vault (Kubernetes auth) |
 | 3 | `external-secret.yaml` path prefix | PASS | `$isAws` variable + `ternary` produces empty prefix for AWS SM, `secret/data/` for Vault. All 7 secret keys use `$prefix` correctly |
 | 4 | `values.yaml` defaults | PASS | `provider: "vault"` (line 119), `aws:` block with `region` and `service` (lines 129-131) |

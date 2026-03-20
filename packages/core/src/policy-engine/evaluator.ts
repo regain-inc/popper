@@ -428,6 +428,31 @@ export class PolicyEvaluator {
           condition.max_unit,
         );
 
+      // ── Multi-vendor conditions (v2.2) ──
+
+      case 'vendor_id_in': {
+        const vendor = (context.request as Record<string, unknown>).vendor as
+          | { vendor_id?: string }
+          | undefined;
+        return vendor?.vendor_id !== undefined && condition.vendor_ids.includes(vendor.vendor_id);
+      }
+
+      case 'vendor_risk_tier_at_least': {
+        const vendor2 = (context.request as Record<string, unknown>).vendor as
+          | { risk_tier?: string }
+          | undefined;
+        if (!vendor2?.risk_tier) return false;
+        const tierOrder = ['low', 'moderate', 'high', 'unclassified'];
+        const actualIdx = tierOrder.indexOf(vendor2.risk_tier);
+        const thresholdIdx = tierOrder.indexOf(condition.level);
+        return actualIdx >= thresholdIdx;
+      }
+
+      case 'vendor_missing': {
+        const vendor3 = (context.request as Record<string, unknown>).vendor;
+        return vendor3 === undefined || vendor3 === null;
+      }
+
       // Escape hatch (not implemented in v1)
       case 'other':
         // 'other' conditions with expr are escape hatches

@@ -24,6 +24,7 @@ import {
 } from '../lib/schemas';
 import { createAuthGuard } from './api-key-auth';
 import { createRateLimitGuard } from './rate-limit';
+import { getComposedPolicyPackError, getComposedPolicyPackInfo } from './supervision';
 
 const startTime = Date.now();
 const DEFAULT_POLICY_PACK = 'popper-default';
@@ -60,7 +61,9 @@ export const dashboardPlugin = new Elysia({
           // Safe mode
           const safeModeState = await getSafeModeManager().snapshot(orgId);
 
-          // Policy
+          // Policy — prefer composed pack info from supervision plugin
+          const composedPackInfo = getComposedPolicyPackInfo();
+          const composedPackError = getComposedPolicyPackError();
           const policyPack = policyRegistry.get(DEFAULT_POLICY_PACK);
 
           // Drift counters (current hour from Redis)
@@ -105,9 +108,18 @@ export const dashboardPlugin = new Elysia({
               organization_id: orgId,
             },
             policy: {
-              active_pack: policyPack?.policy_id ?? DEFAULT_POLICY_PACK,
-              version: policyPack?.policy_version ?? '0.0.0',
-              rules_count: policyPack?.rules?.length ?? 0,
+              active_pack:
+                composedPackInfo?.policy_id ?? policyPack?.policy_id ?? DEFAULT_POLICY_PACK,
+              version: composedPackInfo?.policy_version ?? policyPack?.policy_version ?? '0.0.0',
+              rules_count: composedPackInfo?.rules_count ?? policyPack?.rules?.length ?? 0,
+              composed: composedPackInfo
+                ? {
+                    pack_count: composedPackInfo.pack_count,
+                    component_packs: composedPackInfo.component_packs,
+                    loaded_at: composedPackInfo.loaded_at,
+                  }
+                : null,
+              error: composedPackError,
             },
             counters: {
               requests_total: snapshot?.counters.request_count ?? 0,

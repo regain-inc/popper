@@ -85,6 +85,42 @@ async function initComposedPolicyPack(): Promise<void> {
 // Kick off pack loading at module init (top-level await)
 await initComposedPolicyPack();
 
+/**
+ * Get the current composed policy pack info for the dashboard.
+ * Returns null if pack failed to load.
+ */
+export function getComposedPolicyPackInfo(): {
+  policy_id: string;
+  policy_version: string;
+  rules_count: number;
+  pack_count: number;
+  component_packs: string[];
+  loaded_at: string;
+} | null {
+  if (!composedPolicyPack) return null;
+
+  // Parse component pack names from the composed policy_id
+  // Format: "composed:pack1+pack2+pack3" or just "pack-name" if single pack
+  const id = composedPolicyPack.policy_id;
+  const componentPacks = id.startsWith('composed:')
+    ? id.slice('composed:'.length).split('+')
+    : [id];
+
+  return {
+    policy_id: composedPolicyPack.policy_id,
+    policy_version: composedPolicyPack.policy_version,
+    rules_count: composedPolicyPack.rules.length,
+    pack_count: componentPacks.length,
+    component_packs: componentPacks,
+    loaded_at: new Date().toISOString(), // approximate — could track actual load time
+  };
+}
+
+/** Get the composed pack load error, if any */
+export function getComposedPolicyPackError(): string | null {
+  return composedPolicyPackError;
+}
+
 // =============================================================================
 // Validators and Builders
 // =============================================================================

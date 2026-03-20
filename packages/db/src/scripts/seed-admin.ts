@@ -5,7 +5,7 @@
  *   INITIAL_ADMIN_EMAIL=admin@example.com INITIAL_ADMIN_PASSWORD=temppassword bun run src/scripts/seed-admin.ts
  *
  * Or set these in .env:
- *   INITIAL_ADMIN_EMAIL=admin@regain.health
+ *   INITIAL_ADMIN_EMAIL=admin@regain.local
  *   INITIAL_ADMIN_PASSWORD=<secure-password>
  */
 

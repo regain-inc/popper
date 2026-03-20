@@ -43,6 +43,15 @@ export const statusResponseSchema = t.Object({
     active_pack: t.String(),
     version: t.String(),
     rules_count: t.Number(),
+    composed: t.Union([
+      t.Object({
+        pack_count: t.Number(),
+        component_packs: t.Array(t.String()),
+        loaded_at: t.String(),
+      }),
+      t.Null(),
+    ]),
+    error: t.Union([t.String(), t.Null()]),
   }),
   counters: t.Object({
     requests_total: t.Number(),

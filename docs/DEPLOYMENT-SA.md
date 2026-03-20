@@ -5,8 +5,8 @@
 ## Окружение
 
 - **Server**: 84.8.112.8 (Oracle VM, Ubuntu)
-- **Web Dashboard**: https://popper.ksa.salomatic.com
-- **API Server**: https://api.popper.ksa.salomatic.com
+- **Web Dashboard**: https://popper.regain.ai
+- **API Server**: https://popper.regain.ai
 - **Branch**: `sa`
 
 ## Архитектура
@@ -66,13 +66,13 @@ REDIS_URL=redis://host.docker.internal:6379
 
 # Auth
 BETTER_AUTH_SECRET=<random-32-char-secret>
-BETTER_AUTH_URL=https://api.popper.ksa.salomatic.com
+BETTER_AUTH_URL=https://popper.regain.ai
 
 # CORS
-CORS_ORIGIN=https://popper.ksa.salomatic.com
+CORS_ORIGIN=https://popper.regain.ai
 
 # Web
-NEXT_PUBLIC_API_URL=https://api.popper.ksa.salomatic.com
+NEXT_PUBLIC_API_URL=https://popper.regain.ai
 ```
 
 ## Деплой
@@ -116,10 +116,10 @@ sudo docker compose -f infra/docker/docker-compose.sa.yml up -d
 
 ```bash
 # API Server
-curl https://api.popper.ksa.salomatic.com/health
+curl https://popper.regain.ai/health
 
 # Web Dashboard
-curl -I https://popper.ksa.salomatic.com/
+curl -I https://popper.regain.ai/
 ```
 
 ### Логи

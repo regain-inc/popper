@@ -74,7 +74,7 @@ async function updateSafeMode(
         reason: request.reason,
         effective_at: request.effective_at || new Date().toISOString(),
         effective_until: request.effective_until || null,
-        enabled_by: 'ops@regain.health',
+        enabled_by: 'ops@regain.ai',
         scope: request.organization_id ? 'organization' : 'global',
         organization_id: request.organization_id || null,
       },

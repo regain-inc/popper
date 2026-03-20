@@ -19,14 +19,14 @@ queueWorker:
 ingress:
   enabled: true
   hosts:
-    - host: popper-api.staging.regain.com
+    - host: staging.popper.regain.ai
       paths:
         - path: /
           pathType: Prefix
   tls:
     - secretName: popper-api-staging-tls
       hosts:
-        - popper-api.staging.regain.com
+        - staging.popper.regain.ai
 
 externalSecrets:
   enabled: true

@@ -22,8 +22,8 @@ jobs:
         if: success()
         run: |
           echo "Deployment successful!"
-          echo "Server: https://api.popper.ksa.salomatic.com"
-          echo "Web: https://popper.ksa.salomatic.com"
+          echo "Server: https://popper.regain.ai"
+          echo "Web: https://popper.regain.ai"
           echo "Commit: ${{ github.sha }}"
 
       - name: Notify Failure

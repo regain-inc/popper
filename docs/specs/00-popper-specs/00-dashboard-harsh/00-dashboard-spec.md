@@ -30,7 +30,7 @@
 │   When Popper decides "ROUTE_TO_CLINICIAN":                                 │
 │                                                                              │
 │   ┌──────────────────┐         ┌──────────────────────────────┐             │
-│   │ Popper Engine    │────────▶│ Regain Medical (MIS)         │             │
+│   │ Popper Engine    │────────▶│ MISS         │             │
 │   │                  │  FHIR   │                              │             │
 │   │ "This medication │  Alert  │ Doctor sees:                 │             │
 │   │  needs review"   │         │ "Patient X needs your review │             │
@@ -50,28 +50,28 @@
 
 ### Two Separate Systems
 
-| System | Users | Purpose |
-|--------|-------|---------|
-| **Regain Medical (MIS)** | Doctors, clinicians | See routed patient cases, approve/reject proposals, patient care |
+| System                                  | Users                          | Purpose                                                                |
+| --------------------------------------- | ------------------------------ | ---------------------------------------------------------------------- |
+| **MISS**                                | Doctors, clinicians            | See routed patient cases, approve/reject proposals, patient care       |
 | **Popper Ops Dashboard** (this project) | Safety Ops, DevOps, Compliance | Monitor Popper's health, drift signals, safe-mode controls, audit logs |
 
 ### Primary Users of THIS Dashboard
 
-| Role | What They Do |
-|------|--------------|
-| **Safety Ops** | Monitor drift signals, enable safe-mode during incidents, review audit patterns |
-| **DevOps/SRE** | Check service health, uptime, system metrics |
+| Role           | What They Do                                                                       |
+| -------------- | ---------------------------------------------------------------------------------- |
+| **Safety Ops** | Monitor drift signals, enable safe-mode during incidents, review audit patterns    |
+| **DevOps/SRE** | Check service health, uptime, system metrics                                       |
 | **Compliance** | Access de-identified audit logs for regulatory review, export FDA-required bundles |
 
 ### What This Dashboard Does NOT Do
 
 - **Does NOT show patient-identifiable data** (only anonymized subject IDs)
-- **Does NOT let doctors approve/reject proposals** (that's Regain Medical)
+- **Does NOT let doctors approve/reject proposals** (that's MISS)
 - **Does NOT manage patient care workflows** (that's the mobile app + MIS)
 
 ### Why Separate?
 
-> "The FDA demands safety. By making Popper a separate entity that *only* checks for errors (and doesn't try to be helpful), we avoid 'conflict of interest.' Popper is the strict auditor who doesn't care if the patient is happy, only if they are safe."
+> "The FDA demands safety. By making Popper a separate entity that _only_ checks for errors (and doesn't try to be helpful), we avoid 'conflict of interest.' Popper is the strict auditor who doesn't care if the patient is happy, only if they are safe."
 
 The ops dashboard monitors this "safety auditor" — it's the control room for the safety system itself.
 
@@ -81,11 +81,11 @@ The ops dashboard monitors this "safety auditor" — it's the control room for t
 
 Three pages/components:
 
-| Component | Ticket | Purpose |
-|-----------|--------|---------|
-| **Status View** | POP-020 | "Is the system healthy right now?" |
-| **Audit Log Viewer** | POP-021 | "What decisions were made?" |
-| **Safe-Mode Controls** | POP-022 | "Enable/disable emergency brake" |
+| Component              | Ticket  | Purpose                            |
+| ---------------------- | ------- | ---------------------------------- |
+| **Status View**        | POP-020 | "Is the system healthy right now?" |
+| **Audit Log Viewer**   | POP-021 | "What decisions were made?"        |
+| **Safe-Mode Controls** | POP-022 | "Enable/disable emergency brake"   |
 
 ---
 
@@ -105,11 +105,11 @@ headers: {
 
 ### Roles Required
 
-| Action | Required Role |
-|--------|---------------|
-| View status, audit logs | `ops_viewer` or higher |
-| Enable/disable safe-mode | `ops_admin` |
-| Change settings | `ops_admin` |
+| Action                   | Required Role          |
+| ------------------------ | ---------------------- |
+| View status, audit logs  | `ops_viewer` or higher |
+| Enable/disable safe-mode | `ops_admin`            |
+| Change settings          | `ops_admin`            |
 
 ### Auth Flow
 
@@ -136,21 +136,21 @@ All pages should have an org selector in the header:
 ├─────────────────────────────────────────────────────────────────────────────┤
 ```
 
-| Selection | Behavior |
-|-----------|----------|
-| "All Organizations" | Shows global/aggregate view |
-| Specific org | Filters all data to that org |
+| Selection           | Behavior                     |
+| ------------------- | ---------------------------- |
+| "All Organizations" | Shows global/aggregate view  |
+| Specific org        | Filters all data to that org |
 
 ### API: organization_id Parameter
 
 Most endpoints accept `organization_id` query param:
 
-| Endpoint | Without org_id | With org_id |
-|----------|----------------|-------------|
-| `GET /status` | Global status | Org-specific status |
-| `GET /audit-events` | All events | Events for org only |
-| `GET /safe-mode` | Global safe-mode | Org's safe-mode |
-| `POST /control/safe-mode` | Set global | Set for org only |
+| Endpoint                  | Without org_id   | With org_id         |
+| ------------------------- | ---------------- | ------------------- |
+| `GET /status`             | Global status    | Org-specific status |
+| `GET /audit-events`       | All events       | Events for org only |
+| `GET /safe-mode`          | Global safe-mode | Org's safe-mode     |
+| `POST /control/safe-mode` | Set global       | Set for org only    |
 
 ---
 
@@ -168,9 +168,9 @@ All endpoints require authentication headers (see section 3).
 
 **Query Parameters:**
 
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `organization_id` | string | No | Filter to specific org (omit for global) |
+| Param             | Type   | Required | Description                              |
+| ----------------- | ------ | -------- | ---------------------------------------- |
+| `organization_id` | string | No       | Filter to specific org (omit for global) |
 
 **Response:**
 
@@ -178,14 +178,14 @@ All endpoints require authentication headers (see section 3).
 interface StatusResponse {
   // Organization context (null = global view)
   organization: {
-    id: string | null;        // null if global view
-    name: string | null;      // e.g., "Regain Health"
+    id: string | null; // null if global view
+    name: string | null; // e.g., "Regain Health"
   };
 
   // Service info
   service: {
     name: "popper";
-    version: string;          // e.g., "1.0.0"
+    version: string; // e.g., "1.0.0"
     uptime_seconds: number;
     healthy: boolean;
   };
@@ -193,17 +193,17 @@ interface StatusResponse {
   // Safe-mode state (global OR org-specific based on query)
   safe_mode: {
     enabled: boolean;
-    reason: string | null;            // Why it was enabled
-    effective_at: string | null;      // ISO timestamp
-    effective_until: string | null;   // ISO timestamp (null = indefinite)
-    enabled_by: string | null;        // Who enabled it
+    reason: string | null; // Why it was enabled
+    effective_at: string | null; // ISO timestamp
+    effective_until: string | null; // ISO timestamp (null = indefinite)
+    enabled_by: string | null; // Who enabled it
     scope: "global" | "organization"; // Which scope this applies to
   };
 
   // Policy info
   policy: {
-    active_pack: string;      // e.g., "default" or "advocate-clinical"
-    version: string;          // e.g., "1.0.0"
+    active_pack: string; // e.g., "default" or "advocate-clinical"
+    version: string; // e.g., "1.0.0"
     rules_count: number;
   };
 
@@ -227,10 +227,10 @@ interface StatusResponse {
 }
 
 interface DriftSignal {
-  name: string;               // e.g., "hard_stop_rate"
-  current_value: number;      // e.g., 0.15 (15%)
-  baseline_value: number;     // e.g., 0.05 (5%)
-  threshold_warning: number;  // e.g., 0.10
+  name: string; // e.g., "hard_stop_rate"
+  current_value: number; // e.g., 0.15 (15%)
+  baseline_value: number; // e.g., 0.05 (5%)
+  threshold_warning: number; // e.g., 0.10
   threshold_critical: number; // e.g., 0.25
   status: "normal" | "warning" | "critical";
 }
@@ -284,7 +284,7 @@ interface DriftSignal {
         "current_value": 0.064,
         "baseline_value": 0.06,
         "threshold_warning": 0.12,
-        "threshold_critical": 0.30,
+        "threshold_critical": 0.3,
         "status": "normal"
       }
     ]
@@ -300,19 +300,20 @@ interface DriftSignal {
 
 **Query Parameters:**
 
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `limit` | number | No | Max events to return (default: 50, max: 200) |
-| `offset` | number | No | Pagination offset |
-| `organization_id` | string | No | Filter by organization |
-| `trace_id` | string | No | Filter by trace ID |
-| `event_type` | string | No | Filter by event type (comma-separated for multiple) |
-| `decision` | string | No | Filter by decision: `APPROVED`, `HARD_STOP`, `ROUTE_TO_CLINICIAN`, `REQUEST_MORE_INFO` |
-| `reason_codes` | string | No | Filter by reason codes (comma-separated, e.g., `high_uncertainty,policy_violation`) |
-| `since` | string | No | ISO timestamp (events after this time) |
-| `until` | string | No | ISO timestamp (events before this time) |
+| Param             | Type   | Required | Description                                                                            |
+| ----------------- | ------ | -------- | -------------------------------------------------------------------------------------- |
+| `limit`           | number | No       | Max events to return (default: 50, max: 200)                                           |
+| `offset`          | number | No       | Pagination offset                                                                      |
+| `organization_id` | string | No       | Filter by organization                                                                 |
+| `trace_id`        | string | No       | Filter by trace ID                                                                     |
+| `event_type`      | string | No       | Filter by event type (comma-separated for multiple)                                    |
+| `decision`        | string | No       | Filter by decision: `APPROVED`, `HARD_STOP`, `ROUTE_TO_CLINICIAN`, `REQUEST_MORE_INFO` |
+| `reason_codes`    | string | No       | Filter by reason codes (comma-separated, e.g., `high_uncertainty,policy_violation`)    |
+| `since`           | string | No       | ISO timestamp (events after this time)                                                 |
+| `until`           | string | No       | ISO timestamp (events before this time)                                                |
 
 **Example with filters:**
+
 ```
 GET /v1/popper/audit-events?organization_id=org_regain&decision=HARD_STOP&since=2026-01-24T00:00:00Z
 ```
@@ -331,9 +332,9 @@ interface AuditEventsResponse {
 }
 
 interface AuditEvent {
-  id: string;                 // UUID
+  id: string; // UUID
   event_type: AuditEventType;
-  occurred_at: string;        // ISO timestamp
+  occurred_at: string; // ISO timestamp
 
   // Trace info (links events together)
   trace: {
@@ -345,7 +346,7 @@ interface AuditEvent {
   // Context
   mode: "wellness" | "advocate_clinical";
   subject: {
-    subject_id: string;       // Anonymized patient ID
+    subject_id: string; // Anonymized patient ID
     organization_id?: string;
   };
 
@@ -425,7 +426,7 @@ type AuditEventType =
       },
       "summary": "Safe-mode enabled by ops: Drift detected",
       "tags": {
-        "enabled_by": "ops@regain.health",
+        "enabled_by": "ops@regain.ai",
         "reason": "Drift detected: hard_stop_rate elevated"
       }
     }
@@ -445,13 +446,13 @@ Returns event counts bucketed by time for charting.
 
 **Query Parameters:**
 
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `organization_id` | string | No | Filter by organization |
-| `since` | string | Yes | Start of time range (ISO timestamp) |
-| `until` | string | No | End of time range (default: now) |
-| `bucket` | string | No | Time bucket: `hour`, `day`, `week` (default: `hour`) |
-| `group_by` | string | No | Group by: `decision`, `event_type` (default: `decision`) |
+| Param             | Type   | Required | Description                                              |
+| ----------------- | ------ | -------- | -------------------------------------------------------- |
+| `organization_id` | string | No       | Filter by organization                                   |
+| `since`           | string | Yes      | Start of time range (ISO timestamp)                      |
+| `until`           | string | No       | End of time range (default: now)                         |
+| `bucket`          | string | No       | Time bucket: `hour`, `day`, `week` (default: `hour`)     |
+| `group_by`        | string | No       | Group by: `decision`, `event_type` (default: `decision`) |
 
 **Response:**
 
@@ -462,8 +463,8 @@ interface AuditTimeseriesResponse {
 }
 
 interface TimeseriesBucket {
-  timestamp: string;          // Start of bucket (ISO)
-  counts: Record<string, number>;  // e.g., { "APPROVED": 45, "HARD_STOP": 2 }
+  timestamp: string; // Start of bucket (ISO)
+  counts: Record<string, number>; // e.g., { "APPROVED": 45, "HARD_STOP": 2 }
   total: number;
 }
 ```
@@ -503,9 +504,9 @@ Returns current safe-mode state.
 
 **Query Parameters:**
 
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `organization_id` | string | No | Get org-specific state (omit for global) |
+| Param             | Type   | Required | Description                              |
+| ----------------- | ------ | -------- | ---------------------------------------- |
+| `organization_id` | string | No       | Get org-specific state (omit for global) |
 
 **Response:**
 
@@ -517,7 +518,7 @@ interface SafeModeState {
   effective_until: string | null;
   enabled_by: string | null;
   scope: "global" | "organization";
-  organization_id: string | null;    // null if global
+  organization_id: string | null; // null if global
 }
 ```
 
@@ -530,10 +531,10 @@ Enable or disable safe-mode (global or per-org).
 ```typescript
 interface SafeModeRequest {
   enabled: boolean;
-  reason: string;                    // REQUIRED - why are you changing it?
-  organization_id?: string;          // Omit for global, include for org-specific
-  effective_at?: string;             // ISO timestamp (default: now)
-  effective_until?: string | null;   // ISO timestamp (null = indefinite)
+  reason: string; // REQUIRED - why are you changing it?
+  organization_id?: string; // Omit for global, include for org-specific
+  effective_at?: string; // ISO timestamp (default: now)
+  effective_until?: string | null; // ISO timestamp (null = indefinite)
 }
 ```
 
@@ -576,10 +577,10 @@ Get history of safe-mode changes.
 
 **Query Parameters:**
 
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `limit` | number | No | Max records (default: 20) |
-| `since` | string | No | ISO timestamp |
+| Param   | Type   | Required | Description               |
+| ------- | ------ | -------- | ------------------------- |
+| `limit` | number | No       | Max records (default: 20) |
+| `since` | string | No       | ISO timestamp             |
 
 **Response:**
 
@@ -652,12 +653,12 @@ interface SafeModeHistoryEntry {
 
 **Colors:**
 
-| Status | Color |
-|--------|-------|
-| Healthy / Normal | Green `#22c55e` |
-| Warning | Yellow `#eab308` |
-| Critical / Unhealthy | Red `#ef4444` |
-| Safe-mode enabled | Orange `#f97316` |
+| Status               | Color            |
+| -------------------- | ---------------- |
+| Healthy / Normal     | Green `#22c55e`  |
+| Warning              | Yellow `#eab308` |
+| Critical / Unhealthy | Red `#ef4444`    |
+| Safe-mode enabled    | Orange `#f97316` |
 
 ---
 
@@ -736,21 +737,21 @@ Click row to expand →         │                                             
 - [ ] Export to JSON button
 - [ ] Event type badges with colors:
 
-| Event Type | Badge Color |
-|------------|-------------|
-| SUPERVISION_RESPONSE_DECIDED | Blue |
-| SUPERVISION_REQUEST_RECEIVED | Gray |
-| SAFE_MODE_ENABLED | Orange |
-| SAFE_MODE_DISABLED | Green |
-| VALIDATION_FAILED | Red |
-| CONTROL_COMMAND_ISSUED | Purple |
+| Event Type                   | Badge Color |
+| ---------------------------- | ----------- |
+| SUPERVISION_RESPONSE_DECIDED | Blue        |
+| SUPERVISION_REQUEST_RECEIVED | Gray        |
+| SAFE_MODE_ENABLED            | Orange      |
+| SAFE_MODE_DISABLED           | Green       |
+| VALIDATION_FAILED            | Red         |
+| CONTROL_COMMAND_ISSUED       | Purple      |
 
 | Decision (in tags) | Badge Color |
-|--------------------|-------------|
-| APPROVED | Green |
-| HARD_STOP | Red |
-| ROUTE_TO_CLINICIAN | Yellow |
-| REQUEST_MORE_INFO | Blue |
+| ------------------ | ----------- |
+| APPROVED           | Green       |
+| HARD_STOP          | Red         |
+| ROUTE_TO_CLINICIAN | Yellow      |
+| REQUEST_MORE_INFO  | Blue        |
 
 ---
 
@@ -837,29 +838,37 @@ Click [Enable] →    │                                         │
 
 Use these shadcn components:
 
-| UI Element | Component |
-|------------|-----------|
-| Status cards | `Card`, `Badge` |
-| Decision bar | Custom or `Progress` |
-| Drift gauges | Custom or `Progress` with marks |
-| **Time-series chart** | `recharts` (already in project) - use `BarChart` with stacked bars |
-| Data table | `Table` + `DataTable` pattern |
-| Filters | `Select`, `DatePicker`, `Input` |
-| **Multi-select filters** | `MultiSelect` or `Popover` + `Checkbox` |
-| Pagination | `Pagination` |
-| Toggle | `Switch` or `Button` |
-| Modal | `Dialog` |
-| Duration select | `RadioGroup` |
-| Scope select | `RadioGroup` (Global vs Org) |
-| Org selector | `Select` in header |
-| Tooltips | `Tooltip` |
+| UI Element               | Component                                                          |
+| ------------------------ | ------------------------------------------------------------------ |
+| Status cards             | `Card`, `Badge`                                                    |
+| Decision bar             | Custom or `Progress`                                               |
+| Drift gauges             | Custom or `Progress` with marks                                    |
+| **Time-series chart**    | `recharts` (already in project) - use `BarChart` with stacked bars |
+| Data table               | `Table` + `DataTable` pattern                                      |
+| Filters                  | `Select`, `DatePicker`, `Input`                                    |
+| **Multi-select filters** | `MultiSelect` or `Popover` + `Checkbox`                            |
+| Pagination               | `Pagination`                                                       |
+| Toggle                   | `Switch` or `Button`                                               |
+| Modal                    | `Dialog`                                                           |
+| Duration select          | `RadioGroup`                                                       |
+| Scope select             | `RadioGroup` (Global vs Org)                                       |
+| Org selector             | `Select` in header                                                 |
+| Tooltips                 | `Tooltip`                                                          |
 
 ### Chart Library
 
 Use `recharts` for the time-series chart:
 
 ```tsx
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 <ResponsiveContainer width="100%" height={200}>
   <BarChart data={timeseriesData}>
@@ -871,7 +880,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } fro
     <Bar dataKey="ROUTE_TO_CLINICIAN" stackId="a" fill="#eab308" />
     <Bar dataKey="HARD_STOP" stackId="a" fill="#ef4444" />
   </BarChart>
-</ResponsiveContainer>
+</ResponsiveContainer>;
 ```
 
 ---
@@ -880,12 +889,12 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } fro
 
 Handle these error cases:
 
-| Error | UI Response |
-|-------|-------------|
-| API unreachable | Show "Unable to connect to Popper" with retry button |
-| 401 Unauthorized | Redirect to login or show "Session expired" |
-| 500 Server Error | Show "Something went wrong" with error ID |
-| Empty audit log | Show "No events found" with filter reset option |
+| Error            | UI Response                                          |
+| ---------------- | ---------------------------------------------------- |
+| API unreachable  | Show "Unable to connect to Popper" with retry button |
+| 401 Unauthorized | Redirect to login or show "Session expired"          |
+| 500 Server Error | Show "Something went wrong" with error ID            |
+| Empty audit log  | Show "No events found" with filter reset option      |
 
 ---
 
@@ -894,10 +903,11 @@ Handle these error cases:
 If anything is unclear, ask **Davron** (backend) or **Anton** (product).
 
 You do NOT need to read:
+
 - Hermes specs
 - Popper system spec
 - Safety DSL docs
-- Regain Medical (MIS) specs — that's a separate system for doctors
+- MISS specs — that's a separate system for doctors
 - Any other technical docs
 
 This spec has everything you need.

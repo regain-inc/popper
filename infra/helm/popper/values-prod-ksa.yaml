@@ -33,14 +33,14 @@ queueWorker:
 ingress:
   enabled: true
   hosts:
-    - host: popper-api.regain.com
+    - host: popper.regain.ai
       paths:
         - path: /
           pathType: Prefix
   tls:
     - secretName: popper-api-tls
       hosts:
-        - popper-api.regain.com
+        - popper.regain.ai
   certManager:
     enabled: true
     clusterIssuer: "letsencrypt-prod"
@@ -53,5 +53,5 @@ externalSecrets:
   environment: "prod"
   provider: "vault"
   vault:
-    server: "https://vault.internal.regain.com"
+    server: "https://vault.internal.regain.ai"
     role: "popper-prod"

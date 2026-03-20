@@ -1,9 +1,15 @@
 # Popper Production Readiness Tracker
 # Tracks implementation work required for each spec
 # v2 — updated after review to include dependency-aware workstreams
+#
+# NOTE: The canonical cross-repo tracker (including IAC product tiers 6-7,
+# GDMT phases, and completed work) is at:
+#   /Users/gsizm/dev/.claude/skills/regain-brain/tracker/production-readiness.yaml
+# This file tracks Popper-specific IAC product spec readiness.
+# When they disagree, the brain tracker is more current.
 
 version: "2.0.0"
-last_updated: "2026-03-19"
+last_updated: "2026-03-20"
 
 items:
   # ── Core Supervision (existing specs) ──────────────────────────

@@ -9,9 +9,9 @@ Lightweight Linear integration via API scripts. Replaces heavy MCP plugin (~33k 
 
 ## Project Defaults
 
-**Project:** Unified Health App (Salomatic)
+**Project:** Regain Health (Salomatic)
 **Team:** Salomatic
-**Default team for commands:** "Salomatic"
+**Default team for commands:** "MISS"
 
 ---
 
@@ -24,7 +24,7 @@ Lightweight Linear integration via API scripts. Replaces heavy MCP plugin (~33k 
 | Repo | Default Project Filter |
 |------|------------------------|
 | `popper` | `Popper` |
-| `salomatic` / `unified-health-app` | `Unified Health App` |
+| `salomatic` / `unified-health-app` | `Regain Health` |
 | other repos | No filter (all projects) |
 
 ### Commands That Apply This Filter
@@ -129,7 +129,7 @@ When adding related tickets that extend existing functionality, use the **A/B na
 linear.sh update "POP-013" title "POP-013A: Operational Settings API"
 
 # Step 2: Create B ticket
-linear.sh create "Salomatic" "POP-013B: Policy Lifecycle & Adaptability" "Depends on POP-013A. Implements Safety DSL spec §10."
+linear.sh create "MISS" "POP-013B: Policy Lifecycle & Adaptability" "Depends on POP-013A. Implements Safety DSL spec §10."
 
 # Step 3: Add same labels
 linear.sh label-add "POP-013B" "arpa"
@@ -343,7 +343,7 @@ Full sprint/cycle lifecycle management: create, update, archive, and assign issu
 ```
 Example:
 ```bash
-.claude/skills/linear/scripts/linear.sh cycle-create "Salomatic" "Sprint 1: Foundation" "2025-01-06" "2025-01-19"
+.claude/skills/linear/scripts/linear.sh cycle-create "MISS" "Sprint 1: Foundation" "2025-01-06" "2025-01-19"
 ```
 
 ### Update Sprint
@@ -398,7 +398,7 @@ Creates 8 phases as cycles based on the project roadmap:
 
 Example:
 ```bash
-.claude/skills/linear/scripts/linear.sh cycle-setup-roadmap "Salomatic" "2025-01-06"
+.claude/skills/linear/scripts/linear.sh cycle-setup-roadmap "MISS" "2025-01-06"
 ```
 
 ### Natural Language → Sprint Commands
@@ -445,14 +445,14 @@ Automatically assign all tickets to the default project and apply phase labels f
 ```
 
 This command:
-1. Assigns all tickets without a project to "Unified Health App"
+1. Assigns all tickets without a project to "Regain Health"
 2. Applies correct phase labels based on `data/ticket-phase-map.yaml`
 
 ### Sync Project Only
 ```bash
 .claude/skills/linear/scripts/linear.sh sync-project [project-name]
 ```
-Default: "Unified Health App"
+Default: "Regain Health"
 
 ### Sync Phase Labels Only
 ```bash
@@ -462,7 +462,7 @@ Reads mappings from `data/ticket-phase-map.yaml`.
 
 ### Auto-Assignment on Create
 
-New tickets created via `linear.sh create` are automatically assigned to the "Unified Health App" project.
+New tickets created via `linear.sh create` are automatically assigned to the "Regain Health" project.
 
 ---
 
@@ -610,7 +610,7 @@ User: "Show Harsh's tasks"
 → Run: `.claude/skills/linear/scripts/linear.sh assigned-to "Harsh"`
 
 User: "Create a bug ticket for login issue"
-→ `.claude/skills/linear/scripts/linear.sh create "Salomatic" "Login button not working" "Users report..."`
+→ `.claude/skills/linear/scripts/linear.sh create "MISS" "Login button not working" "Users report..."`
 
 ### Repo-Aware Examples (from `popper` repo)
 
