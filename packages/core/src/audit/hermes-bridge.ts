@@ -65,7 +65,7 @@ function mapEventType(event: AuditEventInput): [HermesAuditEventType, string | u
     // For Popper's OTHER, preserve any custom other_event_type from payload
     const otherType =
       direct === 'OTHER'
-        ? ((event.payload?.['other_event_type'] as string | undefined) ?? undefined)
+        ? ((event.payload?.other_event_type as string | undefined) ?? undefined)
         : undefined;
     return [direct, otherType];
   }
@@ -119,24 +119,24 @@ function buildTags(event: AuditEventInput): Readonly<Record<string, string>> | u
 
   // Preserve Popper-specific fields in tags
   if (event.decision) {
-    tags['decision'] = event.decision;
+    tags.decision = event.decision;
   }
   if (event.reasonCodes && event.reasonCodes.length > 0) {
-    tags['reason_codes'] = event.reasonCodes.join(',');
+    tags.reason_codes = event.reasonCodes.join(',');
   }
   if (event.latencyMs !== undefined) {
-    tags['latency_ms'] = String(event.latencyMs);
+    tags.latency_ms = String(event.latencyMs);
   }
   if (event.proposalCount !== undefined) {
-    tags['proposal_count'] = String(event.proposalCount);
+    tags.proposal_count = String(event.proposalCount);
   }
   if (event.safeModeActive !== undefined) {
-    tags['safe_mode_active'] = String(event.safeModeActive);
+    tags.safe_mode_active = String(event.safeModeActive);
   }
   if (event.ruleProvenance) {
-    tags['rule_id'] = event.ruleProvenance.rule_id;
-    tags['source_type'] = event.ruleProvenance.source_type;
-    tags['citation'] = event.ruleProvenance.citation;
+    tags.rule_id = event.ruleProvenance.rule_id;
+    tags.source_type = event.ruleProvenance.source_type;
+    tags.citation = event.ruleProvenance.citation;
   }
 
   return Object.keys(tags).length > 0 ? tags : undefined;
