@@ -1,4 +1,8 @@
 # ═══════════════════════════════════════════════════════════════════════════
+# DEFERRED — Phase 4 closure decision 2026-03-20. Requires redesign per
+# draft notes: SDoH should trigger access-support workflows, not therapy
+# modification. Needs Hermes SDoH fields + batch analytics.
+#
 # DRAFT — NOT LOADABLE BY CURRENT PARSER
 #
 # This file is quarantined from runtime. It uses unsupported:

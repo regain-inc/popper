@@ -197,6 +197,127 @@ rules:
         Risk of hyperkalemia per FDA labeling. Clinician must verify potassium
         level and assess risk before proceeding.
 
+  - rule_id: beta_blocker_severe_decompensation_check
+    description: Beta-blockers should not be initiated or up-titrated during acute decompensated HF
+    priority: 765
+    provenance:
+      source_type: society_guideline
+      source_layer: 1
+      citation: "2022 AHA/ACC/HFSA Guideline for the Management of Heart Failure, §7.3.2"
+      citation_subsection: "Do not initiate beta-blocker in patients with decompensated HF (COR III: Harm, LOE B-R)"
+      source_url: "https://doi.org/10.1161/CIR.0000000000001063"
+      doi: "10.1161/CIR.0000000000001063"
+      evidence_grade: rct
+      native_grading:
+        system: ACC_AHA
+        class: "III"
+        loe: "B-R"
+      jurisdiction: US
+      clinical_domain: cardiovascular
+      applicable_population: "Patients with acute decompensated heart failure"
+      approved_by: "TBD"
+      effective_date: "2026-03-20"
+      review_interval_days: 365
+      review_due: "2027-03-20"
+    when:
+      kind: all_of
+      conditions:
+        - kind: medication_class_in
+          classes: ["C07AB", "C07AG"]  # selective beta-blockers + alpha/beta blockers (carvedilol)
+        - kind: snapshot_condition_present
+          condition: acute_decompensated_hf
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - risk_too_high
+        - needs_human_review
+      explanation: >
+        Beta-blocker proposed in setting of acute decompensated heart failure.
+        Per 2022 AHA/ACC/HFSA §7.3.2 (COR III: Harm, LOE B-R): do not initiate
+        beta-blocker therapy during decompensation. Clinician must evaluate
+        hemodynamic stability before beta-blocker initiation or up-titration.
+
+  - rule_id: mra_severe_renal_impairment
+    description: MRA contraindicated with eGFR <30 due to hyperkalemia risk
+    priority: 758
+    provenance:
+      source_type: medication_label
+      source_layer: 1
+      citation: "Spironolactone SPL, Section 8.6 — Renal Impairment"
+      citation_subsection: "Use with caution in patients with impaired renal function"
+      source_url: "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=spironolactone"
+      evidence_grade: policy
+      native_grading:
+        system: FDA_LABEL
+        fda_label_section: "8.6"
+      jurisdiction: US
+      clinical_domain: cardiovascular
+      applicable_population: "Patients with severe renal impairment (eGFR <30)"
+      approved_by: "TBD"
+      effective_date: "2026-03-20"
+      review_interval_days: 90
+      review_due: "2026-06-20"
+      additional_sources:
+        - source_type: society_guideline
+          source_layer: 2
+          citation: "2022 AHA/ACC/HFSA Guideline §7.3.3 — MRA in HFrEF"
+          evidence_grade: rct
+    when:
+      kind: all_of
+      conditions:
+        - kind: medication_class_in
+          classes: ["C03DA"]  # Aldosterone antagonists (MRA)
+        - kind: snapshot_lab_below
+          lab: egfr
+          threshold: 30
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - risk_too_high
+        - needs_human_review
+      explanation: >
+        MRA (spironolactone/eplerenone) proposed with eGFR <30 mL/min/1.73m2.
+        Severe renal impairment significantly increases hyperkalemia risk per
+        FDA labeling (Section 8.6) and 2022 AHA/ACC/HFSA §7.3.3. Clinician
+        must evaluate renal function and potassium before proceeding.
+
+  - rule_id: nitrate_pde5_contraindication
+    description: Nitrates contraindicated with concurrent PDE5 inhibitors — severe hypotension risk
+    priority: 768
+    provenance:
+      source_type: contraindication
+      source_layer: 1
+      citation: "Isosorbide Dinitrate SPL, Section 4 — Contraindications"
+      citation_subsection: "Concomitant use with PDE5 inhibitors is contraindicated"
+      evidence_grade: policy
+      native_grading:
+        system: FDA_LABEL
+        fda_label_section: "4"
+      jurisdiction: US
+      clinical_domain: cardiovascular
+      applicable_population: "Patients receiving nitrate therapy with concurrent PDE5 inhibitor use"
+      approved_by: "TBD"
+      effective_date: "2026-03-20"
+      review_interval_days: 90
+      review_due: "2026-06-20"
+    when:
+      kind: combination_present
+      class_a: "C01DA"  # Organic nitrates
+      class_b: "G04BE"  # PDE5 inhibitors
+    requires_human_review: true
+    then:
+      decision: ROUTE_TO_CLINICIAN
+      reason_codes:
+        - policy_violation
+        - risk_too_high
+        - needs_human_review
+      explanation: >
+        Concurrent nitrate and PDE5 inhibitor use is contraindicated due to
+        risk of severe hypotension per FDA labeling. Note: this rule may fire
+        on discontinuation proposals — clinician review will confirm intent.
+        When change_type awareness is added to the evaluator, this rule should
+        be updated to only match initiation/continuation proposals.
+
   - rule_id: medication_allergy_data_required
     description: Medication proposal without allergy data — request it
     priority: 755  # was 750, renumbered to avoid collision with default.yaml:750
@@ -346,6 +467,85 @@ rules:
         Medication proposal received without active medication list
         (field is null/unavailable). Cannot evaluate drug interactions
         without knowing current medications.
+
+  - rule_id: hydralazine_isdn_hf_consideration
+    description: Hydralazine or nitrate proposal requires HF assessment data for proper evaluation
+    priority: 243  # was 245, renumbered to avoid collision with default.yaml:245
+    provenance:
+      source_type: society_guideline
+      source_layer: 2
+      citation: "2022 AHA/ACC/HFSA Guideline §7.3.4 — Hydralazine and Isosorbide Dinitrate"
+      citation_subsection: "Hydralazine/ISDN is recommended for Black patients with NYHA III-IV HFrEF (COR I, LOE A)"
+      source_url: "https://doi.org/10.1161/CIR.0000000000001063"
+      doi: "10.1161/CIR.0000000000001063"
+      evidence_grade: rct
+      native_grading:
+        system: ACC_AHA
+        class: "I"
+        loe: "A"
+      jurisdiction: US
+      clinical_domain: cardiovascular
+      applicable_population: "Patients prescribed hydralazine or nitrate components without HF assessment on file"
+      approved_by: "TBD"
+      effective_date: "2026-03-20"
+      review_interval_days: 365
+      review_due: "2027-03-20"
+    when:
+      kind: all_of
+      conditions:
+        - kind: medication_class_in
+          classes: ["C02DB", "C01DA"]  # hydralazine or nitrates (components of HF combo therapy)
+        - kind: snapshot_field_missing
+          field: hf_assessment  # Feature-gated: fires when snapshot_payload.hf_assessment is null (via Hermes C1 HFAssessment contract). Field absent (undefined) does NOT trigger — only explicit null.
+    then:
+      decision: REQUEST_MORE_INFO
+      reason_codes:
+        - data_quality_warning
+      explanation: >
+        Hydralazine or nitrate proposed without HF assessment data. Per 2022
+        AHA/ACC/HFSA §7.3.4 (COR I, LOE A), hydralazine/ISDN has specific
+        indications based on HF phenotype and NYHA class. Please provide HF
+        assessment (including phenotype and NYHA classification) before
+        proceeding. This is a data-completeness gate, not a treatment decision.
+
+  - rule_id: loop_diuretic_electrolyte_monitoring
+    description: Loop diuretics with missing potassium data — request electrolyte monitoring
+    priority: 238  # was 240, renumbered to avoid collision with default.yaml and maintain ordering
+    provenance:
+      source_type: society_guideline
+      source_layer: 2
+      citation: "2022 AHA/ACC/HFSA Guideline §7.3.5 — Diuretic Management"
+      citation_subsection: "Diuretic management requires electrolyte monitoring"
+      source_url: "https://doi.org/10.1161/CIR.0000000000001063"
+      doi: "10.1161/CIR.0000000000001063"
+      evidence_grade: rct
+      native_grading:
+        system: ACC_AHA
+        class: "I"
+        loe: "B-NR"
+      jurisdiction: US
+      clinical_domain: cardiovascular
+      applicable_population: "Patients receiving loop diuretic therapy"
+      approved_by: "TBD"
+      effective_date: "2026-03-20"
+      review_interval_days: 365
+      review_due: "2027-03-20"
+    when:
+      kind: all_of
+      conditions:
+        - kind: medication_class_in
+          classes: ["C03CA"]  # Loop diuretics
+        - kind: snapshot_lab_missing
+          lab: potassium
+    then:
+      decision: REQUEST_MORE_INFO
+      reason_codes:
+        - data_quality_warning
+      explanation: >
+        Loop diuretic proposed without potassium data available. Per 2022
+        AHA/ACC/HFSA §7.3.5, diuretic management requires electrolyte
+        monitoring due to risk of hypokalemia. Please provide current
+        potassium level before proceeding.
 
   # ═══════════════════════════════════════════════════════════════════════════
   # FUTURE: 2024 ACC ECDP Titration Sequencing

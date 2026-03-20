@@ -1,3 +1,6 @@
+# DEFERRED — Phase 4 closure decision 2026-03-20. ECDP optimization nudges
+# belong in Deutsch ranking logic (Phase 6), not Popper safety supervision.
+#
 # DRAFT — NOT LOADABLE BY CURRENT PARSER
 # These rules require DSL extensions before they can execute.
 # See cardiometabolic-hf.yaml for the placeholder comment.
