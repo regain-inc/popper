@@ -367,13 +367,19 @@ export async function loadAndComposePacks(
   const packs: PolicyPack[] = [];
 
   // 1. Load core pack
+  let coreLoaded = false;
   try {
     const corePacks = await loadPolicyPacksFromDir(join(basePath, 'core'));
     for (const { pack } of corePacks) {
       packs.push(pack);
+      coreLoaded = true;
     }
   } catch {
-    // No core directory — try legacy default.yaml
+    // No core directory — will fall through to default.yaml
+  }
+
+  // Fallback to legacy default.yaml if core/ is missing or empty
+  if (!coreLoaded) {
     try {
       const defaultPack = await loadPolicyPack(join(basePath, 'default.yaml'));
       packs.push(defaultPack);
