@@ -543,7 +543,7 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
                 errorMessage: hashVerification.error,
                 errorCode: 'SNAPSHOT_HASH_MISMATCH',
                 policyPackVersion: composedPolicyPack?.policy_version ?? 'unknown',
-                tags: ['snapshot_hash_mismatch'],
+                tags: ['snapshot_integrity_failed'],
               }),
             );
 
