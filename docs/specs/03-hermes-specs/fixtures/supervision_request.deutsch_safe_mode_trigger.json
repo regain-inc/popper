@@ -1,5 +1,5 @@
 {
-  "hermes_version": "2.0.0",
+  "hermes_version": "2.3.0",
   "message_type": "supervision_request",
   "trace": {
     "trace_id": "tr-dsm-001",
@@ -34,7 +34,7 @@
         "rxnorm_code": "197604"
       },
       "change": {
-        "change_type": "initiate",
+        "change_type": "start",
         "to_dose": "0.25 mg daily"
       },
       "audit_redaction": {
@@ -47,5 +47,6 @@
     "proposal_summaries": [
       "Digoxin initiation (high-risk)"
     ]
-  }
+  },
+  "snapshot_payload": {}
 }

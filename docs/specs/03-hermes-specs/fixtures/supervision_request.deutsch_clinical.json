@@ -1,5 +1,5 @@
 {
-  "hermes_version": "2.0.0",
+  "hermes_version": "2.3.0",
   "message_type": "supervision_request",
   "trace": {
     "trace_id": "tr-dc-001",
@@ -66,5 +66,6 @@
     "proposal_summaries": [
       "ACE-I titration proposal per GDMT protocol"
     ]
-  }
+  },
+  "snapshot_payload": {}
 }

@@ -1,5 +1,5 @@
 {
-  "hermes_version": "2.0.0",
+  "hermes_version": "2.3.0",
   "message_type": "supervision_request",
   "trace": {
     "trace_id": "tr-inline-001",
@@ -24,12 +24,7 @@
     ],
     "snapshot_hash": "m8hP4l9Qyq9w9n0qB8p0bKqH0a7lq9hY2uT5h6k1e2c="
   },
-  "snapshot_payload": {
-    "vitals": {
-      "bp_systolic": 140,
-      "bp_diastolic": 90
-    }
-  },
+  "snapshot_payload": {},
   "idempotency_key": "01HQXYZ000000000000000002ABC",
   "proposals": [
     {

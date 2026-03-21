@@ -1,5 +1,5 @@
 {
-  "hermes_version": "2.0.0",
+  "hermes_version": "2.3.0",
   "message_type": "supervision_request",
   "trace": {
     "trace_id": "tr-dw-001",
@@ -27,7 +27,7 @@
   "proposals": [
     {
       "proposal_id": "prop-dw-001",
-      "kind": "LIFESTYLE_RECOMMENDATION_PROPOSAL",
+      "kind": "LIFESTYLE_MODIFICATION_PROPOSAL",
       "created_at": "2026-01-25T10:00:00.000Z",
       "modification_type": "physical_activity",
       "recommendations": [

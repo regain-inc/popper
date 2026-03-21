@@ -1,5 +1,5 @@
 {
-  "hermes_version": "2.0.0",
+  "hermes_version": "2.3.0",
   "message_type": "supervision_request",
   "trace": {
     "trace_id": "tr-dmp-001",
@@ -45,8 +45,9 @@
     },
     {
       "proposal_id": "prop-dmp-lab-001",
-      "kind": "LAB_ORDER_PROPOSAL",
+      "kind": "CARE_NAVIGATION",
       "created_at": "2026-01-25T10:00:01.000Z",
+      "action": "lab_order",
       "lab_test": "BMP",
       "loinc_code": "51990-0",
       "reason": "Monitor renal function post-titration",
@@ -56,7 +57,8 @@
     },
     {
       "proposal_id": "prop-dmp-fu-001",
-      "kind": "FOLLOWUP_SCHEDULING_PROPOSAL",
+      "kind": "OTHER",
+      "other_kind": "followup_scheduling",
       "created_at": "2026-01-25T10:00:02.000Z",
       "followup_type": "office_visit",
       "timeframe": "2 weeks",
@@ -73,5 +75,6 @@
       "BMP for renal monitoring",
       "2-week follow-up visit"
     ]
-  }
+  },
+  "snapshot_payload": {}
 }
