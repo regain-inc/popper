@@ -235,12 +235,21 @@ export function toHermesAuditEvent(event: AuditEventInput, serviceVersion = '0.1
 
 /**
  * Map event type only (useful for filtering/routing without full conversion).
+ *
+ * @deprecated Prefer `toHermesAuditEvent()` which handles degraded mappings
+ * with proper diagnostic tags. This helper cannot attach `mapping_confidence`
+ * metadata and will return OTHER for ambiguous SAFE_MODE_CHANGED events.
  */
 export function mapPopperEventTypeToHermes(
   eventType: PopperAuditEventType,
   safeModeActive?: boolean,
 ): HermesAuditEventType {
   if (eventType === 'SAFE_MODE_CHANGED') {
+    if (safeModeActive === undefined || safeModeActive === null) {
+      // Cannot determine safe mode state — use degraded OTHER pattern
+      // consistent with toHermesAuditEvent() behavior.
+      return 'OTHER';
+    }
     return safeModeActive ? 'SAFE_MODE_ENABLED' : 'SAFE_MODE_DISABLED';
   }
   return DIRECT_TYPE_MAP[eventType] ?? 'OTHER';

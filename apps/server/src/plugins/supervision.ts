@@ -8,6 +8,7 @@
  * @module plugins/supervision
  */
 
+import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import type { ApiKeyContext } from '@popper/core';
 import {
@@ -134,6 +135,60 @@ const SYSTEM_ORG_ID = '00000000-0000-0000-0000-000000000000';
 // =============================================================================
 // Helper Functions
 // =============================================================================
+
+/**
+ * Canonical JSON serialization (deterministic key order).
+ *
+ * Mirrors Deutsch's canonicalJsonStringify so both sides produce
+ * identical hashes for the same snapshot payload. Recursively sorts
+ * object keys before stringifying (inspired by RFC 8785 / JCS).
+ */
+function canonicalJsonStringify(obj: unknown): string {
+  if (obj === null || typeof obj !== 'object') return JSON.stringify(obj);
+  if (Array.isArray(obj)) return `[${obj.map(canonicalJsonStringify).join(',')}]`;
+  const sorted = Object.keys(obj as Record<string, unknown>).sort();
+  return `{${sorted.map((k) => `${JSON.stringify(k)}:${canonicalJsonStringify((obj as Record<string, unknown>)[k])}`).join(',')}}`;
+}
+
+/**
+ * Verify snapshot_hash matches the canonical hash of snapshot_payload.
+ * Returns error message if verification fails, undefined if OK.
+ *
+ * Rules (per Hermes spec §2.5.1):
+ * - payload present + hash present → verify match
+ * - payload present + hash absent  → reject in advocate_clinical, warn in wellness
+ * - payload absent                 → skip (nothing to verify)
+ */
+function verifySnapshotHash(request: SupervisionRequest): { error?: string; warning?: string } {
+  const payload = (request as Record<string, unknown>).snapshot_payload;
+  if (payload === undefined) return {};
+
+  const declaredHash = request.snapshot?.snapshot_hash;
+
+  if (!declaredHash) {
+    if (request.mode === 'advocate_clinical') {
+      return {
+        error:
+          'snapshot_hash is required when snapshot_payload is present in advocate_clinical mode',
+      };
+    }
+    return {
+      warning:
+        'snapshot_hash missing for snapshot_payload in wellness mode — proceeding without verification',
+    };
+  }
+
+  const canonical = canonicalJsonStringify(payload);
+  const computed = createHash('sha256').update(canonical).digest('hex');
+
+  if (computed !== declaredHash) {
+    return {
+      error: `snapshot_hash mismatch: declared=${declaredHash.slice(0, 16)}… computed=${computed.slice(0, 16)}…`,
+    };
+  }
+
+  return {};
+}
 
 /**
  * Validate clock skew for request timestamp.
@@ -471,6 +526,32 @@ export const supervisionPlugin = new Elysia({ name: 'supervision', prefix: '/v1/
                 'policy_violation',
               ]);
             }
+          }
+
+          // 2e. Snapshot hash verification (Hermes spec §2.5.1)
+          // When snapshot_payload is present, verify that snapshot_hash matches
+          // the canonical JSON hash of the payload. Prevents tampered or stale payloads.
+          const hashVerification = verifySnapshotHash(request);
+          if (hashVerification.error) {
+            logger.warning`Snapshot hash verification failed: ${hashVerification.error}`;
+
+            auditEmitter.emit(
+              createValidationFailedEvent({
+                traceId: request.trace?.trace_id ?? 'unknown',
+                subjectId: request.subject?.subject_id ?? 'unknown',
+                organizationId: request.subject?.organization_id ?? SYSTEM_ORG_ID,
+                errorMessage: hashVerification.error,
+                errorCode: 'SNAPSHOT_HASH_MISMATCH',
+                policyPackVersion: composedPolicyPack?.policy_version ?? 'unknown',
+                tags: ['snapshot_hash_mismatch'],
+              }),
+            );
+
+            set.status = 400;
+            return buildErrorResponse(request, hashVerification.error, ['data_quality_warning']);
+          }
+          if (hashVerification.warning) {
+            logger.warning`${hashVerification.warning}`;
           }
 
           // 3. Staleness validation
