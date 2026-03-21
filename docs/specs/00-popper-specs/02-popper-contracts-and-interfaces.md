@@ -117,7 +117,7 @@ The canonical schema is Hermes `ControlCommand` (see Hermes contract).
 
 ## 5) Audit events (Popper emits these)
 
-Popper MUST emit Hermes `AuditEvent` objects (see Hermes contract) that are joinable by `trace_id`.
+Popper emits its own domain-specific audit events which are bridged to Hermes `AuditEvent` format via `hermes-bridge.ts` (see `12-audit-event-hermes-mapping.md`). Bridged events are joinable by `trace_id`.
 
 Minimum required event emission for v1:
 - **On receiving a request**: `event_type = "SUPERVISION_REQUEST_RECEIVED"`

@@ -45,19 +45,37 @@ const POPPER_ONLY_TYPES: ReadonlySet<PopperAuditEventType> = new Set([
 /**
  * Resolve the Hermes event type for a SAFE_MODE_CHANGED event.
  * Uses the payload's safe_mode.active flag to disambiguate.
+ * When neither payload nor safeModeActive provides the state,
+ * maps to OTHER with a diagnostic indicator rather than guessing.
  */
-function resolveSafeModeType(event: AuditEventInput): HermesAuditEventType {
-  const active = event.payload?.safe_mode?.active ?? event.safeModeActive ?? false;
-  return active ? 'SAFE_MODE_ENABLED' : 'SAFE_MODE_DISABLED';
+function resolveSafeModeType(event: AuditEventInput): {
+  type: HermesAuditEventType;
+  degraded: boolean;
+} {
+  const fromPayload = event.payload?.safe_mode?.active;
+  const fromField = event.safeModeActive;
+
+  if (fromPayload !== undefined && fromPayload !== null) {
+    return { type: fromPayload ? 'SAFE_MODE_ENABLED' : 'SAFE_MODE_DISABLED', degraded: false };
+  }
+  if (fromField !== undefined && fromField !== null) {
+    return { type: fromField ? 'SAFE_MODE_ENABLED' : 'SAFE_MODE_DISABLED', degraded: false };
+  }
+
+  // Critical data missing — cannot determine safe mode state.
+  // Map to OTHER rather than guessing enabled/disabled.
+  return { type: 'OTHER', degraded: true };
 }
 
 /**
  * Map a Popper AuditEventType to the corresponding Hermes AuditEventType.
  * Returns a tuple of [hermesType, otherEventType?].
  */
-function mapEventType(event: AuditEventInput): [HermesAuditEventType, string | undefined] {
+function mapEventType(event: AuditEventInput): [HermesAuditEventType, string | undefined, boolean] {
   if (event.eventType === 'SAFE_MODE_CHANGED') {
-    return [resolveSafeModeType(event), undefined];
+    const resolved = resolveSafeModeType(event);
+    const otherType = resolved.degraded ? 'SAFE_MODE_CHANGED' : undefined;
+    return [resolved.type, otherType, resolved.degraded];
   }
 
   const direct = DIRECT_TYPE_MAP[event.eventType];
@@ -67,15 +85,15 @@ function mapEventType(event: AuditEventInput): [HermesAuditEventType, string | u
       direct === 'OTHER'
         ? ((event.payload?.other_event_type as string | undefined) ?? undefined)
         : undefined;
-    return [direct, otherType];
+    return [direct, otherType, false];
   }
 
   if (POPPER_ONLY_TYPES.has(event.eventType)) {
-    return ['OTHER', event.eventType];
+    return ['OTHER', event.eventType, false];
   }
 
   // Unknown type -- fall through to OTHER
-  return ['OTHER', event.eventType];
+  return ['OTHER', event.eventType, false];
 }
 
 /**
@@ -107,7 +125,11 @@ function buildSummary(event: AuditEventInput, hermesType: HermesAuditEventType):
  * Convert Popper's tag array to Hermes' Record<string, string> format.
  * Also preserves Popper-specific fields that have no Hermes envelope field.
  */
-function buildTags(event: AuditEventInput): Readonly<Record<string, string>> | undefined {
+function buildTags(
+  event: AuditEventInput,
+  mappingDegraded = false,
+  modeDefaulted = false,
+): Readonly<Record<string, string>> | undefined {
   const tags: Record<string, string> = {};
 
   // Convert Popper tag array
@@ -139,6 +161,16 @@ function buildTags(event: AuditEventInput): Readonly<Record<string, string>> | u
     tags.citation = event.ruleProvenance.citation;
   }
 
+  // Diagnostic tags when the bridge had to default critical values
+  if (mappingDegraded) {
+    tags['mapping_confidence'] = 'degraded';
+    tags['mapping_degraded'] = 'missing_safe_mode_state';
+  }
+  if (modeDefaulted) {
+    tags['mapping_confidence'] = 'degraded';
+    tags['mode_defaulted'] = 'true';
+  }
+
   return Object.keys(tags).length > 0 ? tags : undefined;
 }
 
@@ -159,10 +191,11 @@ function buildTags(event: AuditEventInput): Readonly<Record<string, string>> | u
  * ```
  */
 export function toHermesAuditEvent(event: AuditEventInput, serviceVersion = '0.1.0'): AuditEvent {
-  const [eventType, otherEventType] = mapEventType(event);
+  const [eventType, otherEventType, mappingDegraded] = mapEventType(event);
   const now = new Date().toISOString() as IsoDateTime;
+  const hasExplicitMode = event.payload?.mode !== undefined && event.payload?.mode !== null;
   const mode: Mode = (event.payload?.mode as Mode) ?? 'wellness';
-  const tags = buildTags(event);
+  const tags = buildTags(event, mappingDegraded, !hasExplicitMode);
 
   const base = {
     hermes_version: CURRENT_HERMES_VERSION,
