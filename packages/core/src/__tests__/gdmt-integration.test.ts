@@ -1,7 +1,7 @@
 /**
  * GDMT Integration Tests (Phase 7 — T3-1)
  *
- * Cross-cutting integration tests validating Hermes v2.1 clinical types,
+ * Cross-cutting integration tests validating Hermes v2.3 clinical types,
  * policy engine evaluation, hallucination detection, and multi-pack
  * composition across Phases 1-4.
  */
@@ -40,20 +40,21 @@ const CARDIO_HF_PATH = join(POLICIES_DIR, 'domains', 'cardiometabolic-hf.yaml');
 
 const createMinimalRequest = (overrides: Record<string, unknown> = {}): SupervisionRequest =>
   ({
-    hermes_version: '2.1.0',
+    hermes_version: '2.3.0',
     mode: 'wellness',
     trace: {
-      request_id: `int-test-${Math.random().toString(36).slice(2, 8)}`,
+      trace_id: `int-test-${Math.random().toString(36).slice(2, 8)}`,
       created_at: new Date().toISOString(),
       producer: {
-        system_id: 'integration-test',
-        system_version: '1.0.0',
+        system: 'deutsch',
+        service_version: '1.0.0',
       },
     },
     subject: {
       subject_id: 'patient-integration-001',
       subject_type: 'patient',
     },
+    request_timestamp: new Date().toISOString(),
     proposals: [],
     ...overrides,
   }) as SupervisionRequest;
@@ -517,10 +518,10 @@ describe('output_validation and hallucination detection', () => {
 });
 
 // =============================================================================
-// 6. Clinical condition kinds (v2.1)
+// 6. Clinical condition kinds (v2.3)
 // =============================================================================
 
-describe('v2.1 clinical condition kinds', () => {
+describe('v2.3 clinical condition kinds', () => {
   test('medication_class_in matches ATC codes on proposals', () => {
     const pack = createPolicyPack([
       createRule(
@@ -753,9 +754,9 @@ describe('v2.1 clinical condition kinds', () => {
     const evaluator = createEvaluator(pack);
     const request = createMinimalRequest({
       trace: {
-        request_id: 'washout-int-test',
+        trace_id: 'washout-int-test',
         created_at: NOW,
-        producer: { system_id: 'integration-test', system_version: '1.0.0' },
+        producer: { system: 'deutsch', service_version: '1.0.0' },
       },
       proposals: [
         {
@@ -1118,13 +1119,14 @@ describe('real pack loading from YAML', () => {
     const stoppedAt = new Date(new Date(NOW).getTime() - 10 * 60 * 60 * 1000).toISOString();
 
     const request = createMinimalRequest({
-      hermes_version: '2.1.0',
+      hermes_version: '2.3.0',
       mode: 'advocate_clinical',
       trace: {
-        request_id: 'real-pack-test',
+        trace_id: 'real-pack-test',
         created_at: NOW,
-        producer: { system_id: 'integration-test', system_version: '1.0.0' },
+        producer: { system: 'deutsch', service_version: '1.0.0' },
       },
+      request_timestamp: NOW,
       proposals: [
         {
           proposal_id: 'p-arni-real',
