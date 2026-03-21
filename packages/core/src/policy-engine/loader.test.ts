@@ -16,8 +16,8 @@ describe('Policy Pack Loader', () => {
     test('loads default policy pack from YAML', async () => {
       const pack = await loadPolicyPack(DEFAULT_POLICY_PATH);
 
-      expect(pack.policy_id).toBe('popper-default');
-      expect(pack.policy_version).toBe('1.1.0');
+      expect(pack.policy_id).toBe('popper-core-safety');
+      expect(pack.policy_version).toBe('2.0.0');
       expect(pack.rules.length).toBeGreaterThan(0);
       expect(pack.staleness).toBeDefined();
       expect(pack.staleness?.thresholds.wellness_hours).toBe(24);
@@ -141,8 +141,8 @@ describe('Policy Pack Loader', () => {
 
       const pack = await registry.loadAndRegister(DEFAULT_POLICY_PATH);
 
-      expect(pack.policy_id).toBe('popper-default');
-      expect(registry.has('popper-default')).toBe(true);
+      expect(pack.policy_id).toBe('popper-core-safety');
+      expect(registry.has('popper-core-safety')).toBe(true);
       expect(registry.getDefault()).toBe(pack);
     });
   });

@@ -35,7 +35,7 @@ afterAll(() => {
 });
 
 function evaluate(context: EvaluationContext): EvaluationResult {
-  const pack = policyRegistry.get('popper-default');
+  const pack = policyRegistry.get('popper-core-safety');
   if (!pack) throw new Error('Policy pack not loaded');
   return createEvaluator(pack).evaluate(context);
 }

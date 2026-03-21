@@ -147,6 +147,12 @@ describe('E2E Supervision Vectors', () => {
   test('e2e-002: Medication with low HTV → ROUTE_TO_CLINICIAN', async () => {
     const request = createBaseRequest({
       mode: 'advocate_clinical',
+      snapshot: {
+        snapshot_id: 'snap-e2e',
+        created_at: new Date().toISOString(),
+        sources: ['ehr'],
+        snapshot_hash: '44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a',
+      },
       snapshot_payload: {},
       idempotency_key: `idem-e2e-002-${Date.now()}`,
       request_timestamp: new Date().toISOString(),
@@ -173,7 +179,7 @@ describe('E2E Supervision Vectors', () => {
           evidence_refs: [
             {
               evidence_id: 'ev-1',
-              evidence_type: 'study',
+              evidence_type: 'literature',
               citation: 'Test RCT',
               evidence_grade: 'rct',
             },

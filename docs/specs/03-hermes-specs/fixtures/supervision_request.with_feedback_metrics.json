@@ -21,7 +21,8 @@
     "created_at": "2026-01-25T09:55:00.000Z",
     "sources": [
       "ehr"
-    ]
+    ],
+    "snapshot_hash": "YWJjZGVmMTIzNDU2Nzg5MGFiY2RlZjEyMzQ1Njc4OTA="
   },
   "idempotency_key": "01HQXYZ000000000000000006ABC",
   "feedback_metrics": {

@@ -22,7 +22,8 @@
     "sources": [
       "ehr",
       "wearable"
-    ]
+    ],
+    "snapshot_hash": "YWJjZGVmMTIzNDU2Nzg5MGFiY2RlZjEyMzQ1Njc4OTA="
   },
   "idempotency_key": "01HQXYZ000000000AABBC00009",
   "proposals": [

@@ -39,7 +39,7 @@ function createValidRequest(): SupervisionRequest {
     },
     snapshot: {
       snapshot_id: 'snap_test_001',
-      snapshot_hash: 't3stH4shV4lu3==',
+      snapshot_hash: 'YWJjZGVmMTIzNDU2Nzg5MGFiY2RlZjEyMzQ1Njc4OTA=',
       created_at: '2026-02-04T09:59:30.000Z',
       sources: ['ehr'],
       snapshot_uri: 'phi://snapshots/snap_test_001',
@@ -60,7 +60,7 @@ function createValidRequest(): SupervisionRequest {
         created_at: '2026-02-04T10:00:00.000Z',
         medication: { name: 'test_medication' },
         change: {
-          change_type: 'initiate',
+          change_type: 'start',
           to_dose: '10 mg daily',
         },
         audit_redaction: { summary: 'Test proposal' },
@@ -324,16 +324,10 @@ describe('Request Validation - Proposals', () => {
     const request = createValidRequest();
     request.proposals.push({
       proposal_id: 'prop_test_002',
-      kind: 'LAB_ORDER_PROPOSAL',
+      kind: 'CARE_NAVIGATION',
       created_at: '2026-02-04T10:00:00.000Z',
-      lab_tests: [
-        {
-          test_name: 'CBC',
-          loinc_code: '58410-2',
-        },
-      ],
-      timing: 'baseline',
-      audit_redaction: { summary: 'Test lab order' },
+      action: 'schedule_appointment',
+      audit_redaction: { summary: 'Test care navigation' },
     });
     const result = validateHermesMessage(request);
     expect(result.valid).toBe(true);
@@ -346,23 +340,22 @@ describe('Request Validation - Proposals', () => {
     expect(result.valid).toBe(false);
   });
 
-  test('proposal without audit_redaction passes validation (optional field)', () => {
+  test('proposal without audit_redaction fails validation (required in v2.3)', () => {
     const request = createValidRequest();
     // @ts-expect-error: Testing invalid structure
     delete request.proposals[0].audit_redaction;
     const result = validateHermesMessage(request);
-    // Note: audit_redaction is optional on proposals
-    expect(result.valid).toBe(true);
+    // Note: audit_redaction is required on proposals since Hermes v2.3
+    expect(result.valid).toBe(false);
   });
 
   test('proposal with unique IDs pass validation', () => {
     const request = createValidRequest();
     request.proposals.push({
       proposal_id: 'prop_test_002',
-      kind: 'FOLLOWUP_SCHEDULING_PROPOSAL',
+      kind: 'OTHER',
+      other_kind: 'followup_scheduling',
       created_at: '2026-02-04T10:00:00.000Z',
-      followup_type: 'lab_review',
-      timing: '6_weeks',
       audit_redaction: { summary: 'Test follow-up' },
     });
     const result = validateHermesMessage(request);
@@ -414,11 +407,10 @@ describe('Request Validation - Deutsch Patterns', () => {
     request.snapshot.sources = ['wearable', 'patient_reported'];
     request.proposals[0] = {
       proposal_id: 'prop_wellness_001',
-      kind: 'LIFESTYLE_RECOMMENDATION_PROPOSAL',
+      kind: 'LIFESTYLE_MODIFICATION_PROPOSAL',
       created_at: '2026-02-04T10:00:00.000Z',
-      content: {
-        text: 'Wellness recommendation',
-      },
+      modification_type: 'physical_activity',
+      recommendations: ['Walk 30 minutes daily'],
       audit_redaction: { summary: 'Wellness proposal' },
     };
     const result = validateHermesMessage(request);

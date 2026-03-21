@@ -876,7 +876,8 @@ describe('multi-pack composition', () => {
     });
 
     expect(composed.rules.length).toBeGreaterThan(0);
-    expect(composed.policy_id).toBe('domain-cardiometabolic-hf');
+    // With empty core/ dir, falls back to default.yaml + domain pack → composed ID
+    expect(composed.policy_id).toBe('composed:popper-core-safety+domain-cardiometabolic-hf');
   });
 });
 

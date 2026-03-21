@@ -284,16 +284,16 @@ export class StalenessValidator {
   // ===========================================================================
 
   private extractSnapshot(request: SupervisionRequest): Record<string, unknown> | undefined {
-    // Try snapshot_payload first (embedded)
-    const payload = (request as Record<string, unknown>).snapshot_payload;
-    if (payload && typeof payload === 'object') {
-      return payload as Record<string, unknown>;
-    }
-
-    // Try snapshot (might be embedded or referenced)
+    // Try snapshot first — it contains metadata (created_at) needed for staleness
     const snapshot = (request as Record<string, unknown>).snapshot;
     if (snapshot && typeof snapshot === 'object') {
       return snapshot as Record<string, unknown>;
+    }
+
+    // Fallback to snapshot_payload (may contain embedded timestamps)
+    const payload = (request as Record<string, unknown>).snapshot_payload;
+    if (payload && typeof payload === 'object') {
+      return payload as Record<string, unknown>;
     }
 
     // Check for snapshot_ref (reference only, no data to validate age)

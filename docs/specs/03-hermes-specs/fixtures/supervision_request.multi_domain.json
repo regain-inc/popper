@@ -23,7 +23,8 @@
       "ehr",
       "wearable",
       "patient_reported"
-    ]
+    ],
+    "snapshot_hash": "YWJjZGVmMTIzNDU2Nzg5MGFiY2RlZjEyMzQ1Njc4OTA="
   },
   "idempotency_key": "01HQXYZ000000000000000007ABC",
   "contributing_domains": [

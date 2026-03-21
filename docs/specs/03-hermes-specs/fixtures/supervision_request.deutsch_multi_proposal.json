@@ -22,7 +22,8 @@
     "sources": [
       "ehr",
       "wearable"
-    ]
+    ],
+    "snapshot_hash": "YWJjZGVmMTIzNDU2Nzg5MGFiY2RlZjEyMzQ1Njc4OTA="
   },
   "idempotency_key": "01HQXYZ000000000AABBC00010",
   "proposals": [
@@ -47,7 +48,7 @@
       "proposal_id": "prop-dmp-lab-001",
       "kind": "CARE_NAVIGATION",
       "created_at": "2026-01-25T10:00:01.000Z",
-      "action": "lab_order",
+      "action": "schedule_appointment",
       "lab_test": "BMP",
       "loinc_code": "51990-0",
       "reason": "Monitor renal function post-titration",

@@ -124,7 +124,7 @@ describe('POST /v1/popper/supervise', () => {
       expect(response.status).toBe(200);
 
       const body = await response.json();
-      expect(body.hermes_version).toBe('2.0.0');
+      expect(body.hermes_version).toBe('2.3.0');
       expect(body.message_type).toBe('supervision_response');
       expect(body.mode).toBe('wellness');
       expect(body.decision).toBeDefined();
@@ -168,6 +168,10 @@ describe('POST /v1/popper/supervise', () => {
       const request = {
         ...baseRequest,
         mode: 'advocate_clinical',
+        snapshot: {
+          ...baseRequest.snapshot,
+          snapshot_hash: '44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a',
+        },
         snapshot_payload: {},
         idempotency_key: 'idem-123',
         request_timestamp: new Date().toISOString(),
@@ -217,6 +221,12 @@ describe('POST /v1/popper/supervise', () => {
     test('rejects advocate_clinical request without idempotency_key', async () => {
       const request = createValidRequest({
         mode: 'advocate_clinical',
+        snapshot: {
+          snapshot_id: 'snap-001',
+          created_at: new Date().toISOString(),
+          sources: ['ehr'],
+          snapshot_hash: '44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a',
+        },
         snapshot_payload: {},
         request_timestamp: new Date().toISOString(),
         // Missing idempotency_key
@@ -235,6 +245,12 @@ describe('POST /v1/popper/supervise', () => {
 
       const request = createValidRequest({
         mode: 'advocate_clinical',
+        snapshot: {
+          snapshot_id: 'snap-001',
+          created_at: new Date().toISOString(),
+          sources: ['ehr'],
+          snapshot_hash: '44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a',
+        },
         snapshot_payload: {},
         idempotency_key: 'idem-123',
         request_timestamp: pastTime.toISOString(),
@@ -253,6 +269,12 @@ describe('POST /v1/popper/supervise', () => {
 
       const request = createValidRequest({
         mode: 'advocate_clinical',
+        snapshot: {
+          snapshot_id: 'snap-001',
+          created_at: new Date().toISOString(),
+          sources: ['ehr'],
+          snapshot_hash: '44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a',
+        },
         snapshot_payload: {},
         idempotency_key: 'idem-123',
         request_timestamp: slightlyPast.toISOString(),
@@ -356,6 +378,12 @@ describe('POST /v1/popper/supervise', () => {
 
       const request = createValidRequest({
         mode: 'advocate_clinical',
+        snapshot: {
+          snapshot_id: 'snap-001',
+          created_at: new Date().toISOString(),
+          sources: ['ehr'],
+          snapshot_hash: '44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a',
+        },
         snapshot_payload: {},
         idempotency_key: 'idem-audit',
         request_timestamp: pastTime.toISOString(),
@@ -433,6 +461,12 @@ describe('POST /v1/popper/supervise', () => {
     ) => ({
       ...createValidRequest(),
       mode: 'advocate_clinical',
+      snapshot: {
+        snapshot_id: 'snap-001',
+        created_at: new Date().toISOString(),
+        sources: ['ehr'],
+        snapshot_hash: '44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a',
+      },
       snapshot_payload: {},
       idempotency_key: idempotencyKey,
       request_timestamp: new Date().toISOString(),
@@ -529,10 +563,11 @@ describe('POST /v1/popper/supervise', () => {
           },
           proposals: [
             {
-              kind: 'LIFESTYLE_RECOMMENDATION',
+              kind: 'LIFESTYLE_MODIFICATION_PROPOSAL',
               proposal_id: 'different',
               created_at: new Date().toISOString(),
-              recommendation_markdown: 'Different proposal',
+              modification_type: 'physical_activity',
+              recommendations: ['Different proposal'],
               audit_redaction: { summary: 'Different' },
             },
           ],
