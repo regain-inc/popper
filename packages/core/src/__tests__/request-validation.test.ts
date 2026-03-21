@@ -17,7 +17,7 @@ import { validateHermesMessage } from '@regain/hermes';
 
 function createValidRequest(): SupervisionRequest {
   return {
-    hermes_version: '2.0.0',
+    hermes_version: '2.3.0',
     message_type: 'supervision_request',
     trace: {
       trace_id: 'test-trace-001',
@@ -48,6 +48,7 @@ function createValidRequest(): SupervisionRequest {
         conflicting_signals: [],
       },
     },
+    snapshot_payload: {},
     input_risk: {
       attachments_present: false,
       flags: [],

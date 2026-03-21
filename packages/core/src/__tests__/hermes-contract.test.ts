@@ -134,7 +134,7 @@ describe('Hermes Contract Tests', () => {
         const content = await readFile(filePath, 'utf-8');
         const message = JSON.parse(content);
 
-        expect(message.hermes_version).toBe('2.0.0');
+        expect(message.hermes_version).toBe('2.3.0');
         expect(message.message_type).toBe('supervision_request');
         expect(message.trace).toBeDefined();
         expect(message.trace.trace_id).toBeDefined();
@@ -156,7 +156,7 @@ describe('Hermes Contract Tests', () => {
         const content = await readFile(filePath, 'utf-8');
         const message = JSON.parse(content);
 
-        expect(message.hermes_version).toBe('2.0.0');
+        expect(message.hermes_version).toBe('2.3.0');
         expect(message.message_type).toBe('supervision_response');
         expect(message.decision).toBeDefined();
         expect(['APPROVED', 'REQUEST_MORE_INFO', 'ROUTE_TO_CLINICIAN', 'HARD_STOP']).toContain(
@@ -189,7 +189,7 @@ describe('Hermes Contract Tests', () => {
       const message = JSON.parse(content);
 
       expect(message.mode).toBe('wellness');
-      expect(message.proposals[0].kind).toBe('LIFESTYLE_RECOMMENDATION_PROPOSAL');
+      expect(message.proposals[0].kind).toBe('LIFESTYLE_MODIFICATION_PROPOSAL');
       expect(message.trace.producer.system).toBe('deutsch');
     });
 
@@ -216,8 +216,8 @@ describe('Hermes Contract Tests', () => {
       // Verify distinct proposal kinds
       const proposalKinds = message.proposals.map((p: { kind: string }) => p.kind);
       expect(proposalKinds).toContain('MEDICATION_ORDER_PROPOSAL');
-      expect(proposalKinds).toContain('LAB_ORDER_PROPOSAL');
-      expect(proposalKinds).toContain('FOLLOWUP_SCHEDULING_PROPOSAL');
+      expect(proposalKinds).toContain('CARE_NAVIGATION');
+      expect(proposalKinds).toContain('OTHER');
 
       // Verify all proposals have unique IDs
       const proposalIds = message.proposals.map((p: { proposal_id: string }) => p.proposal_id);
