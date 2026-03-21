@@ -40,7 +40,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §4 step 1 — schema validation gate"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -62,7 +62,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §5 bullet 4 — snapshot_missing → HARD_STOP"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -102,7 +102,7 @@ rules:
     provenance:
       source_type: governance_requirement
       source_layer: 5
-      citation: popper-safety-dsl-v1
+      citation: "Popper Safety DSL v1, §4 step 2 — safe-mode override: never APPROVE medication in wellness"
       evidence_grade: policy
       jurisdiction: US
       clinical_domain: safety
@@ -122,7 +122,8 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §5.1 — staleness rules: high-risk stale → ROUTE_TO_CLINICIAN"
+      calibration_note: "Staleness thresholds (wellness: 24h, clinical: 4h) are engineering defaults from §3. NEEDS HUMAN REVIEW: clinical team should confirm 4h clinical threshold against institutional practice."
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -151,7 +152,8 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §5.1 — staleness rules: low-risk stale → REQUEST_MORE_INFO"
+      calibration_note: "See data_quality_warning_high_risk calibration_note for threshold rationale."
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -177,7 +179,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §4 step 2 — safe-mode: never APPROVE medication proposals"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -205,7 +207,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §4 step 2 — safe-mode: ROUTE non-trivial proposals"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -238,7 +240,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §5 bullet 4 — input risk flags: HARD_STOP for suspected malicious activity"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -264,7 +266,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §5 bullet 4 — input risk flags → ROUTE_TO_CLINICIAN"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -293,7 +295,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §5 bullet 6 — medication missing evidence_refs → ROUTE_TO_CLINICIAN"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -318,7 +320,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §5 bullet 5 — medication missing clinician_protocol_ref → ROUTE_TO_CLINICIAN"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -344,7 +346,8 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §8 — epistemological quality: htv_score_below for high-risk proposals"
+      calibration_note: "HTV 0.6 threshold for medications is an engineering default. Rationale: medication orders carry irreversibility risk; 0.6 represents moderate epistemic confidence below which clinician review is warranted. NEEDS HUMAN REVIEW: clinical team should validate this threshold against observed HTV score distributions in production."
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -370,7 +373,8 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §8 — epistemological quality: htv_score_below for all proposals"
+      calibration_note: "HTV 0.4 threshold is the global minimum. Below this, even low-risk proposals lack sufficient epistemic grounding. NEEDS HUMAN REVIEW: validate against observed distributions."
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -393,7 +397,8 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §8 — epistemological quality: evidence_grade_below for clinical proposals"
+      calibration_note: "Threshold set at case_control (Oxford CEBM Level 3b). Medication and triage proposals grounded only in case reports/expert opinion are routed for clinician review. Aligns with standard evidence hierarchies (Oxford CEBM 2011, GRADE framework)."
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -424,7 +429,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §5 bullet 7 — high uncertainty + high-risk proposals → ROUTE_TO_CLINICIAN"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -453,7 +458,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §5 bullet 7 — high uncertainty → REQUEST_MORE_INFO"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -480,7 +485,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §8 — hallucination_detected severity=critical → HARD_STOP"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -504,7 +509,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §8 — hallucination_detected severity=significant → ROUTE_TO_CLINICIAN"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -528,7 +533,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §8 — idk_triggered → ROUTE_TO_CLINICIAN"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -555,7 +560,8 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §7 — multi-domain composition: conflict_count_exceeds"
+      calibration_note: "Threshold of 5 conflicts is an engineering heuristic. Rationale: >5 simultaneous cross-domain conflicts indicate systemic disagreement rather than isolated edge cases, warranting human review of the overall clinical picture."
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -579,7 +585,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §7 — multi-domain composition: conflict_escalated"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -602,7 +608,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §7 — multi-domain composition: conflict_missing_evidence"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -624,7 +630,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §7 — multi-domain composition: conflict_resolution_confidence=low"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -648,7 +654,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §7 — multi-domain composition: domain_status_in=failed → HARD_STOP"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -673,7 +679,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §7 — multi-domain composition: rule_engine_failed → ROUTE_TO_CLINICIAN"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -702,7 +708,8 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §5 — acuity-risk composite: critical acuity + medication → HARD_STOP"
+      calibration_note: "Acuity levels (low/moderate/high/critical) map to standard clinical acuity scales. Critical acuity with medication changes requires mandatory clinician authorization — standard of care for critically ill patients."
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -731,7 +738,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §5 — acuity-risk composite: critical acuity → ROUTE_TO_CLINICIAN"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -755,7 +762,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §5 — acuity-risk composite: critical intervention risk → HARD_STOP"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -779,7 +786,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §5 — acuity-risk composite: high acuity → ROUTE_TO_CLINICIAN"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -803,7 +810,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §5 — acuity-risk composite: high intervention risk → ROUTE_TO_CLINICIAN"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -827,7 +834,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §5 — acuity-risk composite: moderate acuity + high-risk proposal → ROUTE_TO_CLINICIAN"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -856,7 +863,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §5 — acuity-risk composite: moderate intervention risk + medication → ROUTE_TO_CLINICIAN"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -889,7 +896,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §4 step 4 — default rule + §5: low-risk wellness proposals auto-approved"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
@@ -916,7 +923,7 @@ rules:
     provenance:
       source_type: internal_policy
       source_layer: 1
-      citation: "Popper Safety DSL v1, §5 — Minimum required rules"
+      citation: "Popper Safety DSL v1, §4 step 4 — default: no rule matches → ROUTE_TO_CLINICIAN"
       evidence_grade: policy
       jurisdiction: global
       clinical_domain: general
