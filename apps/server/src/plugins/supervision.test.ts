@@ -63,7 +63,7 @@ afterEach(() => {
 // =============================================================================
 
 const createValidRequest = (overrides: Record<string, unknown> = {}) => ({
-  hermes_version: '2.0.0',
+  hermes_version: '2.3.0',
   message_type: 'supervision_request',
   mode: 'wellness',
   trace: {
@@ -168,6 +168,7 @@ describe('POST /v1/popper/supervise', () => {
       const request = {
         ...baseRequest,
         mode: 'advocate_clinical',
+        snapshot_payload: {},
         idempotency_key: 'idem-123',
         request_timestamp: new Date().toISOString(),
         subject: {
@@ -188,7 +189,7 @@ describe('POST /v1/popper/supervise', () => {
   describe('Schema Validation', () => {
     test('returns 422 for missing required fields', async () => {
       const request = {
-        hermes_version: '2.0.0',
+        hermes_version: '2.3.0',
         message_type: 'supervision_request',
         // Missing mode, trace, subject, etc.
       };
@@ -216,6 +217,7 @@ describe('POST /v1/popper/supervise', () => {
     test('rejects advocate_clinical request without idempotency_key', async () => {
       const request = createValidRequest({
         mode: 'advocate_clinical',
+        snapshot_payload: {},
         request_timestamp: new Date().toISOString(),
         // Missing idempotency_key
       });
@@ -233,6 +235,7 @@ describe('POST /v1/popper/supervise', () => {
 
       const request = createValidRequest({
         mode: 'advocate_clinical',
+        snapshot_payload: {},
         idempotency_key: 'idem-123',
         request_timestamp: pastTime.toISOString(),
       });
@@ -250,6 +253,7 @@ describe('POST /v1/popper/supervise', () => {
 
       const request = createValidRequest({
         mode: 'advocate_clinical',
+        snapshot_payload: {},
         idempotency_key: 'idem-123',
         request_timestamp: slightlyPast.toISOString(),
         subject: {
@@ -352,6 +356,7 @@ describe('POST /v1/popper/supervise', () => {
 
       const request = createValidRequest({
         mode: 'advocate_clinical',
+        snapshot_payload: {},
         idempotency_key: 'idem-audit',
         request_timestamp: pastTime.toISOString(),
         trace: {
@@ -428,6 +433,7 @@ describe('POST /v1/popper/supervise', () => {
     ) => ({
       ...createValidRequest(),
       mode: 'advocate_clinical',
+      snapshot_payload: {},
       idempotency_key: idempotencyKey,
       request_timestamp: new Date().toISOString(),
       subject: {

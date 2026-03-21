@@ -64,7 +64,7 @@ afterEach(() => {
 
 function createBaseRequest(overrides: Record<string, unknown> = {}) {
   return {
-    hermes_version: '2.0.0',
+    hermes_version: '2.3.0',
     message_type: 'supervision_request',
     mode: 'wellness',
     trace: {
@@ -147,6 +147,7 @@ describe('E2E Supervision Vectors', () => {
   test('e2e-002: Medication with low HTV → ROUTE_TO_CLINICIAN', async () => {
     const request = createBaseRequest({
       mode: 'advocate_clinical',
+      snapshot_payload: {},
       idempotency_key: `idem-e2e-002-${Date.now()}`,
       request_timestamp: new Date().toISOString(),
       subject: {
@@ -235,7 +236,7 @@ describe('E2E Supervision Vectors', () => {
     const body = await response.json();
 
     // Check required Hermes response fields
-    expect(body.hermes_version).toBe('2.0.0');
+    expect(body.hermes_version).toBe('2.3.0');
     expect(body.message_type).toBe('supervision_response');
     expect(body.mode).toBe('wellness');
     expect(body.trace).toBeDefined();
