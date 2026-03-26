@@ -34,6 +34,25 @@ These layers are complementary, not competing. A facility using Popper may need 
 
 ---
 
+### IAC Standards Cross-Reference
+
+Popper and the accreditation product (`07-regain-accreditation`) number their standards differently. The table below provides the canonical mapping between the two numbering systems.
+
+| Popper Category | Popper Name | Accreditation Standard | IAC Name |
+|---|---|---|---|
+| 1 | Pre-Deployment Validation | I | Pre-Deployment Validation |
+| 2 | Independent Safety Supervision | II | Independent Safety Supervision |
+| 3 | Clinician Override Tracking | V | Override and Rejection Tracking |
+| 4 | Performance Monitoring/Drift | III | Ongoing Performance Monitoring |
+| 5 | Bias and Equity Monitoring | VI | Equity and Bias Monitoring |
+| 6 | Multi-Vendor AI Governance | VII | Governance and Transparency |
+| 7 | Clinician Training | IV | Clinician Training and Competency |
+| 8 | Adverse Event Reporting | VIII | Adverse Event Reporting |
+
+> **Note:** The accreditation product (07-regain-accreditation) uses the IAC Standard numbering (I-VIII) which differs from Popper's original category numbering. The table above provides the canonical mapping. The accreditation evaluator implements all 8 standards with 47 detailed requirements (see spec-iac-echo-standards.md).
+
+---
+
 ## Layer A: Device/Regulatory (FDA, CMS)
 
 ### FDA AI/ML SaMD
@@ -146,7 +165,7 @@ These layers are complementary, not competing. A facility using Popper may need 
 | 2. Independent Safety Supervision | **High** | Core function. Architecturally independent, PHI-blind, verdict-based supervision |
 | 3. Clinician Override Tracking | Medium | Audit trail captures Popper decisions; clinician rationale capture happens in MISS, not Popper |
 | 4. Performance Monitoring / Drift | Medium-High | Drift detection with thresholds implemented; protocols for post-drift action needed |
-| 5. Bias and Equity Monitoring | **None** | PHI-blind design prevents demographic stratification without facility-level join |
+| 5. Bias and Equity Monitoring | **None** (Popper alone) | PHI-blind design prevents demographic stratification without facility-level join. **Update:** The accreditation product has since implemented facility-level bias monitoring via BiasDetectionEvent integration (Standard VI, 5 requirements). Facilities seeking IAC accreditation can satisfy this category through the accreditation evaluator rather than Popper directly. |
 | 6. Multi-Vendor AI Governance | Low-Medium | Per-org scope and contract-based interface support it; undemonstrated with multiple vendors |
 | 7. Clinician Training | **None** | Out of scope for Popper; facility-level deliverable |
 | 8. Adverse Event Reporting | Medium | Audit trail provides raw data; reporting workflow and templates missing |
