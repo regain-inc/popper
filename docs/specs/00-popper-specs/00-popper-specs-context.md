@@ -132,3 +132,13 @@ Popper must provide:
 This folder is fully self-contained. These are background only:
 - TA2 overview: `/Users/gsizm/dev/01-regain-health/docs/00-vision/01-ADVOCATE/TA2 Specs/TA2-Specs.md`
 - Architecture overview: `/Users/gsizm/dev/01-regain-health/docs/00-vision/00-clinical-agents/00-overall-specs/00-deutsch-popper-hermes-architecture.md`
+
+---
+
+## IAC Product Specs — Moved
+
+> **As of 2026-03-26**, the IAC product specs (`02-iac-product-specs/`) and clinical grounding specs (`01-clinical-grounding-and-supervision/`) have been **centralized** into `07-regain-accreditation/docs/` as the single source of truth for the IAC accreditation product line.
+>
+> Redirect stubs remain in each file pointing to the canonical location.
+>
+> **Canonical index**: `07-regain-accreditation/docs/00-index.md`
